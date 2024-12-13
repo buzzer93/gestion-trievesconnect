@@ -81,21 +81,21 @@
 			</tr>
 		</thead>
 		<tbody>
-			{% for product in productList %}
+			{% for data in dataList %}
 				<tr>
 					<td>
-						<a class="text-light h5 product_name " href="{{ path('admin.product.edit', {id: product.id}) }}">{{ product.name }}</a>
+						<a class="text-light h5 data_name " href="{{ path('admin.' ~ data.getType() ~ '.edit', { id: data.id }) }}">{{ data.name }}</a>
 					</td>
 					<td>
-						<p class="text-center text-light h5 ">{{ product.sellingPrice | number_format(2, ',', ' ') }}
+						<p class="text-center text-light h5 ">{{ data.sellingPrice | number_format(2, ',', ' ') }}
 							€</p>
 					</td>
 					<td>
-						<p class="text-center text-light h5 bareCode ">{{ product.barCode }}</p>
+						<p class="text-center text-light h5 bareCode ">{{ data.barCode }}</p>
 					</td>
 					<td>
 						<div class="d-flex justify-content-center h5 gap-1">
-							<form method="post" action="{{ path('admin.labeling.delete', { id: product.id , all: 'false'}) }}" onsubmit="return confirm('Voulez-vous vraiment supprimer cette étiquette ?');">
+							<form method="post" action="{{ path('admin.labeling.delete', { id: data.id , all: 'false'}) }}" onsubmit="return confirm('Voulez-vous vraiment supprimer cette étiquette ?');">
 								<input type="hidden" name="_method" value="DELETE">
 								<button class="btn btn-danger btn-sm rounded" type="submit">Supprimer</button>
 							</form>

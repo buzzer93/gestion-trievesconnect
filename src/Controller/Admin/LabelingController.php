@@ -100,15 +100,15 @@ class LabelingController extends AbstractController
     public function printLabels(SessionInterface $session,): Response
     {
         // Récupérer la liste des produits depuis la session
-        $productList = $session->get('productList', []);
+        $dataList = $session->get('dataList', []);
 
-        if (empty($productList)) {
+        if (empty($dataList)) {
             $this->addFlash('danger', 'Aucun produit sélectionné.');
             return $this->redirectToRoute('admin.labeling.index');
         }
 
         return $this->render('admin/labeling/print.html.twig', [
-            'productList' => $productList
+            'dataList' => $dataList
         ]);
     }
 }

@@ -15,7 +15,10 @@ class LabelingType extends AbstractType
     {
         $builder
             ->add('barCode', TextType::class, [
-                'label' => 'Code-barre'                
+                'label' => 'Code-barre',
+                'attr' => [
+                    'autofocus' => true,
+                ]
             ])
 
             ->add('save', SubmitType::class, [
