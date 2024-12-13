@@ -2,17 +2,17 @@
 
 {% block body %}
 	<div class="row">
-		{% for product in productList %}
+		{% for data in dataList %}
 			<div class="label">
 				<div class="label-content">
 					<p class="label-text">
-						{{ product.getLabelingName | raw }}
+						{{ data.getLabelingName | raw }}
 						<br>
-						<strong>{{ product.sellingPrice | number_format(2, ',', ' ') }}
+						<strong>{{ data.sellingPrice | number_format(2, ',', ' ') }}
 							€</strong>
 						TTC
 						<br>
-						<img src="{{ product.getBarCodeImage() }}" alt="Code-barres" class="barcode-img">
+						<img src="{{ data.getBarCodeImage() }}" alt="Code-barres" class="barcode-img">
 					</p>
 				</div>
 			</div>
