@@ -5,6 +5,7 @@ namespace App\Controller\Admin;
 use App\Entity\Product;
 use App\Form\ProductType;
 use App\Repository\ProductRepository;
+use App\Repository\ServiceRepository;
 use App\Service\DataExport;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -40,10 +41,12 @@ class ProductController extends AbstractController
     }
 
     #[Route('/export', name: '.export')]
-    public function export(ProductRepository $pr): Response
+    public function export(ProductRepository $pr, ServiceRepository $sr): Response
     {
         $products = $pr->findAll();
-        $this->dataExport->exportProduct($products);
+        $services = $sr->findAll();
+
+        $this->dataExport->exportData($products, $services);
 
          // Chemin du fichier à télécharger
          $filePath = './export/ProductsDatas.xlsx';

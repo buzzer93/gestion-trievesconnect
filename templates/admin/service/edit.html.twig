@@ -10,11 +10,19 @@
 	<h1 class="text-center">{{ service.name }}</h1>
 
 	<div class="container d-flex justify-content-center px-5">
+<<<<<<< HEAD
 		{{ form_start(form, { 'attr': { 'id': 'form' } }) }}
+=======
+		{{ form_start(form) }}
+>>>>>>> dcab3e5 (create 8 files, update 11 files and copy 2 files)
 		{{ form_errors(form) }}
 		<div class="row">
 			<div class="col-6">{{ form_row(form.name)}}</div>
 			<div class="col-3">{{ form_row(form.barCode)}}</div>
+<<<<<<< HEAD
+=======
+			<div class="col-sm">{{ form_row(form.supplier)}}</div>
+>>>>>>> dcab3e5 (create 8 files, update 11 files and copy 2 files)
 		</div>
 		<div class="row">
 			<div class="col-sm">{{ form_row(form.purchasePrice) }}</div>
@@ -29,6 +37,10 @@
 	</div>
 	{{ form_end(form) }}
 </div>
+<<<<<<< HEAD
 <script src="{{ asset('js/margin.js') }}"></script>
 <script src="{{ asset('js/preventDefault.js') }}"></script>
 {% endblock %}
+=======
+<script src="{{ asset('js/margin.js') }}"></script>{% endblock %}
+>>>>>>> dcab3e5 (create 8 files, update 11 files and copy 2 files)

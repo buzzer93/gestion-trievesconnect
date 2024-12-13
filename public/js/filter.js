@@ -29,7 +29,7 @@ function filterTable() {
     filter = input.value.toUpperCase();
 
     // Obtenir le tableau et ses lignes
-    table = document.getElementById("productTable");
+    table = document.getElementById("sortableTable");
     tr = table.getElementsByTagName("tr");
     // Boucle à travers toutes les lignes du tableau et masque celles qui ne correspondent pas à la requête de recherche
     for (i = 1; i < tr.length; i++) {
