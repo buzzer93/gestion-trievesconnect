@@ -70,23 +70,23 @@ class LabelingController extends AbstractController
     public function delete(int $id, ?string $all, SessionInterface $session): Response
     {
         // Récupérer la liste des produits depuis la session
-        $productList = $session->get('productList', []);
+        $dataList = $session->get('dataList', []);
 
         if ($all === 'true') {
             // Si "all" est passé et égal à "true", supprimer toute la liste de la session
-            $session->remove('productList');
+            $session->remove('dataList');
             $this->addFlash('success', 'Toutes les étiquettes ont été supprimées.');
             return $this->redirectToRoute('admin.labeling.index');
         }
 
         // Rechercher l'index du produit dans la liste par ID
-        foreach ($productList as $index => $product) {
-            if ($product->getId() === $id) {
+        foreach ($dataList as $index => $data) {
+            if ($data->getId() === $id) {
                 // Supprimer une seule occurrence
-                unset($productList[$index]);
+                unset($dataList[$index]);
                 // Réindexer le tableau après suppression
-                $productList = array_values($productList);
-                $session->set('productList', $productList);
+                $dataList = array_values($dataList);
+                $session->set('dataList', $dataList);
                 $this->addFlash('success', 'Étiquette supprimée.');
                 break;
             }

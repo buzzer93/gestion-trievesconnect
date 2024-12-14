@@ -38,6 +38,7 @@ class DataExport
             $activeWorksheet->setCellValue('C' . $key, 'Produit');
             $activeWorksheet->setCellValue('D' . $key, $product->getCategoriesName());
             $activeWorksheet->setCellValue('E' . $key, $product->getComment());
+            $activeWorksheet->getStyle('E' . $key)->getAlignment()->setWrapText(true);
             $activeWorksheet->setCellValue('F' . $key, round($product->getSellingPriceHT(), 2));
             $activeWorksheet->setCellValue('G' . $key, 'Pièce');
             $activeWorksheet->setCellValue('H' . $key, 707000);
@@ -50,6 +51,7 @@ class DataExport
             $activeWorksheet->setCellValue('B' . $key, $service->getName());
             $activeWorksheet->setCellValue('C' . $key, 'Service');
             $activeWorksheet->setCellValue('E' . $key, $service->getDescription());
+            $activeWorksheet->getStyle('E' . $key)->getAlignment()->setWrapText(true);
             $activeWorksheet->setCellValue('F' . $key, round($service->getSellingPriceHT(), 2));
             $activeWorksheet->setCellValue('H' . $key, 706000);
             $activeWorksheet->getStyle('A' . $key)->getNumberFormat()

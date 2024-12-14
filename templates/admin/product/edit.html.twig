@@ -10,7 +10,7 @@
 	<h1 class="text-center">{{ product.name }}</h1>
 
 	<div class="container d-flex justify-content-center px-5">
-		{{ form_start(form) }}
+		{{ form_start(form, { 'attr': { 'id': 'form' } }) }}
 		{{ form_errors(form) }}
 		<div class="row">
 			<div class="col-6">{{ form_row(form.name)}}</div>
@@ -39,4 +39,5 @@
 		{{ form_end(form) }}
 	</div>
 	<script src="{{ asset('js/margin.js') }}"></script>
+    <script src="{{ asset('js/preventDefault.js') }}"></script>
 {% endblock %}
