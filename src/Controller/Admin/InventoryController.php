@@ -30,39 +30,33 @@ class InventoryController extends AbstractController
             $data = $form->getData();
             $barCode = $data['barCode'];
 
-            // Recherche du produit dans la base de données
             $product = $em->getRepository(Product::class)->findOneBy(['barCode' => $barCode]);
             if ($product) {
-                // Vérification si le produit est déjà dans la liste
-                $exists = false;
-                foreach ($inventoryList as $existingProduct) {
-                    if ($existingProduct->getId() === $product->getId()) {
-                        $exists = true;
-                        break;
-                    }
-                }
 
-                if (!$exists) {
-                    // Ajouter le produit s'il n'est pas déjà dans la liste
+                // Vérifier si le produit est déjà dans la liste
+                if (!in_array($product, $inventoryList, false)) {
                     $product->setStock($data['quantity']);
                     $inventoryList[] = $product;
                     $session->set('inventoryList', $inventoryList);
-                    $this->addFlash('success', "Produit ajouté à l'inventaire : {$product->getName()}");
+                    $this->addFlash('success', "Produit ajoutée à l'inventaire: {$product->getName()}");
+                    return $this->redirectToRoute('admin.inventory.index', [
+                        'form' => $form,
+                        'inventoryList' => $inventoryList,
+                    ]);
                 } else {
-                    // Message si le produit est déjà présent
-
-                    $this->addFlash('warning', "Le produit {$product->getName()} est déjà dans l'inventaire.");
+                    $this->addFlash('info', 'Produit déjà présente dans la liste à été mis a jour');
+                    return $this->redirectToRoute('admin.inventory.index', [
+                        'form' => $form,
+                        'inventoryList' => $inventoryList,
+                    ]);
                 }
             } else {
-                // Message si le produit n'est pas trouvé
                 $this->addFlash('danger', 'Produit introuvable.');
+                return $this->redirectToRoute('admin.inventory.index', [
+                    'form' => $form,
+                    'inventoryList' => $inventoryList,
+                ]);
             }
-
-            // Redirection après soumission
-            return $this->redirectToRoute('admin.inventory.index', [
-                'form' => $form,
-                'inventoryList' => $inventoryList,
-            ]);
         }
         return $this->render('admin/inventory/index.html.twig', [
 
@@ -94,6 +88,7 @@ class InventoryController extends AbstractController
                 $inventoryList = array_values($inventoryList);
                 $session->set('inventoryList', $inventoryList);
                 $this->addFlash('success', 'Produit supprimée de l\'inventaire.');
+                
             }
         }
 
