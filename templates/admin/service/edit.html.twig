@@ -1,0 +1,34 @@
+{% extends './base.html.twig' %}
+
+{% block title %}
+	Service:
+	{{ service.name }}
+{% endblock %}
+
+
+{% block body %}
+	<h1 class="text-center">{{ service.name }}</h1>
+
+	<div class="container d-flex justify-content-center px-5">
+		{{ form_start(form, { 'attr': { 'id': 'form' } }) }}
+		{{ form_errors(form) }}
+		<div class="row">
+			<div class="col-6">{{ form_row(form.name)}}</div>
+			<div class="col-3">{{ form_row(form.barCode)}}</div>
+		</div>
+		<div class="row">
+			<div class="col-sm">{{ form_row(form.purchasePrice) }}</div>
+			<div class="col-sm">{{ form_row(form.marginRate) }}</div>
+			<div class="col-sm">{{ form_row(form.sellingPrice) }}</div>
+		</div>
+
+		<div class="col-sm ">{{ form_row(form.description)}}</div>
+	</div>
+	<div>
+		<div class="col-sm">{{ form_row(form.save)}}</div>
+	</div>
+	{{ form_end(form) }}
+</div>
+<script src="{{ asset('js/margin.js') }}"></script>
+<script src="{{ asset('js/preventDefault.js') }}"></script>
+{% endblock %}

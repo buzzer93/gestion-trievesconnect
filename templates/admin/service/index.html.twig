@@ -1,0 +1,112 @@
+{% extends './base.html.twig' %}
+
+{% block title %}
+	Tous les services
+{% endblock %}
+
+{% block body %}
+	<div class="d-flex justify-content-center align-items-center mb-4">
+		<h1 class="text-center text-light">Tous les Services</h1>
+		<button type="button" class="btn btn-info btn-sm rounded-circle ms-2" data-bs-toggle="modal" data-bs-target="#infoModal" title="Informations">?</button>
+	</div>
+
+	<!-- Modal Bootstrap -->
+	<div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div
+				class="modal-content bg-dark text-light">
+				<!-- En-tête du modal -->
+				<div class="modal-header border-secondary">
+					<h5 class="modal-title" id="infoModalLabel">Instructions pour la gestion des services</h5>
+					<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+				</div>
+				<!-- Corps du modal -->
+				<div class="modal-body">
+					<h6>1. Ajouter un service</h6>
+					<p>
+						Cliquez sur le bouton
+						<strong>"Ajouter un service"</strong>
+						pour accéder au formulaire de création. Remplissez les champs nécessaires et cliquez sur
+						<strong>Enregistrer</strong>
+						pour ajouter le service.
+					</p>
+					<h6>2. Modifier un service</h6>
+					<p>
+						Dans la colonne
+						<strong>"Nom"</strong>, cliquez sur le nom du service ou utilisez le bouton
+						<strong>"Modifier"</strong>
+						dans la colonne
+						<strong>"Actions"</strong>. Apportez les modifications souhaitées et cliquez sur
+						<strong>Enregistrer</strong>.
+					</p>
+					<h6>3. Supprimer un service</h6>
+					<p>
+						Cliquez sur le bouton
+						<strong>"Supprimer"</strong>
+						dans la colonne
+						<strong>"Actions"</strong>
+						pour retirer un service. Une confirmation vous sera demandée avant de finaliser la suppression.
+					</p>
+					<h6>4. Recherche et tri</h6>
+					<p>
+						Utilisez la barre de recherche située en haut à droite pour filtrer les services par nom ou code-barres. Cliquez sur les en-têtes des colonnes pour trier les services par prix, marge ou autres critères.
+					</p>
+				</div>
+				<!-- Pied de page du modal -->
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="row d-flex justify-content-around mb-4">
+		<a class="btn btn-primary btn-md col-4 rounded" href="{{ path('admin.service.create') }}">Ajouter un service</a>
+		<div class="col-1"></div>
+		<div class="col-6">
+			<input type="text" id="filterInput" class="form-control bg-dark text-light 54654 border-light rounded" placeholder="Code barre" style="color: #adb5bd;">
+		</div>
+	</div>
+
+	<table class="table table-dark border border-light" id="sortableTable">
+		<thead>
+			<tr>
+				<th class="h4 text-center">Nom</th>
+				<th class="h4 text-center">Prix de vente TTC</th>
+				<th class="h4 text-center">montant de la marge</th>
+				<th class="h4 text-center">Code-barre</th>
+				<th class="h4 text-center">Actions</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for service in services %}
+				<tr>
+					<td>
+						<a class="text-light h5 service_name" href="{{ path('admin.service.edit',{id: service.id}) }}">{{ service.name }}</a>
+					</td>
+					<td>
+						<p class="text-center text-light h5">{{ service.sellingPrice| number_format(2, ',', ' ') }}
+							€</p>
+					</td>
+					<td>
+						<p class="text-center text-light h5">{{ service.marginAmount| number_format(2, ',', ' ') }}
+							€</p>
+					</td>
+					<td>
+						<p class="text-center text-light h5 bareCode">{{ service.barCode }}</p>
+					</td>
+					<td>
+						<div class="d-flex justify-content-center h5 gap-1">
+							<a class="btn btn-primary btn-sm rounded" href="{{ path('admin.service.edit',{id: service.id}) }}">Modifier</a>
+							<form method="post" action="{{ path('admin.service.delete', {'id': service.id}) }}" onsubmit="return confirm('Voulez-vous vraiment supprimer ce service ?');">
+								<input type="hidden" name="_method" value="DELETE">
+								<button class="btn btn-danger rounded">Supprimer</button>
+							</form>
+						</div>
+					</td>
+				</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+
+	 <script src="{{ asset('js/filter.js') }}"></script>
+{% endblock %}

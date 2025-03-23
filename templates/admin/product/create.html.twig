@@ -1,0 +1,36 @@
+{% extends './base.html.twig' %}
+
+{% block title %}
+	Nouveau Produit
+{% endblock %}
+
+
+{% block body %}
+
+	<h1 class="text-center">Nouveau Produit</h1>
+
+	<div class="container d-flex justify-content-center px-5">
+		{{ form_start(form, { 'attr': { 'id': 'product' } }) }}
+		{{ form_errors(form) }}
+		<div class="row">
+			<div class="col-sm">{{ form_row(form.name) }}</div>
+			<div class="col-sm">{{ form_row(form.barCode) }}</div>
+			<div class="col-sm">{{ form_row(form.supplier) }}</div>
+		</div>
+		<div class="row">
+			<div class="col-sm">{{ form_row(form.purchasePrice) }}</div>
+			<div class="col-sm">{{ form_row(form.marginRate) }}</div>
+			<div class="col-sm">{{ form_row(form.sellingPrice) }}</div>
+		</div>
+		<div class="row">
+			<div class="col-sm">{{ form_row(form.comment) }}</div>
+		</div>
+		<div class="row">
+			<div class="col-sm">{{ form_row(form.save) }}</div>
+		</div>
+
+		{{ form_end(form) }}
+	</div>
+	<script src="{{ asset('js/margin.js') }}"></script>
+	<script src="{{ asset('js/preventDefault.js') }}"></script>
+{% endblock %}

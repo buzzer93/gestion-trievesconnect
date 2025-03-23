@@ -1,0 +1,86 @@
+{% extends './base.html.twig' %}
+
+{% block body %}
+	<div class="row">
+		{% for product in productList %}
+			<div class="label">
+				<div class="label-content">
+					<p class="label-text">
+						{{ product.getLabelingName | raw }}
+						<br>
+						<strong>{{ product.sellingPrice | number_format(2, ',', ' ') }}
+							€</strong>
+						TTC
+						<br>
+						<img src="{{ product.getBarCodeImage() }}" alt="Code-barres" class="barcode-img">
+					</p>
+				</div>
+			</div>
+		{% endfor %}
+	</div>
+	<script>
+            setTimeout(window.print(), 1000);
+
+// Lance l'impression dès que la page est chargée
+// Redirige après 1 seconde (ajustez le délai si nécessaire)
+setTimeout(function () {
+window.location.href = "{{ path('admin.labeling.index') }}";// Redirige vers l'index
+
+// Supprimez les étiquettes de la session ici, si nécessaire
+// Vous pourriez avoir besoin d'une autre route pour cela
+}, 1000); // Attendre 1 seconde avant de rediriger
+	</script>
+{% endblock %}
+
+
+{% block stylesheets %}
+	<style>
+		/* Classe pour chaque étiquette */
+		.label {
+			width: 6cm; /* Largeur de 6 cm */
+			height: 4cm; /* Hauteur de 4 cm */
+			margin: 0; /* Supprime les marges */
+			padding: 0; /* Supprime le padding */
+			border: 1px solid black; /* Bordure noire */
+			background-color: white; /* Fond blanc */
+			display: flex; /* Utilisation du flexbox */
+			flex-direction: column; /* Orientation verticale */
+			align-items: center; /* Alignement centré horizontalement */
+			justify-content: center; /* Alignement centré verticalement */
+		}
+
+		/* Classe pour le contenu de l'étiquette */
+		.label-content {
+			width: 100%; /* Prend toute la largeur disponible */
+			height: 100%; /* Prend toute la hauteur disponible */
+			display: flex; /* Utilisation du flexbox */
+			flex-direction: column; /* Orientation verticale */
+			align-items: center; /* Alignement centré horizontalement */
+			justify-content: center; /* Alignement centré verticalement */
+		}
+
+		/* Classe pour le texte de l'étiquette */
+		.label-text {
+			margin: 0; /* Supprime les marges par défaut */
+			text-align: center; /* Centrer le texte */
+			font-size: 24px; /* Taille de la police */
+			line-height: 1.2; /* Espacement entre les lignes */
+			color: #000; /* Couleur du texte (noir) */
+		}
+
+		/* Styles d'impression */
+		@media print {
+			.label {
+				page-break-inside: avoid; /* Évite la séparation des étiquettes entre les pages */
+			}
+		}
+
+		/* Classe pour l'image du code-barres */
+		.barcode-img {
+			max-width: 50%; /* Assure que l'image ne dépasse pas la largeur de l'étiquette */
+			max-height: 50%; /* Limite la hauteur de l'image */
+			object-fit: contain; /* Assure que l'image garde ses proportions */
+			margin-top: 5px; /* Espace au-dessus de l'image */
+		}
+	</style>
+{% endblock %}

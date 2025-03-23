@@ -1,0 +1,42 @@
+{% extends './base.html.twig' %}
+
+{% block title %}
+	Produit:
+	{{ product.name }}
+{% endblock %}
+
+
+{% block body %}
+	<h1 class="text-center">{{ product.name }}</h1>
+
+	<div class="container d-flex justify-content-center px-5">
+		{{ form_start(form) }}
+		{{ form_errors(form) }}
+		<div class="row">
+			<div class="col-6">{{ form_row(form.name)}}</div>
+			<div class="col-3">{{ form_row(form.barCode)}}</div>
+			<div class="col-sm">{{ form_row(form.supplier)}}</div>
+		</div>
+		<div class="row">
+			<div class="col-sm">{{ form_row(form.purchasePrice) }}</div>
+			<div class="col-sm">{{ form_row(form.marginRate) }}</div>
+			<div class="col-sm">{{ form_row(form.sellingPrice) }}</div>
+		</div>
+		<div class="row">
+
+			<div>
+				<label>{{ form_label(form.categories) }}</label>
+				<div class="form-check-inline mb-3">
+					{{ form_widget(form.categories) }}
+				</div>
+			</div>
+
+			<div class="col-sm ">{{ form_row(form.comment)}}</div>
+		</div>
+		<div>
+			<div class="col-sm">{{ form_row(form.save)}}</div>
+		</div>
+		{{ form_end(form) }}
+	</div>
+    <script src="{{ asset('js/margin.js') }}"></script>
+{% endblock %}

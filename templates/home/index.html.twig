@@ -1,0 +1,40 @@
+{% extends './base.html.twig' %}
+
+{% block title %}Log in!
+{% endblock %}
+
+{% block body %}
+<div class="card p-5 bg-dark text-light mx-auto" style="max-width: 800px;">
+			<h3 class="text-center text-light">Bienvenue sur la démo de gestion de boutique</h3>
+		<p class="mt-2">
+			Cette application a été conçue pour un ami qui recherchait une solution simple et efficace pour gérer l'inventaire et les stocks de sa boutique.
+		</p>
+		<p>
+			Utilisez le bouton
+			<button type="button" class="btn btn-info btn-sm rounded-circle ms-2">?</button>
+			pendant votre visite pour plus de detail sur les fonctionnalités de l'application.
+		</p>
+		<hr>
+		<p>
+			Pour accéder à cette version de démonstration :<br>
+			- Nom d'utilisateur :
+			<strong>demo</strong><br>
+			- Mot de passe :
+			<strong>demo</strong>
+		</p>
+		<hr>
+
+        <form class="d-flex flex-column align-items-center text-center" method="post">
+            {% if app.user %}
+                <div class="mb-4">
+                    <h4>Vous êtes connecté en tant que :</h4>
+                    <h2 class="h5">{{ app.user.userIdentifier }}</h2>
+                    <a class="btn btn-lg btn-secondary mt-3" href="{{ path('logout') }}">Se déconnecter</a>
+                </div>
+            {% else %}
+                <h4 class="text-warning">Vous n'êtes pas connecté.</h4>
+                <a class="btn btn-lg btn-primary mt-3" href="{{ path('login') }}">Se connecter</a>
+            {% endif %}
+        </form>
+    </div>
+{% endblock %}

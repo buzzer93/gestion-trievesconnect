@@ -1,0 +1,132 @@
+{% extends './base.html.twig' %}
+
+{% block title %}
+	Tous les Produits
+{% endblock %}
+
+{% block body %}
+	<div class="d-flex justify-content-center align-items-center">
+		<h1 class="text-center text-light">Tous les produits</h1>
+		<button type="button" class="btn btn-info btn-sm rounded-circle ms-2" data-bs-toggle="modal" data-bs-target="#infoModal" title="Informations">?</button>
+	</div>
+
+	<!-- Modal Bootstrap -->
+	<div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div
+				class="modal-content bg-dark text-light">
+				<!-- En-tête du modal -->
+				<div class="modal-header border-secondary">
+					<h5 class="modal-title" id="infoModalLabel">Instructions pour la gestion des produits</h5>
+					<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+				</div>
+				<!-- Corps du modal -->
+				<div class="modal-body">
+					<h6>1. Ajouter un produit</h6>
+					<p>
+						Cliquez sur le bouton
+						<strong>"Ajouter un produit"</strong>
+						pour accéder au formulaire de création. 
+						                    Remplissez les informations requises, telles que le nom, le prix, le fournisseur et le code-barres, puis soumettez.
+					</p>
+					<h6>2. Modifier un produit</h6>
+					<p>
+						Dans la colonne
+						<strong>"Actions"</strong>, cliquez sur le bouton
+						<strong>"Modifier"</strong>
+						correspondant au produit souhaité.
+						                    Apportez les modifications nécessaires et enregistrez.
+					</p>
+					<h6>3. Supprimer un produit</h6>
+					<p>
+						Dans la colonne
+						<strong>"Actions"</strong>, cliquez sur
+						<strong>"Supprimer"</strong>
+						pour retirer un produit.
+						                    Une confirmation sera demandée avant de finaliser la suppression.
+					</p>
+					<h6>4. Exporter les produits</h6>
+					<p>
+						Cliquez sur l'icône de téléchargement située à droite de la barre de recherche pour générer un fichier Excel contenant la liste des produits.
+						                    Le fichier sera automatiquement téléchargé.
+					</p>
+					<h6>5. Rechercher un produit</h6>
+					<p>
+						Utilisez la barre de recherche pour filtrer les produits par code-barres ou par nom . La liste se mettra à jour dynamiquement.
+					</p>
+				</div>
+				<!-- Pied de page du modal -->
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="row d-flex justify-content-around mb-4">
+		<a class="btn btn-primary btn-md col-4 rounded" href="{{ path('admin.product.create') }}">Ajouter un produit</a>
+		<div class="col-1"></div>
+		<div class="col-6">
+			<input type="text" id="filterInput" class="form-control bg-dark text-light 54654 border-light rounded" placeholder="Code barre" style="color: #adb5bd;">
+		</div>
+		<a href="{{ path('admin.product.export') }}" class="col-1">
+			<i class="fa-solid fa-download fa-2x" style="color: #ffffff;"></i>
+		</a>
+	</div>
+
+	<table class="table table-dark border border-light" id="productTable">
+		<thead>
+			<tr>
+				<th class="h4 text-center">Nom</th>
+				<th class="h4 text-center">Prix d'achat HT</th>
+				<th class="h4 text-center">Prix de vente TTC</th>
+				<th class="h4 text-center">Taux de marge</th>
+				<th class="h4 text-center">montant de la marge</th>
+				<th class="h4 text-center">Fournisseur</th>
+				<th class="h4 text-center">Code-barre</th>
+				<th class="h4 text-center">Actions</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for product in products %}
+				<tr>
+					<td>
+						<a class="text-light h5 product_name" href="{{ path('admin.product.edit',{id: product.id}) }}">{{ product.name }}</a>
+					</td>
+					<td>
+						<p class="text-center text-light h5">{{ product.purchasePrice| number_format(2, ',', ' ') }}
+							€</p>
+					</td>
+					<td>
+						<p class="text-center text-light h5">{{ product.sellingPrice| number_format(2, ',', ' ') }}
+							€</p>
+					</td>
+					<td>
+						<p class="text-center text-light h5">{{ product.marginRate }}%</p>
+					</td>
+					<td>
+						<p class="text-center text-light h5">{{ product.marginAmount| number_format(2, ',', ' ') }}
+							€</p>
+					</td>
+					<td>
+						<p class="text-center text-light h5">{{ product.supplier }}</p>
+					</td>
+					<td>
+						<p class="text-center text-light h5 bareCode">{{ product.barCode }}</p>
+					</td>
+					<td>
+						<div class="d-flex justify-content-center h5 gap-1">
+							<a class="btn btn-primary btn-sm rounded" href="{{ path('admin.product.edit',{id: product.id}) }}">Modifier</a>
+							<form method="post" action="{{ path('admin.product.delete', {'id': product.id}) }}" onsubmit="return confirm('Voulez-vous vraiment supprimer ce produit ?');">
+								<input type="hidden" name="_method" value="DELETE">
+								<button class="btn btn-danger rounded">Supprimer</button>
+							</form>
+						</div>
+					</td>
+				</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+
+	 <script src="{{ asset('js/filter.js') }}"></script>
+{% endblock %}

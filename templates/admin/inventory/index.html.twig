@@ -1,0 +1,138 @@
+{% extends './base.html.twig' %}
+
+{% block title %}
+	Inventaire
+{% endblock %}
+
+{% block body %}
+	<div class="d-flex justify-content-center align-items-center mb-4">
+		<h1 class="text-center text-light">Inventaire</h1>
+		<button type="button" class="btn btn-info btn-sm rounded-circle ms-2" data-bs-toggle="modal" data-bs-target="#infoModal" title="Informations">?</button>
+	</div>
+    <!-- Modal Bootstrap -->
+<div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-light">
+            <!-- En-tête du modal -->
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title" id="infoModalLabel">Instructions pour la gestion de l'inventaire</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <!-- Corps du modal -->
+            <div class="modal-body">
+                <h6>1. Ajouter un produit à l'inventaire</h6>
+                <p>
+                    Utilisez le formulaire en haut de la page pour entrer le <strong>code-barres</strong> d'un produit existant, 
+                    ainsi que la <strong>quantité</strong> que vous souhaitez ajouter. Cliquez ensuite sur <strong>"Ajouter"</strong>.
+                </p>
+                <h6>2.Supprimer des produits</h6>
+                <h6>3. Supprimer tout l'inventaire</h6>
+                <p>
+                    Pour réinitialiser l'inventaire, utilisez le bouton <strong>"Supprimer tout"</strong> à droite du formulaire.
+                    Une confirmation vous sera demandée avant de vider l'inventaire.
+                </p>
+                <h6>4. Imprimer l'inventaire</h6>
+                <p>
+                    Une fois que vous avez terminé d'ajouter les produits, cliquez sur <strong>"Imprimer"</strong> 
+                    pour générer une liste prête à être utilisée.
+                </p>
+                <h6>5. Rechercher dans l'inventaire</h6>
+                <p>
+                    Utilisez le champ de recherche à droite pour filtrer les produits affichés dans la liste.
+                </p>
+            </div>
+            <!-- Pied de page du modal -->
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+	<div class="row align-items-start">
+		<div class="col-md-8">
+			<div class="card bg-dark border-light mb-3">
+				<div class="card-body">
+					{{ form_start(form) }}
+					<div class="row g-3">
+						<div class="col-md-6">
+							<div class="form-group">
+								<label for="{{ form.barCode.vars.id }}" class="form-label text-light">Code-barre</label>
+								{{ form_widget(form.barCode, {'attr': {'class': 'form-control'}}) }}
+							</div>
+						</div>
+						<div class="col-md-6">
+							<div class="form-group">
+								<label for="{{ form.quantity.vars.id }}" class="form-label text-light">Quantité</label>
+								{{ form_widget(form.quantity, {'attr': {'class': 'form-control'}}) }}
+							</div>
+						</div>
+					</div>
+					<div class="text-center mt-4">
+						{{ form_widget(form.save, {'attr': {'class': 'btn btn-primary px-5'}}) }}
+					</div>
+					{{ form_end(form) }}
+				</div>
+			</div>
+		</div>
+
+		<div class="col-md-4">
+			<div class="form-group mb-4">
+				<label for="filterInput" class="form-label text-light">Recherche</label>
+				<input type="text" id="filterInput" class="form-control bg-dark text-light border-light rounded" placeholder="Recherche" style="color: #adb5bd;">
+			</div>
+			<div class="text-center">
+				<form method="post" action="{{ path('admin.inventory.delete', { id: 0, all: 'true' }) }}" onsubmit="return confirm('Voulez-vous vraiment supprimer tous les produits de l\'inventaire ?');">
+					<input type="hidden" name="_method" value="DELETE">
+					<button class="btn btn-danger btn-lg rounded w-100" type="submit">Supprimer tout</button>
+				</form>
+			</div>
+		</div>
+	</div>
+
+	<h1 class="text-center text-light mt-5">Total de l'inventaire en cours :
+		{{ inventoryValue | number_format(2, ',', ' ') }}
+		€</h1>
+
+
+	<table class="table table-dark border border-light my-5" id="productTable">
+		<thead>
+			<tr>
+				<th class="h4 text-center">Nom</th>
+				<th class="h4 text-center">Prix d'achat HT</th>
+				<th class="h4 text-center">Quantité</th>
+				<th class="h4 text-center">Code-barre</th>
+				<th class="h4 text-center">Actions</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for product in inventoryList %}
+				<tr>
+					<td>
+						<a class="text-light h5 product_name " href="{{ path('admin.' ~ product.getType() ~ '.edit', { id: product.id }) }}">{{ product.name }}</a>
+					</td>
+					<td>
+						<p class="text-center text-light h5 ">{{ product.purchasePrice | number_format(2, ',', ' ') }}
+							€</p>
+					</td>
+					<td>
+						<p class="text-center text-light h5 ">{{ product.stock }}</p>
+					</td>
+					<td>
+						<p class="text-center text-light h5 bareCode ">{{ product.barCode }}</p>
+					</td>
+					<td>
+						<div class="d-flex justify-content-center h5 gap-1">
+							<form method="post" action="{{ path('admin.inventory.delete', { id: product.id , all: 'false'}) }}" onsubmit="return confirm('Voulez-vous vraiment supprimer ce produit de l'inventaire ?');">
+								<input type="hidden" name="_method" value="DELETE">
+								<button class="btn btn-danger btn-sm rounded" type="submit">Supprimer</button>
+							</form>
+						</div>
+					</td>
+				</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+
+	 <script src="{{ asset('js/preventDefault.js') }}"></script>
+	 <script src="{{ asset('js/filter.js') }}"></script>
+{% endblock %}

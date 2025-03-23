@@ -1,0 +1,99 @@
+{% extends './base.html.twig' %}
+
+{% block title %}
+	Toutes les Catégories
+{% endblock %}
+
+{% block body %}
+	<div class="d-flex justify-content-center align-items-center">
+		<h1 class="text-center text-light">Toutes les Catégories</h1>
+		<button type="button" class="btn btn-info btn-sm rounded-circle ms-2" data-bs-toggle="modal" data-bs-target="#infoModal" title="Informations">?</button>
+	</div>
+
+	<div class="row d-flex justify-content-around mb-4">
+		<div class="text-center mb-3">
+			<a class="btn btn-primary btn-md" href="{{ path('admin.category.create') }}">Ajouter</a>
+		</div>
+	</div>
+	<!-- Modal Bootstrap -->
+	<div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div
+				class="modal-content bg-dark text-light">
+				<!-- En-tête du modal -->
+				<div class="modal-header border-secondary">
+					<h5 class="modal-title" id="infoModalLabel">Instructions pour la gestion des catégories</h5>
+					<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+				</div>
+				<!-- Corps du modal -->
+				<div class="modal-body">
+					<h6>1. Ajouter une catégorie</h6>
+					<p>
+						Cliquez sur le bouton
+						<strong>"Ajouter"</strong>
+						pour créer une nouvelle catégorie. 
+						                    Remplissez le formulaire avec les informations nécessaires, puis enregistrez.
+					</p>
+					<h6>2. Modifier une catégorie</h6>
+					<p>
+						Dans la colonne
+						<strong>"Nom"</strong>, cliquez sur le nom d'une catégorie pour accéder à son formulaire d'édition.
+							                    Apportez les modifications nécessaires et enregistrez.
+					</p>
+					<h6>3. Supprimer une catégorie</h6>
+					<p>
+						Dans la colonne
+						<strong>"Actions"</strong>, cliquez sur le bouton
+						<strong>"Supprimer"</strong>
+						pour retirer une catégorie.
+						                    Une confirmation sera demandée avant de finaliser la suppression.
+					</p>
+					<h6>4. Consulter les produits affiliés</h6>
+					<p>
+						La colonne
+						<strong>"Nombre de produits affiliés"</strong>
+						indique combien de produits appartiennent à chaque catégorie.
+						                    Vous pouvez utiliser cette information pour gérer vos catégories efficacement.
+					</p>
+				</div>
+				<!-- Pied de page du modal -->
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<table class="table table-dark border border-light" id="categoryTable">
+		<thead>
+			<tr>
+				<th class="h4 text-center">Nom</th>
+				<th class="h4 text-center">Nombre de produits affiliés</th>
+				<th class="h4 text-center">Actions</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for category in categories %}
+				<tr>
+					<td>
+						<a class="text-light h5" href="{{ path('admin.category.edit', {id: category.id}) }}">{{ category.name }}</a>
+					</td>
+					<td>
+						<p class="text-center text-light h5">{{ category.count }}</p>
+					</td>
+					<td>
+						<div class="d-flex justify-content-center gap-1">
+							<a class="btn btn-primary btn-sm rounded" href="{{ path('admin.category.edit', {id: category.id}) }}">Éditer</a>
+
+							<form action="{{ path('admin.category.delete', {id: category.id}) }}" method="post">
+								<input type="hidden" name="_method" value="DELETE">
+								<button type="submit" class="btn btn-danger btn-sm rounded">Supprimer</button>
+							</form>
+						</div>
+					</td>
+				</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+
+	 <script src="{{ asset('js/filter.js') }}"></script>
+{% endblock %}

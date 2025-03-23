@@ -1,0 +1,57 @@
+{% extends './base.html.twig' %}
+
+{% block title %}
+	Categorie:
+	{{ category.name }}
+{% endblock %}
+
+
+{% block body %}
+
+	<h1 class="text-center">{{ category.name }}</h1>
+
+	{{ form_start(form) }}
+	{{ form_errors(form) }}
+	<div class="row">
+		<div class="col-sm">{{ form_row(form.name)}}</div>
+	</div>
+	{{ form_end(form) }}
+
+    <table class="table table-dark border border-light" id="productTable">
+    <thead>
+        <tr>
+            <th class="h4 text-center">Nom</th>
+            <th class="h4 text-center">Fournisseur</th>
+            <th class="h4 text-center">Actions</th>
+            <th class="h4 text-center">Code-barre</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for product in category.products %}
+            <tr>
+                <td>
+                    <a class="text-light h5" href="{{ path('admin.product.edit', {id: product.id}) }}">{{ product.name }}</a>
+                </td>
+                <td>
+                    <p class="text-center text-light h5">{{ product.supplier }}</p>
+                </td>
+                <td>
+                    <div class="d-flex justify-content-center gap-1">
+                        <a class="btn btn-primary btn-sm rounded" href="{{ path('admin.product.edit', {id: product.id}) }}">Modifier</a>
+
+                        <form method="post" action="{{ path('admin.product.delete', {'id': product.id}) }}" onsubmit="return confirm('Voulez-vous vraiment supprimer ce produit ?');">
+                            <input type="hidden" name="_method" value="DELETE">
+                            <button type="submit" class="btn btn-danger btn-sm rounded">Supprimer</button>
+                        </form>
+                    </div>
+                </td>
+                <td>
+                    <p class="text-center text-light h5">{{ product.barCode }}</p>
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+
+{% endblock %}
