@@ -22,8 +22,6 @@
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
-[![project_license][license-shield]][license-url]
-[![LinkedIn][linkedin-shield]][linkedin-url]
 
 
 
@@ -31,18 +29,16 @@
 <br />
 <div align="center">
   <a href="https://github.com/buzzer93/gestion-trievesconnect">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
+    <img src="public/image/favicon.ico" alt="Logo" width="80" height="80">
   </a>
 
-<h3 align="center">project_title</h3>
+<h3 align="center">Gestion-Trievesconnect</h3>
 
   <p align="center">
-    project_description
-    <br />
-    <a href="https://github.com/buzzer93/gestion-trievesconnect"><strong>Explore the docs »</strong></a>
+    application web pour la gestion de l'inventaire et de l'etiquettage des produits d'une boutique.
     <br />
     <br />
-    <a href="https://github.com/buzzer93/gestion-trievesconnect">View Demo</a>
+    <a href="https://gestion-trieves.nicolas-rodriguez.fr">View Demo</a>
     &middot;
     <a href="https://github.com/buzzer93/gestion-trievesconnect/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     &middot;
@@ -82,10 +78,7 @@
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
-
 [![Product Name Screen Shot][product-screenshot]](https://example.com)
-
-Here's a blank template to get started. To avoid retyping too much info, do a search and replace with your text editor for the following: `buzzer93`, `gestion-trievesconnect`, `twitter_handle`, `linkedin_username`, `email_client`, `email`, `project_title`, `project_description`, `project_license`
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -239,7 +232,7 @@ Project Link: [https://github.com/buzzer93/gestion-trievesconnect](https://githu
 [license-url]: https://github.com/buzzer93/gestion-trievesconnect/blob/master/LICENSE.txt
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/linkedin_username
-[product-screenshot]: public/image/favicon.ico
+[product-screenshot]: public/image/gestion.png
 [Next.js]: https://img.shields.io/badge/next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white
 [Next-url]: https://nextjs.org/
 [React.js]: https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB
