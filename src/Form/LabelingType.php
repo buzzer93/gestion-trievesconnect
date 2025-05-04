@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Form;
 
 use App\Entity\Product;
@@ -29,6 +28,8 @@ class LabelingType extends AbstractType
 
     public function configureOptions(OptionsResolver $resolver): void
     {
-        $resolver->setDefaults([]);
+        $resolver->setDefaults([
+            'attr' => ['id' => 'form_with_default'], // Set custom form ID
+        ]);
     }
 }

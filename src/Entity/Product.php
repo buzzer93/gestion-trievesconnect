@@ -92,7 +92,7 @@ class Product
         }
 
         // Sinon Retourne les deux premiers mots sur la première ligne et les deux suivants sur la deuxième ligne le reste n'est pas retourné
-        return $mots[0] . ' ' . $mots[1] . '<br>' . $mots[2] . ' ' . $mots[3];
+        return "{$mots[0]} {$mots[1]}<br>" . (isset($mots[2]) ? "{$mots[2]} " : '') . (isset($mots[3]) ? $mots[3] : '');
     }
 
     public function setName(string $name): static
