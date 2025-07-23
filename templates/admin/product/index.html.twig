@@ -15,64 +15,68 @@
 			<input type="text" id="filterInput" class="form-control bg-dark text-light 54654 border-light rounded" placeholder="Code barre" style="color: #adb5bd;">
 		</div>
 		<a href="{{ path('admin.product.export') }}" class="col-1">
-		<a href="{{ path('admin.product.export') }}" class="col-1">
-			<i class="fa-solid fa-download fa-2x" style="color: #ffffff;"></i>
-		</a>
-	</div>
+			<a href="{{ path('admin.product.export') }}" class="col-1">
+				<i class="fa-solid fa-download fa-2x" style="color: #ffffff;"></i>
+			</a>
+		</div>
 
-	<table class="table table-dark border border-light" id="sortableTable">
-		<thead>
-			<tr>
-				<th class="h4 text-center">Nom</th>
-				<th class="h4 text-center">Prix d'achat HT</th>
-				<th class="h4 text-center">Prix de vente TTC</th>
-				<th class="h4 text-center">Taux de marge</th>
-				<th class="h4 text-center">montant de la marge</th>
-				<th class="h4 text-center">Fournisseur</th>
-				<th class="h4 text-center">Code-barre</th>
-				<th class="h4 text-center">Actions</th>
-			</tr>
-		</thead>
-		<tbody>
-			{% for product in products %}
+		<table class="table table-dark border border-light" id="sortableTable">
+			<thead>
 				<tr>
-					<td>
-						<a class="text-light h5 product_name" href="{{ path('admin.product.edit',{id: product.id}) }}">{{ product.name }}</a>
-					</td>
-					<td>
-						<p class="text-center text-light h5">{{ product.purchasePrice| number_format(2, ',', ' ') }}
-							€</p>
-					</td>
-					<td>
-						<p class="text-center text-light h5">{{ product.sellingPrice| number_format(2, ',', ' ') }}
-							€</p>
-					</td>
-					<td>
-						<p class="text-center text-light h5">{{ product.marginRate }}%</p>
-					</td>
-					<td>
-						<p class="text-center text-light h5">{{ product.marginAmount| number_format(2, ',', ' ') }}
-							€</p>
-					</td>
-					<td>
-						<p class="text-center text-light h5">{{ product.supplier }}</p>
-					</td>
-					<td>
-						<p class="text-center text-light h5 bareCode">{{ product.barCode }}</p>
-					</td>
-					<td>
-						<div class="d-flex justify-content-center h5 gap-1">
-							<a class="btn btn-primary btn-sm rounded" href="{{ path('admin.product.edit',{id: product.id}) }}">Modifier</a>
-							<form method="post" action="{{ path('admin.product.delete', {'id': product.id}) }}" onsubmit="return confirm('Voulez-vous vraiment supprimer ce produit ?');">
-								<input type="hidden" name="_method" value="DELETE">
-								<button class="btn btn-danger rounded">Supprimer</button>
-							</form>
-						</div>
-					</td>
+					<th class="h4 text-center">Nom</th>
+					<th class="h4 text-center">Prix d'achat HT</th>
+					<th class="h4 text-center">Prix de vente TTC</th>
+					<th class="h4 text-center">Taux de marge</th>
+					<th class="h4 text-center">montant de la marge</th>
+					<th class="h4 text-center">Taux de marque</th>
+					<th class="h4 text-center">Fournisseur</th>
+					<th class="h4 text-center">Code-barre</th>
+					<th class="h4 text-center">Actions</th>
 				</tr>
-			{% endfor %}
-		</tbody>
-	</table>
+			</thead>
+			<tbody>
+				{% for product in products %}
+					<tr>
+						<td>
+							<a class="text-light h5 product_name" href="{{ path('admin.product.edit',{id: product.id}) }}">{{ product.name }}</a>
+						</td>
+						<td>
+							<p class="text-center text-light h5">{{ product.purchasePrice| number_format(2, ',', ' ') }}
+								€</p>
+						</td>
+						<td>
+							<p class="text-center text-light h5">{{ product.sellingPrice| number_format(2, ',', ' ') }}
+								€</p>
+						</td>
+						<td>
+							<p class="text-center text-light h5">{{ product.marginRate }}%</p>
+						</td>
+						<td>
+							<p class="text-center text-light h5">{{ product.marginAmount| number_format(2, ',', ' ') }}
+								€</p>
+						</td>
+						<td>
+							<p class="text-center text-light h5">{{ product.markRate }}%</p>
+						</td>
+						<td>
+							<p class="text-center text-light h5">{{ product.supplier }}</p>
+						</td>
+						<td>
+							<p class="text-center text-light h5 bareCode">{{ product.barCode }}</p>
+						</td>
+						<td>
+							<div class="d-flex justify-content-center h5 gap-1">
+								<a class="btn btn-primary btn-sm rounded" href="{{ path('admin.product.edit',{id: product.id}) }}">Modifier</a>
+								<form method="post" action="{{ path('admin.product.delete', {'id': product.id}) }}" onsubmit="return confirm('Voulez-vous vraiment supprimer ce produit ?');">
+									<input type="hidden" name="_method" value="DELETE">
+									<button class="btn btn-danger rounded">Supprimer</button>
+								</form>
+							</div>
+						</td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
 
-	 <script src="{{ asset('js/filter.js') }}"></script>
-{% endblock %}
+		 <script src="{{ asset('js/filter.js') }}"></script>
+	{% endblock %}

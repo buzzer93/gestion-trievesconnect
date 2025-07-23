@@ -336,4 +336,19 @@ class Product
     {
         return 'product';
     }
+    /**
+     * Marge % par rapport au prix de vente HT
+     * (= ((PV HT – PA) / PV HT) × 100 )
+     */
+    public function getMarkRate(): ?float // taux de marque
+{
+    if ($this->sellingPrice === null || $this->purchasePrice === null) {
+        return null;
+    }
+    $pvht = $this->sellingPrice / 1.2;
+    if ($pvht == 0) {
+        return null;
+    }
+    return round((($pvht - $this->purchasePrice) / $pvht) * 100, 2);
+}
 }
