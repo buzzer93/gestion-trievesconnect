@@ -79,6 +79,13 @@ class Product
 
     public function getName(): ?string
     {
+        if ($this->name === null) {
+            return null;
+        }
+        // Convert to UTF-8 if not already
+        if (!mb_check_encoding($this->name, 'UTF-8')) {
+            return mb_convert_encoding($this->name, 'UTF-8', 'ISO-8859-1');
+        }
         return $this->name;
     }
     public function getLabelingName(): ?string
