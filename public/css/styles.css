@@ -72,7 +72,12 @@ h4 {
     margin: 0;
     /* Supprime les marges par défaut pour les titres */
 }
-
+a {
+    color: #58a6ff;
+    /* Couleur des liens */
+    text-decoration: none;
+    /* Supprime le soulignement des liens */
+}
 /* Boutons */
 .btn {
     transition: background-color 0.3s, transform 0.2s;
@@ -128,35 +133,45 @@ h4 {
 
 /* Styles de la table */
 .table {
-    border-collapse: collapse;
+    border-collapse: collapse !important;
     /* Supprime les espaces entre les bordures */
-    width: 100%;
+    width: 100% !important;
     /* Largeur de la table */
 }
 
 .table th,
 .table td {
-    padding: 12px;
+    padding: 12px !important;
     /* Padding dans les cellules */
-    text-align: center;
+    text-align: center !important;
     /* Centrer le texte */
 }
 
 .table th {
-    background-color: #21262d;
+    background-color: #21262d !important;
     /* Couleur de fond pour les en-têtes */
-    color: #c9d1d9;
+    color: #c9d1d9 !important;
     /* Couleur du texte des en-têtes */
 }
 
 .table tr:nth-child(even) {
-    background-color: #21262d;
+    background-color: #21262d !important;
     /* Fond des lignes paires */
 }
 
 .table tr:hover {
-    background-color: #30363d;
+    background-color: #30363d !important;
     /* Fond au survol des lignes */
+}
+
+#productTable,
+#categoryTable {
+    border-radius: 0.375rem !important;
+    /* Arrondi les coins de la table */
+    overflow: hidden !important;
+    border-collapse: collapse !important;
+    width: 100% !important;
+    /* Important pour garder l'arrondi visible */
 }
 
 /* Style pour le placeholder */
@@ -166,10 +181,99 @@ h4 {
     opacity: 1;
     /* Assure que le placeholder est visible */
 }
+/* === Simple‑Datatables – Dark GitHub‑like ================================= */
 
-#productTable,#categoryTable {
-    border-radius: 0.375rem;
-    /* Arrondi les coins de la table */
-    overflow: hidden
+/* Conteneur général */
+.datatable-wrapper {
+    background: #161b22;
+    color: #c9d1d9;
+    border: 1px solid #30363d;
+    border-radius: .375rem;
 }
 
+/* Bandeau haut : sélecteur & recherche */
+.datatable-top {
+    background: #0d1117;
+    padding: .5rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.datatable-selector,
+.datatable-input {
+    background: #21262d;
+    color: #c9d1d9;
+    border: 1px solid #6c757d;
+    border-radius: .375rem;
+    padding: .25rem .5rem;
+    font-size: .875rem;
+}
+.datatable-input::placeholder { color: #586069; }
+
+/* Tableau interne (déjà .table-dark) */
+.datatable-table {
+    background: transparent;
+}
+
+.datatable-table th {
+    background: #21262d !important;
+    color: #c9d1d9 !important;
+    border-bottom-color: #30363d;
+}
+.datatable-table td {
+    background: #161b22;
+    border-bottom: 1px solid #21262d;
+}
+.datatable-table tr:nth-child(even) td { background: #1b1f27; }
+.datatable-table tr:hover td          { background: #30363d; }
+
+/* Icône de tri */
+.datatable-sorter::after {
+    border: 4px solid transparent;
+    border-top-color: #6c757d;
+    margin-left: .35rem;
+    text-decoration: none;
+    opacity: .6;
+}
+th[aria-sort="asc"]  .datatable-sorter::after { border-top-color:#58a6ff; text-decoration: none; opacity:1; }
+th[aria-sort="desc"] .datatable-sorter::after { border-bottom-color:#58a6ff; text-decoration: none; opacity:1; border-top-color:transparent; transform:rotate(180deg); }
+
+/* Pagination & info */
+.datatable-bottom {
+    background: #0d1117;
+    padding: .5rem 1rem;
+    font-size: .875rem;
+    border-top: 1px solid #30363d;
+}
+.datatable-info { color: #8b949e; }
+
+.datatable-pagination-list li > a {
+    color: #c9d1d9;
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: .25rem;
+    padding: .25rem .5rem;
+    margin-left: .25rem;
+    transition: background .2s, color .2s;
+}
+.datatable-pagination-list li.active > a,
+.datatable-pagination-list li > a:hover {
+    background: #238636;
+    color: #fff;
+    border-color: #238636;
+}
+
+/* Fix colonnes gelées (option fixed‑columns) */
+.fixed-columns .datatable-container {
+    overflow: auto;                    /* scroller propre */
+    scrollbar-color: #30363d #161b22;  /* Firefox */
+}
+.fixed-columns .datatable-container::-webkit-scrollbar {
+    height: 8px; width: 8px;
+}
+.fixed-columns .datatable-container::-webkit-scrollbar-thumb {
+    background: #30363d; border-radius: 4px;
+}
+
+/* === Fin overrides ======================================================= */
