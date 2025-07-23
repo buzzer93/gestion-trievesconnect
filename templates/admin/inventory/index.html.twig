@@ -7,47 +7,7 @@
 {% block body %}
 	<div class="d-flex justify-content-center align-items-center mb-4">
 		<h1 class="text-center text-light">Inventaire</h1>
-		<button type="button" class="btn btn-info btn-sm rounded-circle ms-2" data-bs-toggle="modal" data-bs-target="#infoModal" title="Informations">?</button>
 	</div>
-    <!-- Modal Bootstrap -->
-<div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content bg-dark text-light">
-            <!-- En-tête du modal -->
-            <div class="modal-header border-secondary">
-                <h5 class="modal-title" id="infoModalLabel">Instructions pour la gestion de l'inventaire</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
-            </div>
-            <!-- Corps du modal -->
-            <div class="modal-body">
-                <h6>1. Ajouter un produit à l'inventaire</h6>
-                <p>
-                    Utilisez le formulaire en haut de la page pour entrer le <strong>code-barres</strong> d'un produit existant, 
-                    ainsi que la <strong>quantité</strong> que vous souhaitez ajouter. Cliquez ensuite sur <strong>"Ajouter"</strong>.
-                </p>
-                <h6>2.Supprimer des produits</h6>
-                <h6>3. Supprimer tout l'inventaire</h6>
-                <p>
-                    Pour réinitialiser l'inventaire, utilisez le bouton <strong>"Supprimer tout"</strong> à droite du formulaire.
-                    Une confirmation vous sera demandée avant de vider l'inventaire.
-                </p>
-                <h6>4. Imprimer l'inventaire</h6>
-                <p>
-                    Une fois que vous avez terminé d'ajouter les produits, cliquez sur <strong>"Imprimer"</strong> 
-                    pour générer une liste prête à être utilisée.
-                </p>
-                <h6>5. Rechercher dans l'inventaire</h6>
-                <p>
-                    Utilisez le champ de recherche à droite pour filtrer les produits affichés dans la liste.
-                </p>
-            </div>
-            <!-- Pied de page du modal -->
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
-            </div>
-        </div>
-    </div>
-</div>
 	<div class="row align-items-start">
 		<div class="col-md-8">
 			<div class="card bg-dark border-light mb-3">
