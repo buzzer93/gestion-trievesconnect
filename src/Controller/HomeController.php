@@ -11,6 +11,6 @@ class HomeController extends AbstractController
     #[Route('/', name: 'home.index')]
     public function index(): Response
     {     
-        return $this->redirectToRoute('admin.product.index');
+        return $this->redirectToRoute('login');
     }
 }
