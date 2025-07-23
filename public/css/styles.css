@@ -248,7 +248,25 @@ th[aria-sort="desc"] .datatable-sorter::after { border-bottom-color:#58a6ff; tex
 }
 .datatable-info { color: #8b949e; }
 
+.datatable-pagination-list {
+    display: flex;
+    /* remet les éléments en ligne */
+    gap: .25rem;
+    /* petit espace entre les pages */
+    list-style: none;
+    /* supprime les puces */
+    padding: 0;
+    margin: 0;
+}
+
+.datatable-pagination-list li {
+    display: inline-block;
+    /* évite un retour à la ligne */
+}
+
 .datatable-pagination-list li > a {
+    min-width: 2.2rem;
+    /* largeur fixe pour un beau carré */
     color: #c9d1d9;
     background: #21262d;
     border: 1px solid #30363d;
