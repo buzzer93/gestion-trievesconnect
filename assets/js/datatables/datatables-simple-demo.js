@@ -3,6 +3,7 @@ window.addEventListener('DOMContentLoaded', event => {
     document.querySelectorAll('.datatable').forEach(table => {
         new simpleDatatables.DataTable(table, {
             perPageSelect: [5, 10, 15, 20, 25],
+            searchable: true,
             labels: {
                 placeholder: "Recherche…",                    // input de recherche
                 perPage:      "Entrées par page",     // 10 entrées par page

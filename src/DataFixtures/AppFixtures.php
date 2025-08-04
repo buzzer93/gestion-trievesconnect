@@ -46,7 +46,7 @@ class AppFixtures extends Fixture
         }
 
         // Créez des produits de démonstration
-        for ($i = 1; $i <= 10; $i++) {
+        for ($i = 1; $i <= 100; $i++) {
             $product = new Product();
             $product->setName('Produit ' . $i);
             $product->setSlug($this->slugger->slug('Produit ' . $i)->lower());

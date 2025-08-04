@@ -55,6 +55,16 @@ body {
     /* Couleur de fond du conteneur principal */
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
     /* Ombre autour du conteneur */
+    width: 75% !important;
+    max-width: 1400px;
+}
+body > div.cover-container.d-flex.w-100.h-100.p-3.mx-auto.flex-column > form {
+    margin: 0 auto;
+    /* Centre le formulaire dans le conteneur */
+    width: 50%;
+    /* Largeur du formulaire */
+    max-width: 600px;
+    /* Largeur maximale du formulaire */
 }
 
 /* Styles pour les titres */
