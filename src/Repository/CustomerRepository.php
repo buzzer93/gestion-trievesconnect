@@ -15,10 +15,28 @@ class CustomerRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, Customer::class);
     }
+    public function findOneByPhoneNumber($value): ?Customer
+    {
+        return $this->createQueryBuilder('c')
+            ->andWhere('c.phoneNumber = :val')
+            ->setParameter('val', $value)
+            ->getQuery()
+            ->getOneOrNullResult()
+        ;
+    }
+    
+    /**
+     * @return Customer[] Returns an array of Customer objects
+     */
+    public function findAll(): array
+    {
+        return $this->createQueryBuilder('c')
+            ->orderBy('c.id', 'ASC')
+            ->getQuery()
+            ->getResult()
+        ;
+    }
 
-    //    /**
-    //     * @return Customer[] Returns an array of Customer objects
-    //     */
     //    public function findByExampleField($value): array
     //    {
     //        return $this->createQueryBuilder('c')
@@ -31,13 +49,5 @@ class CustomerRepository extends ServiceEntityRepository
     //        ;
     //    }
 
-    //    public function findOneBySomeField($value): ?Customer
-    //    {
-    //        return $this->createQueryBuilder('c')
-    //            ->andWhere('c.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+
 }

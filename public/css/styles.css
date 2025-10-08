@@ -31,6 +31,19 @@ body {
     /* Taille de police pour le nom de la marque */
 }
 
+/* Logo navbar redimensionné */
+.navbar-logo {
+    height: 40px;
+    width: 40px;
+    object-fit: contain;
+    display: inline-block;
+}
+
+.navbar-brand .brand-text {
+    line-height: 1;
+    font-size: 1.25rem;
+}
+
 /* Styles pour les notifications */
 .flash {
     background-color: #21262d;
@@ -305,3 +318,43 @@ th[aria-sort="desc"] .datatable-sorter::after { border-bottom-color:#58a6ff; tex
 }
 
 /* === Fin overrides ======================================================= */
+
+/* ================= Impression (économie d'encre) ================= */
+@media print {
+    /* Fond global blanc */
+    html, body { background:#fff !important; color:#000 !important; }
+
+    /* Neutraliser les containers sombres pour impression lisible */
+    .cover-container,
+    .datatable-wrapper,
+    .datatable-top,
+    .datatable-bottom,
+    .table th,
+    .table td,
+    .flash,
+    .form-control { background:#fff !important; color:#000 !important; box-shadow:none !important; }
+
+    /* Liens en noir (pas de bleu/gris pale) */
+    a, a:visited { color:#000 !important; text-decoration:none; }
+
+    /* Supprimer ombres décoratives */
+    .shadow, .shadow-sm, .shadow-lg { box-shadow:none !important; }
+
+    /* Garder la navbar foncée (identité visuelle) */
+    .navbar { background:#161b22 !important; color:#fff !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .navbar a, .navbar .nav-link { color:#fff !important; }
+
+    /* Boutons convertis en style plat (économie) */
+    .btn, .btn-primary, .btn-danger { background:#fff !important; color:#000 !important; border:1px solid #000 !important; }
+
+    /* Tables bordées simples */
+    table, .table { border:1px solid #000 !important; }
+    .table th, .table td { border:1px solid #000 !important; }
+
+    /* Datatable pagination et champs superflus masqués pour impression */
+    .datatable-top, .datatable-bottom { display:none !important; }
+
+    /* Ne pas impacter les cartes clients spéciales : elles ont leurs styles inline dans leurs pages d'impression. */
+        /* .customer-card laissé intact pour conserver ses décors lors des impressions dédiées */
+}
+/* ================= Fin Impression ================================== */

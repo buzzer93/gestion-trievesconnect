@@ -36,13 +36,14 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
     public function findUserByEmailOrUsername(string $usernameOrEmail): ?User
     {
         return $this->createQueryBuilder('u')
-        ->where('u.username = :identifier')
-        ->orWhere('u.email = :identifier')
-        ->setParameter('identifier',$usernameOrEmail)
-        ->setMaxResults(1)
-        ->getQuery()
-        ->getOneORNullResult();
+            ->where('u.username = :identifier')
+            ->orWhere('u.email = :identifier')
+            ->setParameter('identifier', $usernameOrEmail)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneORNullResult();
     }
+
     //    /**
     //     * @return User[] Returns an array of User objects
     //     */
@@ -55,16 +56,6 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
     //            ->setMaxResults(10)
     //            ->getQuery()
     //            ->getResult()
-    //        ;
-    //    }
-
-    //    public function findOneBySomeField($value): ?User
-    //    {
-    //        return $this->createQueryBuilder('u')
-    //            ->andWhere('u.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
     //        ;
     //    }
 }

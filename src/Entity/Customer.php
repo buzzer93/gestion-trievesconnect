@@ -4,6 +4,8 @@ namespace App\Entity;
 
 use App\Repository\CustomerRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
+use Picqer\Barcode\BarcodeGeneratorPNG;
 
 #[ORM\Entity(repositoryClass: CustomerRepository::class)]
 class Customer
@@ -14,22 +16,27 @@ class Customer
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank(message: "Le nom est obligatoire.")]
     private ?string $name = null;
 
     #[ORM\Column(length: 255)]
-    private ?string $phoneNumber = null;
+    #[Assert\NotBlank(message: "Le numéro de téléphone est obligatoire.")]
+    private string $phoneNumber;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
     private ?string $address = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
     private ?string $postalCode = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
     private ?string $city = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
     private ?string $email = null;
+
+    #[ORM\Column]
+    private int $credits = 0;
 
     public function getId(): ?int
     {
@@ -106,5 +113,49 @@ class Customer
         $this->email = $email;
 
         return $this;
+    }
+
+    public function getCredits(): int
+    {
+        return $this->credits;
+    }
+
+    public function addCredits(int $amount): self
+    {
+        if ($amount > 0) {
+            $this->credits += $amount;
+        }
+        return $this;
+    }
+
+    public function removeCredits(int $amount): self
+    {
+        if ($amount <= 0) {
+            return $this;
+        }
+        if ($this->credits - $amount < 0) {
+            trigger_error("Crédits insuffisants", E_USER_WARNING);
+            return $this;
+        }
+        $this->credits -= $amount;
+        return $this;
+    }
+
+    public function setCredits(int $credits): self
+    {
+        $this->credits = max(0, $credits);
+        return $this;
+    }
+
+    public function getBarCodeImage(): string
+    {
+        $value = $this->phoneNumber ?? '';
+        if ($value === '') {
+            return '';
+        }
+        $generator = new BarcodeGeneratorPNG();
+        // Utiliser CODE_128 pour cohérence avec Product & Service
+        $pngData = $generator->getBarcode($value, $generator::TYPE_CODE_128);
+        return 'data:image/png;base64,' . base64_encode($pngData);
     }
 }

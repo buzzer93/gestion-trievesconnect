@@ -1,0 +1,49 @@
+{% extends './base.html.twig' %}
+
+{% block body %}
+<div class="card-print-wrapper portrait">
+  <div class="customer-card decorated portrait" id="customerCard">
+    <div class="bg-layer dots"></div>
+    <div class="bg-layer orange"></div>
+    <div class="banner-wrap"><img src="{{ asset('image/card/main-logo.jpg') }}" alt="Bandeau" class="banner-img"></div>
+    <div class="card-stack no-top-gap">
+      <div class="customer-name-line">{{ customer.name }}</div>
+      <div class="card-purpose">CARTE POUR IMPRESSIONS</div>
+      <div class="barcode-zone">
+        {% if customer.getBarCodeImage() %}
+          <img src="{{ customer.getBarCodeImage() }}" alt="Code-barres" class="barcode-img">
+        {% else %}
+          <small class="text-muted">(Pas de code-barres)</small>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  // Impression rapide après rendu
+  window.addEventListener('load', () => {
+    setTimeout(() => window.print(), 400);
+  });
+</script>
+{% endblock %}
+
+{% block stylesheets %}
+<style>
+  @page { size: 5.4cm 8.5cm portrait; margin: 0; }
+  body { background:#f5f5f5; }
+  .card-print-wrapper.portrait { display:flex; justify-content:center; align-items:center; padding:6px; }
+  .customer-card.portrait { position:relative; width:5.4cm; height:8.5cm; background:#fff; border:1px solid #222; border-radius:10px; display:flex; flex-direction:column; font-family:Arial, sans-serif; box-shadow:0 2px 6px rgba(0,0,0,.25); overflow:hidden; }
+  .customer-card.decorated .bg-layer { position:absolute; inset:0; background-repeat:no-repeat; background-size:cover; pointer-events:none; }
+  .customer-card.decorated .bg-layer.dots { background-image:url('{{ asset('image/card/illu-dots.png') }}'); opacity:.35; }
+  .customer-card.decorated .bg-layer.orange { background-image:url('{{ asset('image/card/illu-orange-dot.png') }}'); mix-blend-mode:multiply; opacity:.55; }
+  .banner-wrap { width:100%; flex:0 0 auto; padding:5px 5px 0 5px; box-sizing:border-box; }
+  .banner-img { width:100%; height:auto; display:block; object-fit:cover; border-radius:6px; }
+  .card-stack { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:space-evenly; gap:10px; padding:8px 8px 12px 8px; position:relative; }
+  .card-stack.no-top-gap { gap:12px; }
+  .barcode-zone { width:100%; display:flex; justify-content:center; }
+  .barcode-img { max-height:60px; max-width:100%; object-fit:contain; background:#fff; padding:6px 10px; border-radius:10px; }
+  .customer-name-line { font-size:15px; font-weight:700; background:rgba(0,0,0,.85); color:#fff; padding:6px 12px; border-radius:18px; letter-spacing:.6px; width:100%; text-align:center; }
+  .card-purpose { font-size:9px; font-weight:600; letter-spacing:1.2px; text-align:center; color:#222; background:rgba(255,255,255,.8); padding:5px 12px; border-radius:16px; }
+  @media print { body { background:transparent; } .card-print-wrapper.portrait { padding:0; } .customer-card { box-shadow:none; } }
+</style>
+{% endblock %}

@@ -6,12 +6,8 @@
 			<div class="label">
 				<div class="label-content">
 					<p class="label-text">
-						{{ data.getLabelingName | raw }}
-						<br>
-						<strong>{{ data.sellingPrice | number_format(2, ',', ' ') }}
-							€</strong>
-						TTC
-						<br>
+						{{ data.getLabelingName | raw }}<br>
+						<strong>{{ data.sellingPrice | number_format(2, ',', ' ') }} €</strong> TTC<br>
 						<img src="{{ data.getBarCodeImage() }}" alt="Code-barres" class="barcode-img">
 					</p>
 				</div>

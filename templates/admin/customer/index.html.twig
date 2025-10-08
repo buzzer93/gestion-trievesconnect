@@ -1,0 +1,166 @@
+{% extends './base.html.twig' %}
+
+{% block title %}Liste des Clients{% endblock %}
+
+{% block body %}
+<h1 class="text-center text-light mb-4">Clients</h1>
+
+<div class="row align-items-center mb-3 g-2">
+  <div class="col-12 col-md-auto">
+    <a class="btn btn-primary w-100" href="{{ path('admin.customer.create') }}">Ajouter un client</a>
+  </div>
+  <div class="col-12 col-md-6">
+    <input id="scanPhoneInput" class="form-control bg-dark text-light border-light rounded" placeholder="Scanner / saisir numéro téléphone puis Entrée" autocomplete="off">
+  </div>
+</div>
+
+<table class="table table-dark border border-light datatable" id="customerTable">
+  <thead>
+    <tr>
+      <th class="text-center">Nom</th>
+      <th class="text-center">Téléphone</th>
+      <th class="text-center">Email</th>
+      <th class="text-center">Crédits</th>
+      <th class="text-center">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for customer in customers %}
+      <tr>
+        <td class="text-center"><a class="text-light" href="{{ path('admin.customer.edit', {id: customer.id}) }}">{{ customer.name }}</a></td>
+        <td class="text-center">{{ customer.phoneNumber }}</td>
+        <td class="text-center">{{ customer.email }}</td>
+        <td class="text-center">
+          <button class="btn btn-sm btn-outline-warning credit-btn" data-customer-id="{{ customer.id }}" data-current-credits="{{ customer.credits }}">
+            {{ customer.credits }}
+          </button>
+        </td>
+        <td>
+          <div class="d-flex justify-content-center gap-1">
+            <a class="btn btn-sm btn-primary" href="{{ path('admin.customer.edit', {id: customer.id}) }}">Modifier</a>
+            <form method="post" action="{{ path('admin.customer.delete', {id: customer.id}) }}" onsubmit="return confirm('Supprimer ce client ?');">
+              <input type="hidden" name="_method" value="DELETE">
+              <button class="btn btn-sm btn-danger">Supprimer</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+    {% else %}
+      <tr>
+        <td colspan="7" class="text-center text-muted">Aucun client pour l'instant.</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{# Modal Crédit #}
+<div class="modal fade" id="creditModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark text-light border border-light">
+      <div class="modal-header">
+        <h5 class="modal-title">Modifier les crédits</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">Client ID: <span id="creditCustomerId"></span></div>
+        <div class="mb-2">Crédits actuels: <span id="creditCurrent"></span></div>
+        <div class="input-group">
+          <span class="input-group-text">Quantité</span>
+          <input type="number" min="1" value="1" id="creditQuantity" class="form-control bg-secondary text-light border-light">
+        </div>
+      </div>
+      <div class="modal-footer d-flex justify-content-between">
+        <div class="btn-group" role="group">
+          <button id="creditAddBtn" class="btn btn-success">+ Ajouter</button>
+          <button id="creditRemoveBtn" class="btn btn-danger">- Retirer</button>
+        </div>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Champ scan téléphone -> ouvre modal crédits du client correspondant
+  const scanInput = document.getElementById('scanPhoneInput');
+  scanInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const raw = scanInput.value.trim();
+      if (!raw) return;
+      const normalized = raw.replace(/\s+/g,'').replace(/^\+33/, '0');
+      let targetBtn = null;
+      document.querySelectorAll('#customerTable tbody tr').forEach(tr => {
+        const phoneCell = tr.children[1]; // 0=Nom 1=Téléphone
+        if (!phoneCell) return;
+        const phone = phoneCell.textContent.replace(/\s+/g,'').replace(/^\+33/, '0');
+        if (phone === normalized) {
+          targetBtn = tr.querySelector('.credit-btn');
+        }
+      });
+      if (targetBtn) {
+        targetBtn.click();
+        scanInput.select();
+      } else {
+        scanInput.classList.add('is-invalid');
+        setTimeout(()=> scanInput.classList.remove('is-invalid'), 1500);
+      }
+    }
+  });
+
+  // Gestion modal crédits
+  let creditModalEl = document.getElementById('creditModal');
+  let bsCreditModal = null;
+  const ensureModal = () => {
+    if (!bsCreditModal) {
+      // Bootstrap 5 modal JS doit être chargé (présumé via base.html.twig)
+      bsCreditModal = new bootstrap.Modal(creditModalEl);
+    }
+    return bsCreditModal;
+  };
+  let currentCustomerId = null;
+  const idSpan = document.getElementById('creditCustomerId');
+  const currentSpan = document.getElementById('creditCurrent');
+  const qtyInput = document.getElementById('creditQuantity');
+  const addBtn = document.getElementById('creditAddBtn');
+  const removeBtn = document.getElementById('creditRemoveBtn');
+
+  document.querySelectorAll('.credit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentCustomerId = btn.dataset.customerId;
+      idSpan.textContent = currentCustomerId;
+      currentSpan.textContent = btn.dataset.currentCredits;
+      qtyInput.value = 1;
+      ensureModal().show();
+    });
+  });
+
+  async function sendCredit(mode) {
+    const quantity = parseInt(qtyInput.value, 10);
+    if (!quantity || quantity <= 0) return;
+    try {
+      const resp = await fetch(`/admin/customer/${currentCustomerId}/credits`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode, quantity })
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        alert(data.error || 'Erreur');
+        return;
+      }
+      // Mettre à jour le bouton dans la ligne
+      const btn = document.querySelector(`.credit-btn[data-customer-id="${currentCustomerId}"]`);
+      if (btn) {
+        btn.textContent = data.credits;
+        btn.dataset.currentCredits = data.credits;
+      }
+      ensureModal().hide();
+    } catch (e) {
+      alert('Erreur réseau');
+    }
+  }
+
+  addBtn.addEventListener('click', () => sendCredit('add'));
+  removeBtn.addEventListener('click', () => sendCredit('remove'));
+</script>
+{% endblock %}

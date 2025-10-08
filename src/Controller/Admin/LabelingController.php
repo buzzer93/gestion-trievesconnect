@@ -2,6 +2,7 @@
 
 namespace App\Controller\Admin;
 
+use App\Entity\Customer;
 use App\Entity\Product;
 use App\Entity\Service;
 use App\Form\LabelingType;
@@ -33,6 +34,9 @@ class LabelingController extends AbstractController
             // Si aucun produit n'est trouvé, recherche dans les services
             if (!$data) {
                 $data = $em->getRepository(Service::class)->findOneBy(['barCode' => $barCode]);
+            }
+            if (!$data) {
+                $data = $em->getRepository(Customer::class)->findOneBy(['id' => $barCode]);
             }
 
             if ($data) {
