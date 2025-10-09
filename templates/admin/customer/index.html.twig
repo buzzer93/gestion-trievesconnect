@@ -248,9 +248,11 @@
         btn.dataset.currentCredits = data.credits;
         btn.textContent = (data.credits/100).toFixed(2) + ' €';
       }
-      // afficher nouveau solde dans le modal
-      modalCurrentBalance.textContent = (data.credits/100).toFixed(2);
-  showFlash('success', 'Débit appliqué.');
+    // afficher nouveau solde dans le modal
+    modalCurrentBalance.textContent = (data.credits/100).toFixed(2);
+    showFlash('success', 'Débit appliqué.');
+    // fermer le modal
+    ensureModal().hide();
       // Option : ouvrir nouvelle fenêtre d'impression si nécessaire
     } catch (e) {
       showFlash('danger', 'Erreur réseau');
@@ -259,19 +261,24 @@
 
   printChargeBtn?.addEventListener('click', chargePrint);
 
-  // Utilitaire flash non bloquant (injecte un .alert en haut de la page)
+  // Utilitaire flash non bloquant — même rendu que le partial serveur
   function showFlash(type, message, timeout = 3500) {
     const container = document.querySelector('.cover-container') || document.body;
     const alert = document.createElement('div');
+    // Même markup que templates/partials/flash.html.twig
     alert.className = `alert alert-${type}`;
+    alert.setAttribute('role', 'alert');
     alert.textContent = message;
-    alert.style.position = 'fixed';
-    alert.style.top = '16px';
-    alert.style.right = '16px';
-    alert.style.zIndex = 2000;
-    container.appendChild(alert);
-    setTimeout(() => { alert.classList.add('fade'); alert.style.transition = 'opacity 300ms'; alert.style.opacity = 0; }, timeout - 300);
-    setTimeout(() => alert.remove(), timeout);
+    // Insérer en haut du container pour correspondre au partial
+    container.insertBefore(alert, container.firstChild);
+    // Auto-suppression après timeout
+    setTimeout(() => {
+      // Petite transition CSS si disponible
+      alert.classList.add('fade');
+      alert.style.transition = 'opacity 300ms';
+      alert.style.opacity = 0;
+      setTimeout(() => alert.remove(), 300);
+    }, timeout - 300);
   }
 </script>
   
