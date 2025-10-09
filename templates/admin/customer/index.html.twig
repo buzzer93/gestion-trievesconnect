@@ -20,7 +20,7 @@
       <th class="text-center">Nom</th>
       <th class="text-center">Téléphone</th>
       <th class="text-center">Email</th>
-      <th class="text-center">Crédits</th>
+  <th class="text-center credit-cell">Crédits</th>
       <th class="text-center">Actions</th>
     </tr>
   </thead>
@@ -30,9 +30,10 @@
         <td class="text-center"><a class="text-light" href="{{ path('admin.customer.edit', {id: customer.id}) }}">{{ customer.name }}</a></td>
         <td class="text-center">{{ customer.phoneNumber }}</td>
         <td class="text-center">{{ customer.email }}</td>
-        <td class="text-center">
-          <button class="btn btn-sm btn-outline-warning credit-btn" data-customer-id="{{ customer.id }}" data-current-credits="{{ customer.credits }}">
-            {{ customer.credits }}
+        <td class="text-center credit-cell">
+          {# Afficher en euros pour l'admin, dataset en centimes #}
+          <button class="btn btn-sm btn-outline-warning credit-btn" data-customer-id="{{ customer.id }}" data-current-credits="{{ customer.getBalanceCents() }}">
+            {{ customer.getBalanceEuros() }} €
           </button>
         </td>
         <td>
@@ -53,27 +54,65 @@
   </tbody>
 </table>
 
-{# Modal Crédit #}
+<!-- Modal Crédit / Débit -->
 <div class="modal fade" id="creditModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content bg-dark text-light border border-light">
       <div class="modal-header">
-        <h5 class="modal-title">Modifier les crédits</h5>
+        <h5 class="modal-title">Gérer le solde</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <div class="mb-2">Client ID: <span id="creditCustomerId"></span></div>
-        <div class="mb-2">Crédits actuels: <span id="creditCurrent"></span></div>
-        <div class="input-group">
-          <span class="input-group-text">Quantité</span>
-          <input type="number" min="1" value="1" id="creditQuantity" class="form-control bg-secondary text-light border-light">
+        <div class="d-flex flex-column gap-3">
+          <div class="mb-2">Solde actuel: <span id="modalCurrentBalance">0.00</span> €</div>
+          <section>
+            <h6>Ajouter du crédit</h6>
+            <div class="input-group mb-2">
+              <span class="input-group-text">Montant (€)</span>
+              <input type="number" min="0.01" step="0.01" value="1.00" id="creditAmountEuros" class="form-control bg-secondary text-light border-light">
+            </div>
+            <div class="d-flex gap-2">
+              <button id="creditAddBtn" class="btn btn-success">Ajouter</button>
+            </div>
+          </section>
+
+          <hr class="border-light" />
+
+          <section>
+            <h6>Débiter pour impression</h6>
+            <div class="mb-3">
+              <label class="form-label">Type</label>
+              <div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="radio" name="printType" id="typeNb" value="nb" checked>
+                  <label class="form-check-label" for="typeNb">N&amp;B</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="radio" name="printType" id="typeColor" value="color">
+                  <label class="form-check-label" for="typeColor">Couleurs</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="radio" name="printType" id="typePhoto" value="photo">
+                  <label class="form-check-label" for="typePhoto">Photo</label>
+                </div>
+              </div>
+            </div>
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="formatA3">
+              <label class="form-check-label" for="formatA3">Option A3 (tarif A3)</label>
+            </div>
+            <div class="input-group mb-3">
+              <span class="input-group-text">Quantité</span>
+              <input type="number" min="1" step="1" value="1" id="printCopies" class="form-control bg-secondary text-light border-light">
+            </div>
+            <div class="mb-2">Coût estimé : <strong id="printEstimatedCost">0.00</strong> €</div>
+            <div class="d-flex justify-content-end">
+              <button id="printChargeBtn" class="btn btn-warning">Débiter</button>
+            </div>
+          </section>
         </div>
       </div>
       <div class="modal-footer d-flex justify-content-between">
-        <div class="btn-group" role="group">
-          <button id="creditAddBtn" class="btn btn-success">+ Ajouter</button>
-          <button id="creditRemoveBtn" class="btn btn-danger">- Retirer</button>
-        </div>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
       </div>
     </div>
@@ -112,55 +151,128 @@
   let bsCreditModal = null;
   const ensureModal = () => {
     if (!bsCreditModal) {
-      // Bootstrap 5 modal JS doit être chargé (présumé via base.html.twig)
       bsCreditModal = new bootstrap.Modal(creditModalEl);
     }
     return bsCreditModal;
   };
   let currentCustomerId = null;
-  const idSpan = document.getElementById('creditCustomerId');
-  const currentSpan = document.getElementById('creditCurrent');
-  const qtyInput = document.getElementById('creditQuantity');
+  const modalCurrentBalance = document.getElementById('modalCurrentBalance');
+  const amountInput = document.getElementById('creditAmountEuros');
   const addBtn = document.getElementById('creditAddBtn');
-  const removeBtn = document.getElementById('creditRemoveBtn');
 
   document.querySelectorAll('.credit-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       currentCustomerId = btn.dataset.customerId;
-      idSpan.textContent = currentCustomerId;
-      currentSpan.textContent = btn.dataset.currentCredits;
-      qtyInput.value = 1;
+      // dataset.currentCredits contient les centimes
+      const cents = parseInt(btn.dataset.currentCredits, 10) || 0;
+      modalCurrentBalance.textContent = (cents/100).toFixed(2);
+      amountInput.value = '1.00';
+      computeEstimated();
       ensureModal().show();
     });
   });
 
   async function sendCredit(mode) {
-    const quantity = parseInt(qtyInput.value, 10);
-    if (!quantity || quantity <= 0) return;
+    const euros = parseFloat(amountInput.value.replace(',', '.'));
+    if (isNaN(euros) || euros <= 0) return;
+    const cents = Math.round(euros * 100);
     try {
       const resp = await fetch(`/admin/customer/${currentCustomerId}/credits`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode, quantity })
+        body: JSON.stringify({ mode, cents })
       });
       const data = await resp.json();
-      if (!resp.ok) {
-        alert(data.error || 'Erreur');
-        return;
-      }
-      // Mettre à jour le bouton dans la ligne
+        if (!resp.ok) {
+          showFlash('danger', data.error || 'Erreur');
+          return;
+        }
+      // Mettre à jour le bouton dans la ligne (dataset en centimes, label en euros)
       const btn = document.querySelector(`.credit-btn[data-customer-id="${currentCustomerId}"]`);
       if (btn) {
-        btn.textContent = data.credits;
         btn.dataset.currentCredits = data.credits;
+        btn.textContent = (data.credits/100).toFixed(2) + ' €';
       }
       ensureModal().hide();
     } catch (e) {
-      alert('Erreur réseau');
+      showFlash('danger', 'Erreur réseau');
     }
   }
 
   addBtn.addEventListener('click', () => sendCredit('add'));
-  removeBtn.addEventListener('click', () => sendCredit('remove'));
+
+  /* === Impression : estimation et débit === */
+  const printTypeInputs = document.getElementsByName('printType');
+  const formatA3Checkbox = document.getElementById('formatA3');
+  const copiesInput = document.getElementById('printCopies');
+  const estimatedSpan = document.getElementById('printEstimatedCost');
+  const printChargeBtn = document.getElementById('printChargeBtn');
+
+  const prices = {
+    nb: { A4: 30, A3: 60 },
+    color: { A4: 50, A3: 100 },
+    photo: { A4: 50, A3: 100 }
+  };
+
+  function getSelectedPrintType() {
+    for (const r of printTypeInputs) if (r.checked) return r.value;
+    return 'nb';
+  }
+
+  function computeEstimated() {
+    const type = getSelectedPrintType();
+    const isA3 = !!formatA3Checkbox.checked;
+    const copies = Math.max(1, parseInt(copiesInput.value, 10) || 1);
+    const format = isA3 ? 'A3' : 'A4';
+    const cents = prices[type][format] * copies;
+    estimatedSpan.textContent = (cents/100).toFixed(2);
+    return cents;
+  }
+
+  // recalculer à chaque changement
+  [formatA3Checkbox, copiesInput, ...printTypeInputs].forEach(el => el?.addEventListener('change', computeEstimated));
+
+  async function chargePrint() {
+    const cents = computeEstimated();
+    try {
+      const resp = await fetch(`/admin/customer/${currentCustomerId}/print-charge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cents })
+      });
+      const data = await resp.json();
+  if (!resp.ok) { showFlash('danger', data.error || 'Erreur'); return; }
+      // Mise à jour UI
+      const btn = document.querySelector(`.credit-btn[data-customer-id="${currentCustomerId}"]`);
+      if (btn) {
+        btn.dataset.currentCredits = data.credits;
+        btn.textContent = (data.credits/100).toFixed(2) + ' €';
+      }
+      // afficher nouveau solde dans le modal
+      modalCurrentBalance.textContent = (data.credits/100).toFixed(2);
+  showFlash('success', 'Débit appliqué.');
+      // Option : ouvrir nouvelle fenêtre d'impression si nécessaire
+    } catch (e) {
+      showFlash('danger', 'Erreur réseau');
+    }
+  }
+
+  printChargeBtn?.addEventListener('click', chargePrint);
+
+  // Utilitaire flash non bloquant (injecte un .alert en haut de la page)
+  function showFlash(type, message, timeout = 3500) {
+    const container = document.querySelector('.cover-container') || document.body;
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type}`;
+    alert.textContent = message;
+    alert.style.position = 'fixed';
+    alert.style.top = '16px';
+    alert.style.right = '16px';
+    alert.style.zIndex = 2000;
+    container.appendChild(alert);
+    setTimeout(() => { alert.classList.add('fade'); alert.style.transition = 'opacity 300ms'; alert.style.opacity = 0; }, timeout - 300);
+    setTimeout(() => alert.remove(), timeout);
+  }
 </script>
+  
 {% endblock %}

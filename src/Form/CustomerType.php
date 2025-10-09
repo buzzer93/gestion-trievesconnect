@@ -50,10 +50,17 @@ class CustomerType extends AbstractType
                 'required' => false,
                 'attr' => ['placeholder' => 'Paris']
             ])
-            ->add('credits', IntegerType::class, [
-                'label' => 'Crédits d\'Impression',
-                'attr' => ['min' => 0]
-            ])
+            ->add('balanceEuros', 
+                // NumberType est préférable pour les valeurs décimales d'affichage
+                \Symfony\Component\Form\Extension\Core\Type\NumberType::class,
+                [
+                    'mapped' => false,
+                    'label' => 'Solde (€)',
+                    'help' => 'Saisir le solde en euros (ex : 1.00)',
+                    'scale' => 2,
+                    'attr' => ['step' => '0.01', 'min' => 0]
+                ]
+            )
             ->add('save', SubmitType::class, [
                 'label' => 'Enregistrer',
                 'attr' => ['class' => 'btn btn-primary']

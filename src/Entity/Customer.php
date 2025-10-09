@@ -147,6 +147,37 @@ class Customer
         return $this;
     }
 
+    /**
+     * Alias sémantique : le solde est stocké en centimes pour éviter les float.
+     */
+    public function getBalanceCents(): int
+    {
+        return $this->credits;
+    }
+
+    /**
+     * Retourne une représentation en euros (formatée) pour affichage.
+     */
+    public function getBalanceEuros(): string
+    {
+        return number_format($this->credits / 100, 2, ',', '');
+    }
+
+    public function setBalanceCents(int $cents): self
+    {
+        return $this->setCredits(max(0, $cents));
+    }
+
+    public function addBalanceCents(int $cents): self
+    {
+        return $this->addCredits(max(0, $cents));
+    }
+
+    public function removeBalanceCents(int $cents): self
+    {
+        return $this->removeCredits(max(0, $cents));
+    }
+
     public function getBarCodeImage(): string
     {
         $value = $this->phoneNumber ?? '';

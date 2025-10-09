@@ -31,14 +31,18 @@ class CustomerController extends AbstractController
     public function create(Request $request, EntityManagerInterface $em): Response
     {
         $customer = new Customer();
-        $form = $this->createForm(CustomerType::class, $customer);
-        $form->handleRequest($request);
+    $form = $this->createForm(CustomerType::class, $customer);
+    // Pré-remplir le champ non mappé balanceEuros
+    $form->get('balanceEuros')->setData(number_format($customer->getBalanceCents() / 100, 2, '.', ''));
+    $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Gestion des crédits saisis
-            $credits = $form->get('credits')->getData();
-            if (is_numeric($credits) && $credits > 0) {
-                $customer->addCredits((int)$credits);
+            // Gestion du solde saisi en euros (champ non mappé balanceEuros)
+            $balanceEuros = $form->get('balanceEuros')->getData();
+            if ($balanceEuros !== null && $balanceEuros !== '') {
+                // Conversion en centimes
+                $cents = (int)round(floatval(str_replace(',', '.', $balanceEuros)) * 100);
+                $customer->setBalanceCents($cents);
             }
             $em->persist($customer);
             $em->flush();
@@ -54,14 +58,17 @@ class CustomerController extends AbstractController
     #[Route('/{id}/edit', name: '.edit', methods: ['GET','POST'], requirements: ['id' => Requirement::DIGITS])]
     public function edit(Customer $customer, Request $request, EntityManagerInterface $em): Response
     {
-        $form = $this->createForm(CustomerType::class, $customer);
-        $form->handleRequest($request);
+    $form = $this->createForm(CustomerType::class, $customer);
+    // Pré-remplir le champ non mappé balanceEuros
+    $form->get('balanceEuros')->setData(number_format($customer->getBalanceCents() / 100, 2, '.', ''));
+    $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // On peut choisir d'ajouter les crédits saisis aux existants plutôt que de remplacer
-            $credits = $form->get('credits')->getData();
-            if (is_numeric($credits) && $credits !== null) {
-                $customer->setCredits((int)$credits); // incrémente
+            // Champ non mappé balanceEuros -> mettre à jour le solde en centimes
+            $balanceEuros = $form->get('balanceEuros')->getData();
+            if ($balanceEuros !== null && $balanceEuros !== '') {
+                $cents = (int)round(floatval(str_replace(',', '.', $balanceEuros)) * 100);
+                $customer->setBalanceCents($cents);
             }
             $em->flush();
             $this->addFlash('success', 'Le client a bien été modifié');
@@ -98,17 +105,17 @@ class CustomerController extends AbstractController
     {
         $payload = json_decode($request->getContent(), true) ?? [];
         $mode = $payload['mode'] ?? null; // 'add' ou 'remove'
-        $quantity = (int)($payload['quantity'] ?? 0);
-        if ($quantity <= 0 || !in_array($mode, ['add','remove'], true)) {
+        $cents = (int)($payload['cents'] ?? 0);
+        if ($cents <= 0 || !in_array($mode, ['add','remove'], true)) {
             return new JsonResponse(['error' => 'Requête invalide'], 400);
         }
         if ($mode === 'add') {
-            $customer->addCredits($quantity);
+            $customer->addBalanceCents($cents);
         } else {
-            $customer->removeCredits($quantity);
+            $customer->removeBalanceCents($cents);
         }
         $em->flush();
-        return new JsonResponse(['success' => true, 'credits' => $customer->getCredits()]);
+        return new JsonResponse(['success' => true, 'credits' => $customer->getBalanceCents()]);
     }
 
     #[Route('/{id}/card-print', name: '.card_print', methods: ['GET'], requirements: ['id' => Requirement::DIGITS])]
@@ -117,5 +124,21 @@ class CustomerController extends AbstractController
         return $this->render('admin/customer/cardPrint.html.twig', [
             'customer' => $customer
         ]);
+    }
+
+    #[Route('/{id}/print-charge', name: '.print_charge', methods: ['POST'], requirements: ['id' => Requirement::DIGITS])]
+    public function printCharge(Customer $customer, Request $request, EntityManagerInterface $em): JsonResponse
+    {
+        $payload = json_decode($request->getContent(), true) ?? [];
+        $cents = (int)($payload['cents'] ?? 0);
+        if ($cents <= 0) {
+            return new JsonResponse(['error' => 'Montant invalide'], 400);
+        }
+        if ($customer->getBalanceCents() < $cents) {
+            return new JsonResponse(['error' => 'Solde insuffisant'], 400);
+        }
+        $customer->removeBalanceCents($cents);
+        $em->flush();
+        return new JsonResponse(['success' => true, 'credits' => $customer->getBalanceCents()]);
     }
 }

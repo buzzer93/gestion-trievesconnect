@@ -358,3 +358,6 @@ th[aria-sort="desc"] .datatable-sorter::after { border-bottom-color:#58a6ff; tex
         /* .customer-card laissé intact pour conserver ses décors lors des impressions dédiées */
 }
 /* ================= Fin Impression ================================== */
+
+/* Colonne crédits : éviter que le symbole € passe à la ligne */
+.credit-cell { white-space: nowrap; min-width: 120px; }
