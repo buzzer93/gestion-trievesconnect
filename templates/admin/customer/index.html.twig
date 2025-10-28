@@ -160,16 +160,20 @@
   const amountInput = document.getElementById('creditAmountEuros');
   const addBtn = document.getElementById('creditAddBtn');
 
-  document.querySelectorAll('.credit-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      currentCustomerId = btn.dataset.customerId;
-      // dataset.currentCredits contient les centimes
-      const cents = parseInt(btn.dataset.currentCredits, 10) || 0;
-      modalCurrentBalance.textContent = (cents/100).toFixed(2);
-      amountInput.value = '1.00';
-      computeEstimated();
-      ensureModal().show();
-    });
+  // Utiliser la délégation d'événements sur la table pour couvrir
+  // les boutons présents lors du rendu initial et ceux ajoutés
+  // par DataTables (pagination, redraws, etc.).
+  const customerTableEl = document.getElementById('customerTable');
+  customerTableEl?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.credit-btn');
+    if (!btn) return;
+    // récupérer l'id client et le solde depuis les data-attributes
+    currentCustomerId = btn.dataset.customerId;
+    const cents = parseInt(btn.dataset.currentCredits, 10) || 0;
+    modalCurrentBalance.textContent = (cents/100).toFixed(2);
+    amountInput.value = '1.00';
+    computeEstimated();
+    ensureModal().show();
   });
 
   async function sendCredit(mode) {
