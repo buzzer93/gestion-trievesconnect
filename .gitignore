@@ -24,3 +24,6 @@
 /public/assets/
 /assets/vendor/
 ###< symfony/asset-mapper ###
+.env
+error_log
+public/error_log
