@@ -29,13 +29,13 @@
 			<input type="text" id="filterInput" class="form-control bg-dark text-light 54654 border-light rounded" placeholder="Recherche" style="color: #adb5bd;">
 		</div>
 		<div class="col-3 d-flex gap-1">
-			<div class="d-flex justify-content-center h5 ">
-				<a class="btn btn-primary  rounded" href="{{ path('admin.labeling.print') }}">impression</a>
+			<div class="d-flex justify-content-center h5">
+				<a class="btn btn-primary rounded" href="{{ path('admin.labeling.print') }}">Impression</a>
 			</div>
-			<div class="d-flex justify-content-center h5 gap-1">
-				<form method="post" action="{{ path('admin.labeling.delete', { id: 0, all: 'true' }) }}" onsubmit="return confirm('Voulez-vous vraiment supprimer toutes les étiquettes ?');">
+			<div class="d-flex justify-content-center h5">
+				<form method="post" action="{{ path('admin.labeling.delete', { index: 0, all: 'true' }) }}" onsubmit="return confirm('Voulez-vous vraiment supprimer toutes les étiquettes ?');">
 					<input type="hidden" name="_method" value="DELETE">
-					<button class="btn btn-danger  rounded" type="submit">Supprimer tout</button>
+					<button class="btn btn-danger rounded" type="submit">Supprimer tout</button>
 				</form>
 			</div>
 		</div>
@@ -47,11 +47,13 @@
 				<th class="h4 text-center">Nom</th>
 				<th class="h4 text-center">Prix de vente TTC</th>
 				<th class="h4 text-center">Code-barre</th>
+				<th class="h4 text-center">Grand format</th>
 				<th class="h4 text-center">Actions</th>
 			</tr>
 		</thead>
 		<tbody>
-			{% for data in dataList %}
+			{% for index, item in dataList %}
+				{% set data = item.entity %}
 				<tr>
 					<td>
 						<a class="text-light h5 data_name " href="{{ path('admin.' ~ data.getType() ~ '.edit', { id: data.id }) }}">{{ data.name }}</a>
@@ -63,9 +65,14 @@
 					<td>
 						<p class="text-center text-light h5 bareCode ">{{ data.barCode }}</p>
 					</td>
+					<td class="text-center">
+						<input type="checkbox" class="form-check-input large-format-toggle"
+							data-index="{{ index }}"
+							{{ item.format == 'large' ? 'checked' : '' }}>
+					</td>
 					<td>
 						<div class="d-flex justify-content-center h5 gap-1">
-							<form method="post" action="{{ path('admin.labeling.delete', { id: data.id , all: 'false'}) }}" onsubmit="return confirm('Voulez-vous vraiment supprimer cette étiquette ?');">
+							<form method="post" action="{{ path('admin.labeling.delete', { index: index, all: 'false'}) }}" onsubmit="return confirm('Voulez-vous vraiment supprimer cette étiquette ?');">
 								<input type="hidden" name="_method" value="DELETE">
 								<button class="btn btn-danger btn-sm rounded" type="submit">Supprimer</button>
 							</form>
@@ -75,5 +82,22 @@
 			{% endfor %}
 		</tbody>
 	</table>
-	 <script src="{{ asset('js/filter.js') }}"></script>
+	<script src="{{ asset('js/filter.js') }}"></script>
+	<script>
+		var toggleBaseUrl = '{{ path('admin.labeling.index') }}'.replace('/index', '/toggle-format');
+
+		document.querySelectorAll('.large-format-toggle').forEach(function(checkbox) {
+			checkbox.addEventListener('change', function() {
+				var url = toggleBaseUrl + '/' + this.dataset.index;
+				fetch(url, {
+					method: 'POST',
+					headers: { 'X-Requested-With': 'XMLHttpRequest' }
+				}).then(function(response) {
+					if (!response.ok) {
+						alert('Erreur lors de la mise à jour du format');
+					}
+				});
+			});
+		});
+	</script>
 {% endblock %}

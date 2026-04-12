@@ -9,6 +9,7 @@ use App\Form\LabelingType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\Routing\Attribute\Route;
@@ -25,6 +26,12 @@ class LabelingController extends AbstractController
         $form->handleRequest($request);
         $dataList = $session->get('dataList', []);
 
+        // Migration des anciennes données de session (entités brutes → tableau {entity, format})
+        if (!empty($dataList) && !is_array($dataList[0])) {
+            $dataList = array_map(fn($entity) => ['entity' => $entity, 'format' => 'small'], $dataList);
+            $session->set('dataList', $dataList);
+        }
+
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
             $barCode = $data['barCode'];
@@ -40,70 +47,61 @@ class LabelingController extends AbstractController
             }
 
             if ($data) {
-                // Vérifier si le produit est déjà dans la liste
-                if (!in_array($data, $dataList, false)) {
-                    $dataList[] = $data;
-                    $session->set('dataList', $dataList);
-                    $this->addFlash('success', "Étiquette ajoutée : {$data->getName()}");
-                    return $this->redirectToRoute('admin.labeling.index', [
-                        'form' => $form,
-                        'dataList' => $dataList,
-                    ]);
-                } else {
-                    $this->addFlash('info', 'Étiquette déjà présente dans la liste.');
-                    return $this->redirectToRoute('admin.labeling.index', [
-                        'form' => $form,
-                        'dataList' => $dataList,
-                    ]);
-                }
+                $dataList[] = ['entity' => $data, 'format' => 'small'];
+                $session->set('dataList', $dataList);
+                $this->addFlash('success', "Étiquette ajoutée : {$data->getName()}");
             } else {
                 $this->addFlash('danger', 'Étiquette introuvable.');
-                return $this->redirectToRoute('admin.labeling.index', [
-                    'form' => $form,
-                    'dataList' => $dataList,
-                ]);
             }
+
+            return $this->redirectToRoute('admin.labeling.index');
         }
+
         return $this->render('admin/labeling/index.html.twig', [
             'form' => $form,
             'dataList' => $dataList,
         ]);
     }
 
-    #[Route('/delete/{id}/{all}', name: '.delete', methods: ['DELETE'])]
-    public function delete(int $id, ?string $all, SessionInterface $session): Response
+    #[Route('/delete/{index}/{all}', name: '.delete', methods: ['DELETE'])]
+    public function delete(int $index, ?string $all, SessionInterface $session): Response
     {
-        // Récupérer la liste des produits depuis la session
         $dataList = $session->get('dataList', []);
 
         if ($all === 'true') {
-            // Si "all" est passé et égal à "true", supprimer toute la liste de la session
             $session->remove('dataList');
             $this->addFlash('success', 'Toutes les étiquettes ont été supprimées.');
             return $this->redirectToRoute('admin.labeling.index');
         }
 
-        // Rechercher l'index du produit dans la liste par ID
-        foreach ($dataList as $index => $data) {
-            if ($data->getId() === $id) {
-                // Supprimer une seule occurrence
-                unset($dataList[$index]);
-                // Réindexer le tableau après suppression
-                $dataList = array_values($dataList);
-                $session->set('dataList', $dataList);
-                $this->addFlash('success', 'Étiquette supprimée.');
-                break;
-            }
+        if (isset($dataList[$index])) {
+            unset($dataList[$index]);
+            $dataList = array_values($dataList);
+            $session->set('dataList', $dataList);
+            $this->addFlash('success', 'Étiquette supprimée.');
         }
 
-        // Rediriger vers l'index après suppression
         return $this->redirectToRoute('admin.labeling.index');
     }
 
-    #[Route('/print', name: '.print')]
-    public function printLabels(SessionInterface $session,): Response
+    #[Route('/toggle-format/{index}', name: '.toggleFormat', methods: ['POST'])]
+    public function toggleFormat(int $index, SessionInterface $session): JsonResponse
     {
-        // Récupérer la liste des produits depuis la session
+        $dataList = $session->get('dataList', []);
+
+        if (isset($dataList[$index])) {
+            $dataList[$index]['format'] = $dataList[$index]['format'] === 'large' ? 'small' : 'large';
+            $session->set('dataList', $dataList);
+
+            return new JsonResponse(['format' => $dataList[$index]['format']]);
+        }
+
+        return new JsonResponse(['error' => 'Index introuvable'], 404);
+    }
+
+    #[Route('/print', name: '.print')]
+    public function printLabels(SessionInterface $session): Response
+    {
         $dataList = $session->get('dataList', []);
 
         if (empty($dataList)) {
@@ -112,7 +110,7 @@ class LabelingController extends AbstractController
         }
 
         return $this->render('admin/labeling/print.html.twig', [
-            'dataList' => $dataList
+            'dataList' => $dataList,
         ]);
     }
 }

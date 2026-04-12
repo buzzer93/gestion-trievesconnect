@@ -2,81 +2,144 @@
 
 {% block body %}
 	<div class="row">
-		{% for data in dataList %}
-			<div class="label">
+		{% for item in dataList %}
+			{% set data = item.entity %}
+			{% set format = item.format %}
+			<div class="label {{ format == 'large' ? 'label-large' : 'label-small' }}">
 				<div class="label-content">
-					<p class="label-text">
-						{{ data.getLabelingName | raw }}<br>
-						<strong>{{ data.sellingPrice | number_format(2, ',', ' ') }} €</strong> TTC<br>
-						<img src="{{ data.getBarCodeImage() }}" alt="Code-barres" class="barcode-img">
-					</p>
+					{% if format == 'large' %}
+						<div class="label-left">
+							<p class="label-text">
+								{{ data.getLabelingName | raw }}
+							</p>
+							<p class="label-price">
+								<strong>{{ data.sellingPrice | number_format(2, ',', ' ') }} €</strong> TTC
+							</p>
+						</div>
+						<div class="label-right">
+							<img src="{{ data.getBarCodeImage() }}" alt="Code-barres" class="barcode-img">
+						</div>
+					{% else %}
+						<p class="label-text">
+							{{ data.getLabelingName | raw }}<br>
+							<strong>{{ data.sellingPrice | number_format(2, ',', ' ') }} €</strong> TTC<br>
+							<img src="{{ data.getBarCodeImage() }}" alt="Code-barres" class="barcode-img">
+						</p>
+					{% endif %}
 				</div>
 			</div>
 		{% endfor %}
 	</div>
 	<script>
-            setTimeout(window.print(), 1000);
+		setTimeout(window.print(), 1000);
 
-// Lance l'impression dès que la page est chargée
-// Redirige après 1 seconde (ajustez le délai si nécessaire)
-setTimeout(function () {
-window.location.href = "{{ path('admin.labeling.index') }}";// Redirige vers l'index
-
-// Supprimez les étiquettes de la session ici, si nécessaire
-// Vous pourriez avoir besoin d'une autre route pour cela
-}, 1000); // Attendre 1 seconde avant de rediriger
+		// Redirige après 1 seconde
+		setTimeout(function () {
+			window.location.href = "{{ path('admin.labeling.index') }}";
+		}, 1000);
 	</script>
 {% endblock %}
 
 
 {% block stylesheets %}
 	<style>
-		/* Classe pour chaque étiquette */
+		/* === Base commune === */
 		.label {
-			width: 6cm; /* Largeur de 6 cm */
-			height: 4cm; /* Hauteur de 4 cm */
-			margin: 0; /* Supprime les marges */
-			padding: 0; /* Supprime le padding */
-			border: 1px solid black; /* Bordure noire */
-			background-color: white; /* Fond blanc */
-			display: flex; /* Utilisation du flexbox */
-			flex-direction: column; /* Orientation verticale */
-			align-items: center; /* Alignement centré horizontalement */
-			justify-content: center; /* Alignement centré verticalement */
+			margin: 0;
+			padding: 0;
+			border: 1px solid black;
+			background-color: white;
+			display: flex;
+			align-items: center;
+			justify-content: center;
 		}
 
-		/* Classe pour le contenu de l'étiquette */
 		.label-content {
-			width: 100%; /* Prend toute la largeur disponible */
-			height: 100%; /* Prend toute la hauteur disponible */
-			display: flex; /* Utilisation du flexbox */
-			flex-direction: column; /* Orientation verticale */
-			align-items: center; /* Alignement centré horizontalement */
-			justify-content: center; /* Alignement centré verticalement */
+			width: 100%;
+			height: 100%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
 		}
 
-		/* Classe pour le texte de l'étiquette */
 		.label-text {
-			margin: 0; /* Supprime les marges par défaut */
-			text-align: center; /* Centrer le texte */
-			font-size: 24px; /* Taille de la police */
-			line-height: 1.2; /* Espacement entre les lignes */
-			color: #000; /* Couleur du texte (noir) */
+			margin: 0;
+			text-align: center;
+			font-size: 24px;
+			line-height: 1.2;
+			color: #000;
 		}
 
-		/* Styles d'impression */
+		/* === Petit format : 6cm x 4cm (existant) === */
+		.label-small {
+			width: 6cm;
+			height: 4cm;
+			flex-direction: column;
+		}
+
+		.label-small .label-content {
+			flex-direction: column;
+		}
+
+		.label-small .barcode-img {
+			max-width: 50%;
+			max-height: 50%;
+			object-fit: contain;
+			margin-top: 5px;
+		}
+
+		/* === Grand format : 12cm x 4cm === */
+		.label-large {
+			width: 12cm;
+			height: 4cm;
+		}
+
+		.label-large .label-content {
+			flex-direction: row;
+			justify-content: space-between;
+			padding: 0 0.5cm;
+		}
+
+		.label-large .label-left {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			flex: 1;
+			padding-left: 0.3cm;
+		}
+
+		.label-large .label-text {
+			font-size: 32px;
+		}
+
+		.label-large .label-price {
+			margin: 5px 0 0 0;
+			text-align: center;
+			font-size: 30px;
+			color: #000;
+		}
+
+		.label-large .label-right {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 3cm;
+			height: 100%;
+			overflow: hidden;
+		}
+
+		.label-large .barcode-img {
+			transform: rotate(-90deg);
+			max-width: 3.5cm;
+			max-height: 2.5cm;
+			object-fit: contain;
+		}
+
+		/* === Styles d'impression === */
 		@media print {
 			.label {
-				page-break-inside: avoid; /* Évite la séparation des étiquettes entre les pages */
+				page-break-inside: avoid;
 			}
-		}
-
-		/* Classe pour l'image du code-barres */
-		.barcode-img {
-			max-width: 50%; /* Assure que l'image ne dépasse pas la largeur de l'étiquette */
-			max-height: 50%; /* Limite la hauteur de l'image */
-			object-fit: contain; /* Assure que l'image garde ses proportions */
-			margin-top: 5px; /* Espace au-dessus de l'image */
 		}
 	</style>
 {% endblock %}
