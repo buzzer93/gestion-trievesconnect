@@ -109,13 +109,13 @@
 		}
 
 		.label-large .label-text {
-			font-size: 32px;
+			font-size: 36px;
 		}
 
 		.label-large .label-price {
 			margin: 5px 0 0 0;
 			text-align: center;
-			font-size: 30px;
+			font-size: 35px;
 			color: #000;
 		}
 
@@ -129,9 +129,9 @@
 		}
 
 		.label-large .barcode-img {
-			transform: rotate(-90deg);
-			max-width: 3.5cm;
-			max-height: 2.5cm;
+			transform: translateX(20%) rotate(-90deg);
+			width: 3.5cm;   /* devient la HAUTEUR visuelle après rotation */
+			height: 2.5cm;  /* devient la LARGEUR visuelle après rotation */
 			object-fit: contain;
 		}
 
