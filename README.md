@@ -71,3 +71,52 @@ symfony server:start
 - Dépôt : [github.com/buzzer93/gestion-trievesconnect](https://github.com/buzzer93/gestion-trievesconnect)
 - Signaler un bug : [Issues bug](https://github.com/buzzer93/gestion-trievesconnect/issues/new?labels=bug)
 - Demander une fonctionnalité : [Issues enhancement](https://github.com/buzzer93/gestion-trievesconnect/issues/new?labels=enhancement)
+
+
+
+## TODO:
+
+Plan détaillé — Refonte Tailwind / Cursor warm-dark
+Phase 0 — Reset (≈ 5 min)
+git restore sur public/css/styles.css + tous les templates modifiés.
+Vérification : git status doit être propre, HEAD = 29eb70c.
+Conséquence : le styles.css actuel (≈ 700 lignes warm-dark) est perdu. On le réécrira en Tailwind.
+Phase 1 — Setup technique Tailwind (≈ 15 min)
+composer require symfonycasts/tailwind-bundle (compatible AssetMapper, binaire standalone, pas de Node requis).
+php bin/console tailwind:init → crée tailwind.config.js et assets/styles/app.css.
+Configurer tailwind.config.js avec tokens Cursor warm-dark :
+Couleurs : bg, surface.100→500, text.primary/soft/muted/faint, accent, accent-soft, error, success, warning, gold, thinking/grep/read/edit.
+Polices : Geist (UI/display), EB Garamond (editorial), JetBrains Mono (code) — chargées via Google Fonts dans <head> (le projet le faisait déjà).
+Ombres : ambient, elevated, focus.
+Radius : sm:4px, DEFAULT:8px, lg:10px, full:9999px.
+Letter-spacing : display:-2.16px@72, heading:-0.72px@36, subhead:-0.325px@26, title:-0.11px@22.
+assets/styles/app.css : @tailwind base/components/utilities + @layer base pour la typographie globale (h1-h6, body, a:hover→error).
+Modifier base.html.twig : importer app.css via AssetMapper, garder Bootstrap temporairement (cohabitation contrôlée — Tailwind preflight désactivé sur conflits clés).
+⚠️ Décision clé sur la cohabitation : pendant Phase 1, Bootstrap reste chargé dans base.html.twig pour que les pages admin non encore migrées (customer, product, etc.) ne cassent pas. Tailwind cohabite. On retire Bootstrap en fin de Phase 3.
+
+Phase 2 — Composants Twig réutilisables (≈ 30 min)
+Création dans templates/components/ :
+
+_button.html.twig : variants primary (surface warm), accent (orange CTA), ghost, pill, danger (crimson), success (teal), tailles sm/md/lg.
+_card.html.twig : avec blocs header/body/footer, variant elevated.
+_page_header.html.twig : titre Geist large + sous-titre EB Garamond + slot actions à droite.
+_pill.html.twig : badges Cursor (thinking, grep, read, edit, neutre).
+_alert.html.twig : variants success/danger/warning/info avec bordure-gauche colorée.
+_form_row.html.twig : label + input/select/textarea Symfony Form-compatible.
+Phase 3 — Layout & pages d'authentification (≈ 45 min)
+base.html.twig : refonte complète Tailwind :
+Navbar sticky : logo + brand text + liens nav + CTA login/logout, menu mobile via Stimulus (controller dropdown).
+Container principal Tailwind (max-w-screen-2xl, mx-auto, padding responsive).
+Conservation du is-print body class.
+partials/flash.html.twig : utilise _alert.
+security/login.html.twig : carte centrée Cursor-style, titre Geist display, formulaire propre.
+registration/register.html.twig : idem login.
+Stimulus controller assets/controllers/dropdown_controller.js pour le toggle navbar mobile.
+Phase 4 — Validation visuelle (≈ 10 min)
+php bin/console tailwind:build → vérifie compilation.
+symfony serve + ouverture navigateur :
+Page d'accueil non authentifié → login OK ?
+Login → home OK ?
+Une page admin (par ex. customer index) → encore Bootstrap, doit rester lisible.
+Mobile (DevTools) : navbar burger OK ?
+Mode impression : @media print → blanc/noir comme avant ?

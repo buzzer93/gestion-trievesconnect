@@ -27,3 +27,7 @@
 .env
 error_log
 public/error_log
+
+###> claude-ai/claude-php-sdk ###
+/.claude/
+###< claude-ai/claude-php-sdk ###
