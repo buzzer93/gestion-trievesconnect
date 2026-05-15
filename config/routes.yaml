@@ -2,4 +2,6 @@ controllers:
     resource:
         path: ../src/Controller/
         namespace: App\Controller
+        exclude:
+            - '../src/Controller/Dev/'
     type: attribute

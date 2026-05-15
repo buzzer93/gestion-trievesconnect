@@ -1,103 +1,121 @@
-{% extends './base.html.twig' %}
+{% extends 'base.html.twig' %}
 
-{% block title %}
-	Étiquetage
-{% endblock %}
+{% block title %}Étiquetage · Trieves Connect Manager{% endblock %}
 
 {% block body %}
-	<div class="d-flex justify-content-center align-items-center">
-		<h1 class="text-center text-light">Étiquetage</h1>
-	</div>
-	<div class="row">
-		<div class="col-7">
+    {% embed 'components/_page_header.html.twig' with {
+        title: 'Étiquetage',
+        subtitle: 'Préparation des étiquettes pour impression.',
+    } only %}
+        {% block actions %}
+            {% include 'components/_button.html.twig' with {
+                label: 'Impression',
+                variant: 'accent',
+                icon: 'fa-solid fa-print',
+                href: path('admin.labeling.print'),
+            } only %}
+            <form method="post"
+                  action="{{ path('admin.labeling.delete', { index: 0, all: 'true' }) }}"
+                  onsubmit="return confirm('Voulez-vous vraiment supprimer toutes les étiquettes ?');">
+                <input type="hidden" name="_method" value="DELETE">
+                {% include 'components/_button.html.twig' with {
+                    label: 'Supprimer tout',
+                    variant: 'danger',
+                    type: 'submit',
+                    icon: 'fa-solid fa-trash',
+                } only %}
+            </form>
+        {% endblock %}
+    {% endembed %}
 
-			{{ form_start(form) }}
-			<div class="d-flex justify-content-center align-items-center w-100">
-				<div class="row d-flex justify-content-spacebetween w-100">
-					<div class="col-sm-6 d-flex align-items-center">
-						<label for="{{ form.barCode.vars.id }}" class="w-50">Code-barre</label>
-						{{ form_widget(form.barCode) }}
-					</div>
-					<div class="col-sm-3">
-						{{ form_widget(form.save, {'attr': {'class': ' btn btn-primary'}}) }}
-					</div>
-				</div>
-			</div>
-			{{ form_end(form) }}
-		</div>
-		<div class="col-2">
-			<input type="text" id="filterInput" class="form-control bg-dark text-light 54654 border-light rounded" placeholder="Recherche" style="color: #adb5bd;">
-		</div>
-		<div class="col-3 d-flex gap-1">
-			<div class="d-flex justify-content-center h5">
-				<a class="btn btn-primary rounded" href="{{ path('admin.labeling.print') }}">Impression</a>
-			</div>
-			<div class="d-flex justify-content-center h5">
-				<form method="post" action="{{ path('admin.labeling.delete', { index: 0, all: 'true' }) }}" onsubmit="return confirm('Voulez-vous vraiment supprimer toutes les étiquettes ?');">
-					<input type="hidden" name="_method" value="DELETE">
-					<button class="btn btn-danger rounded" type="submit">Supprimer tout</button>
-				</form>
-			</div>
-		</div>
-	</div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {# Ajout étiquette (scan) — 2/3 #}
+        <div class="lg:col-span-2 bg-surface-300 border border-border rounded-md p-6 shadow-ambient">
+            {{ form_start(form) }}
+            <div class="flex flex-col sm:flex-row sm:items-end gap-3">
+                <div class="grow">
+                    <label for="{{ form.barCode.vars.id }}"
+                           class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">Code-barre</label>
+                    {{ form_widget(form.barCode, {'attr': {'class': 'block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm font-mono focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent transition-colors'}}) }}
+                </div>
+                <div>
+                    {{ form_widget(form.save, {'attr': {'class': 'inline-flex items-center justify-center gap-2 bg-transparent text-text-primary border-2 border-accent font-display font-bold uppercase tracking-wide text-sm px-5 py-2 rounded-md hover:bg-accent hover:text-bg transition-colors'}}) }}
+                </div>
+            </div>
+            {{ form_end(form) }}
+        </div>
 
-	<table class="table table-dark border border-light my-5" id="productTable">
-		<thead>
-			<tr>
-				<th class="h4 text-center">Nom</th>
-				<th class="h4 text-center">Prix de vente TTC</th>
-				<th class="h4 text-center">Code-barre</th>
-				<th class="h4 text-center">Grand format</th>
-				<th class="h4 text-center">Actions</th>
-			</tr>
-		</thead>
-		<tbody>
-			{% for index, item in dataList %}
-				{% set data = item.entity %}
-				<tr>
-					<td>
-						<a class="text-light h5 data_name " href="{{ path('admin.' ~ data.getType() ~ '.edit', { id: data.id }) }}">{{ data.name }}</a>
-					</td>
-					<td>
-						<p class="text-center text-light h5 ">{{ data.sellingPrice | number_format(2, ',', ' ') }}
-							€</p>
-					</td>
-					<td>
-						<p class="text-center text-light h5 bareCode ">{{ data.barCode }}</p>
-					</td>
-					<td class="text-center">
-						<input type="checkbox" class="form-check-input large-format-toggle"
-							data-index="{{ index }}"
-							{{ item.format == 'large' ? 'checked' : '' }}>
-					</td>
-					<td>
-						<div class="d-flex justify-content-center h5 gap-1">
-							<form method="post" action="{{ path('admin.labeling.delete', { index: index, all: 'false'}) }}" onsubmit="return confirm('Voulez-vous vraiment supprimer cette étiquette ?');">
-								<input type="hidden" name="_method" value="DELETE">
-								<button class="btn btn-danger btn-sm rounded" type="submit">Supprimer</button>
-							</form>
-						</div>
-					</td>
-				</tr>
-			{% endfor %}
-		</tbody>
-	</table>
-	<script src="{{ asset('js/filter.js') }}"></script>
-	<script>
-		var toggleBaseUrl = '{{ path('admin.labeling.index') }}'.replace('/index', '/toggle-format');
+        {# Recherche — 1/3 #}
+        <div>
+            <label for="filterInput" class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">Recherche</label>
+            <input type="text" id="filterInput"
+                   placeholder="Filtrer une étiquette"
+                   class="block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent transition-colors">
+        </div>
+    </div>
 
-		document.querySelectorAll('.large-format-toggle').forEach(function(checkbox) {
-			checkbox.addEventListener('change', function() {
-				var url = toggleBaseUrl + '/' + this.dataset.index;
-				fetch(url, {
-					method: 'POST',
-					headers: { 'X-Requested-With': 'XMLHttpRequest' }
-				}).then(function(response) {
-					if (!response.ok) {
-						alert('Erreur lors de la mise à jour du format');
-					}
-				});
-			});
-		});
-	</script>
+    <table class="data-table" id="productTable">
+        <thead>
+            <tr>
+                <th>Nom</th>
+                <th class="text-right">Prix de vente TTC</th>
+                <th>Code-barre</th>
+                <th class="text-center">Grand format</th>
+                <th class="text-right">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for index, item in dataList %}
+                {% set data = item.entity %}
+                <tr data-controller="row-link"
+                    data-row-link-url-value="{{ path('admin.' ~ data.getType() ~ '.edit', { id: data.id }) }}">
+                    <td>
+                        <a class="data_name" href="{{ path('admin.' ~ data.getType() ~ '.edit', { id: data.id }) }}">{{ data.name }}</a>
+                    </td>
+                    <td class="text-right font-mono text-sm">{{ data.sellingPrice | number_format(2, ',', ' ') }} €</td>
+                    <td><span class="bareCode">{{ data.barCode }}</span></td>
+                    <td class="text-center">
+                        <input type="checkbox" class="large-format-toggle w-4 h-4 bg-surface-300 border border-border text-accent focus:ring-accent focus:ring-2"
+                               data-index="{{ index }}"
+                               {{ item.format == 'large' ? 'checked' : '' }}>
+                    </td>
+                    <td>
+                        <div class="flex justify-end">
+                            <form method="post"
+                                  action="{{ path('admin.labeling.delete', { index: index, all: 'false' }) }}"
+                                  onsubmit="return confirm('Voulez-vous vraiment supprimer cette étiquette ?');">
+                                <input type="hidden" name="_method" value="DELETE">
+                                {% include 'components/_button.html.twig' with {
+                                    label: 'Supprimer',
+                                    variant: 'danger',
+                                    size: 'sm',
+                                    type: 'submit',
+                                    icon: 'fa-solid fa-trash',
+                                } only %}
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script src="{{ asset('js/filter.js') }}"></script>
+    <script>
+        var toggleBaseUrl = '{{ path('admin.labeling.index') }}'.replace('/index', '/toggle-format');
+
+        document.querySelectorAll('.large-format-toggle').forEach(function (checkbox) {
+            checkbox.addEventListener('change', function () {
+                var url = toggleBaseUrl + '/' + this.dataset.index;
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                }).then(function (response) {
+                    if (!response.ok) {
+                        alert('Erreur lors de la mise à jour du format');
+                    }
+                });
+            });
+        });
+    </script>
 {% endblock %}

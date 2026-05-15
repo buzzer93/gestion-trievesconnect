@@ -1,59 +1,77 @@
-{% extends './base.html.twig' %}
+{% extends 'base.html.twig' %}
 
-{% block title %}
-	Tous les services
-{% endblock %}
+{% block title %}Services · Trieves Connect Manager{% endblock %}
 
 {% block body %}
-	<div class="d-flex justify-content-center align-items-center mb-4">
-		<h1 class="text-center text-light">Tous les Services</h1>
-	</div>
-	<div class="row d-flex justify-content-around mb-4">
-		<a class="btn btn-primary btn-md col-4 rounded" href="{{ path('admin.service.create') }}">Ajouter un service</a>
-		<div class="col-1"></div>
-		<div class="col-6">
-			<input type="text" id="filterInput" class="form-control bg-dark text-light 54654 border-light rounded" placeholder="Code barre" style="color: #adb5bd;">
-		</div>
-	</div>
-	<table class="table table-dark border border-light" id="sortableTable">
-		<thead>
-			<tr>
-				<th class="h4 text-center">Nom</th>
-				<th class="h4 text-center">Prix de vente TTC</th>
-				<th class="h4 text-center">montant de la marge</th>
-				<th class="h4 text-center">Code-barre</th>
-				<th class="h4 text-center">Actions</th>
-			</tr>
-		</thead>
-		<tbody>
-			{% for service in services %}
-				<tr>
-					<td>
-						<a class="text-light h5 service_name" href="{{ path('admin.service.edit',{id: service.id}) }}">{{ service.name }}</a>
-					</td>
-					<td>
-						<p class="text-center text-light h5">{{ service.sellingPrice| number_format(2, ',', ' ') }}
-							€</p>
-					</td>
-					<td>
-						<p class="text-center text-light h5">{{ service.marginAmount| number_format(2, ',', ' ') }}
-							€</p>
-					</td>
-					<td>
-						<p class="text-center text-light h5 bareCode">{{ service.barCode }}</p>
-					</td>
-					<td>
-						<div class="d-flex justify-content-center h5 gap-1">
-							<a class="btn btn-primary btn-sm rounded" href="{{ path('admin.service.edit',{id: service.id}) }}">Modifier</a>
-							<form method="post" action="{{ path('admin.service.delete', {'id': service.id}) }}" onsubmit="return confirm('Voulez-vous vraiment supprimer ce service ?');">
-								<input type="hidden" name="_method" value="DELETE">
-								<button class="btn btn-danger rounded">Supprimer</button>
-							</form>
-						</div>
-					</td>
-				</tr>
-			{% endfor %}
-		</tbody>
-	</table>
-	<script src="{{ asset('js/filter.js') }}"></script>
+    {% embed 'components/_page_header.html.twig' with {
+        title: 'Services',
+        subtitle: 'Catalogue des services facturables.',
+    } only %}
+        {% block actions %}
+            {% include 'components/_button.html.twig' with {
+                label: 'Nouveau service',
+                variant: 'accent',
+                icon: 'fa-solid fa-plus',
+                href: path('admin.service.create'),
+            } only %}
+        {% endblock %}
+    {% endembed %}
+
+    <div class="mb-4 max-w-md">
+        <label for="filterInput" class="block text-sm font-medium text-text-soft mb-1.5">
+            Filtrer par code-barre
+        </label>
+        <input type="text" id="filterInput"
+               placeholder="Saisir ou scanner un code-barre"
+               autocomplete="off"
+               class="block w-full bg-surface-200 text-text-primary border border-border rounded-md px-3 py-2 text-sm font-mono placeholder:text-text-muted focus:outline-none focus:border-accent focus:shadow-focus">
+    </div>
+
+    <table class="data-table" id="sortableTable">
+        <thead>
+            <tr>
+                <th>Nom</th>
+                <th>Prix vente TTC</th>
+                <th>Marge</th>
+                <th>Code-barre</th>
+                <th class="text-right">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for service in services %}
+                <tr data-controller="row-link"
+                    data-row-link-url-value="{{ path('admin.service.edit', {id: service.id}) }}">
+                    <td>
+                        <a class="service_name" href="{{ path('admin.service.edit', {id: service.id}) }}">{{ service.name }}</a>
+                    </td>
+                    <td>{{ service.sellingPrice|number_format(2, ',', ' ') }} €</td>
+                    <td class="text-text-soft">{{ service.marginAmount|number_format(2, ',', ' ') }} €</td>
+                    <td><span class="bareCode">{{ service.barCode }}</span></td>
+                    <td>
+                        <div class="flex justify-end gap-2">
+                            <form method="post" action="{{ path('admin.service.delete', {id: service.id}) }}"
+                                  onsubmit="return confirm('Supprimer ce service ?');">
+                                <input type="hidden" name="_method" value="DELETE">
+                                {% include 'components/_button.html.twig' with {
+                                    label: 'Supprimer',
+                                    variant: 'danger',
+                                    size: 'sm',
+                                    type: 'submit',
+                                    icon: 'fa-solid fa-trash',
+                                } only %}
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="5" class="text-center text-text-muted italic font-serif py-6">
+                        Aucun service pour l'instant.
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script src="{{ asset('js/filter.js') }}"></script>
 {% endblock %}

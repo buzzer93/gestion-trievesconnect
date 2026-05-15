@@ -1,289 +1,349 @@
-{% extends './base.html.twig' %}
+{% extends 'base.html.twig' %}
 
-{% block title %}Liste des Clients{% endblock %}
+{% block title %}Clients · Trieves Connect Manager{% endblock %}
 
 {% block body %}
-<h1 class="text-center text-light mb-4">Clients</h1>
+    {% embed 'components/_page_header.html.twig' with {
+        title: 'Clients',
+        subtitle: 'Gestion des comptes et soldes.',
+    } only %}
+        {% block actions %}
+            {% include 'components/_button.html.twig' with {
+                label: 'Nouveau client',
+                variant: 'accent',
+                icon: 'fa-solid fa-plus',
+                href: path('admin.customer.create'),
+            } only %}
+        {% endblock %}
+    {% endembed %}
 
-<div class="row align-items-center mb-3 g-2">
-  <div class="col-12 col-md-auto">
-    <a class="btn btn-primary w-100" href="{{ path('admin.customer.create') }}">Ajouter un client</a>
-  </div>
-  <div class="col-12 col-md-6">
-    <input id="scanPhoneInput" class="form-control bg-dark text-light border-light rounded" placeholder="Scanner / saisir numéro téléphone puis Entrée" autocomplete="off">
-  </div>
-</div>
-
-<table class="table table-dark border border-light datatable" id="customerTable">
-  <thead>
-    <tr>
-      <th class="text-center">Nom</th>
-      <th class="text-center">Téléphone</th>
-      <th class="text-center">Email</th>
-  <th class="text-center credit-cell">Crédits</th>
-      <th class="text-center">Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for customer in customers %}
-      <tr>
-        <td class="text-center"><a class="text-light" href="{{ path('admin.customer.edit', {id: customer.id}) }}">{{ customer.name }}</a></td>
-        <td class="text-center">{{ customer.phoneNumber }}</td>
-        <td class="text-center">{{ customer.email }}</td>
-        <td class="text-center credit-cell">
-          {# Afficher en euros pour l'admin, dataset en centimes #}
-          <button class="btn btn-sm btn-outline-warning credit-btn" data-customer-id="{{ customer.id }}" data-current-credits="{{ customer.getBalanceCents() }}">
-            {{ customer.getBalanceEuros() }} €
-          </button>
-        </td>
-        <td>
-          <div class="d-flex justify-content-center gap-1">
-            <a class="btn btn-sm btn-primary" href="{{ path('admin.customer.edit', {id: customer.id}) }}">Modifier</a>
-            <form method="post" action="{{ path('admin.customer.delete', {id: customer.id}) }}" onsubmit="return confirm('Supprimer ce client ?');">
-              <input type="hidden" name="_method" value="DELETE">
-              <button class="btn btn-sm btn-danger">Supprimer</button>
-            </form>
-          </div>
-        </td>
-      </tr>
-    {% else %}
-      <tr>
-        <td colspan="7" class="text-center text-muted">Aucun client pour l'instant.</td>
-      </tr>
-    {% endfor %}
-  </tbody>
-</table>
-
-<!-- Modal Crédit / Débit -->
-<div class="modal fade" id="creditModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content bg-dark text-light border border-light">
-      <div class="modal-header">
-        <h5 class="modal-title">Gérer le solde</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div class="d-flex flex-column gap-3">
-          <div class="mb-2">Solde actuel: <span id="modalCurrentBalance">0.00</span> €</div>
-          <section>
-            <h6>Ajouter du crédit</h6>
-            <div class="input-group mb-2">
-              <span class="input-group-text">Montant (€)</span>
-              <input type="number" min="0.01" step="0.01" value="1.00" id="creditAmountEuros" class="form-control bg-secondary text-light border-light">
-            </div>
-            <div class="d-flex gap-2">
-              <button id="creditAddBtn" class="btn btn-success">Ajouter</button>
-            </div>
-          </section>
-
-          <hr class="border-light" />
-
-          <section>
-            <h6>Débiter pour impression</h6>
-            <div class="mb-3">
-              <label class="form-label">Type</label>
-              <div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="printType" id="typeNb" value="nb" checked>
-                  <label class="form-check-label" for="typeNb">N&amp;B</label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="printType" id="typeColor" value="color">
-                  <label class="form-check-label" for="typeColor">Couleurs</label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="radio" name="printType" id="typePhoto" value="photo">
-                  <label class="form-check-label" for="typePhoto">Photo</label>
-                </div>
-              </div>
-            </div>
-            <div class="mb-3 form-check">
-              <input type="checkbox" class="form-check-input" id="formatA3">
-              <label class="form-check-label" for="formatA3">Option A3 (tarif A3)</label>
-            </div>
-            <div class="input-group mb-3">
-              <span class="input-group-text">Quantité</span>
-              <input type="number" min="1" step="1" value="1" id="printCopies" class="form-control bg-secondary text-light border-light">
-            </div>
-            <div class="mb-2">Coût estimé : <strong id="printEstimatedCost">0.00</strong> €</div>
-            <div class="d-flex justify-content-end">
-              <button id="printChargeBtn" class="btn btn-warning">Débiter</button>
-            </div>
-          </section>
-        </div>
-      </div>
-      <div class="modal-footer d-flex justify-content-between">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
-      </div>
+    <div class="mb-5 max-w-xl">
+        <label for="scanPhoneInput" class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">
+            <i class="fa-solid fa-barcode mr-1.5" aria-hidden="true"></i>
+            Scanner un numéro de téléphone
+        </label>
+        <input id="scanPhoneInput" type="text"
+               placeholder="Scanner ou saisir un numéro puis Entrée"
+               autocomplete="off"
+               class="block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm font-mono placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent transition-colors duration-150">
     </div>
-  </div>
-</div>
 
-<script>
-  // Champ scan téléphone -> ouvre modal crédits du client correspondant
-  const scanInput = document.getElementById('scanPhoneInput');
-  scanInput?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      const raw = scanInput.value.trim();
-      if (!raw) return;
-      const normalized = raw.replace(/\s+/g,'').replace(/^\+33/, '0');
-      let targetBtn = null;
-      document.querySelectorAll('#customerTable tbody tr').forEach(tr => {
-        const phoneCell = tr.children[1]; // 0=Nom 1=Téléphone
-        if (!phoneCell) return;
-        const phone = phoneCell.textContent.replace(/\s+/g,'').replace(/^\+33/, '0');
-        if (phone === normalized) {
-          targetBtn = tr.querySelector('.credit-btn');
+    <table class="data-table" id="customerTable">
+        <thead>
+            <tr>
+                <th>Nom</th>
+                <th>Téléphone</th>
+                <th>Email</th>
+                <th>Solde</th>
+                <th class="text-right">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for customer in customers %}
+                <tr data-controller="row-link"
+                    data-row-link-url-value="{{ path('admin.customer.edit', {id: customer.id}) }}">
+                    <td>
+                        <a class="data_name" href="{{ path('admin.customer.edit', {id: customer.id}) }}">{{ customer.name }}</a>
+                    </td>
+                    <td class="font-mono text-sm text-text-soft">{{ customer.phoneNumber }}</td>
+                    <td class="text-text-soft">{{ customer.email }}</td>
+                    <td>
+                        <button type="button"
+                                class="credit-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-xs font-bold uppercase tracking-wide bg-transparent border-2 border-gold text-gold hover:bg-gold hover:text-bg transition-colors duration-150"
+                                data-customer-id="{{ customer.id }}"
+                                data-current-credits="{{ customer.getBalanceCents() }}"
+                                title="Gérer le solde">
+                            <i class="fa-solid fa-coins text-xs" aria-hidden="true"></i>
+                            <span>{{ customer.getBalanceEuros() }} €</span>
+                        </button>
+                    </td>
+                    <td>
+                        <div class="flex justify-end gap-2">
+                            <form method="post" action="{{ path('admin.customer.delete', {id: customer.id}) }}"
+                                  onsubmit="return confirm('Supprimer ce client ?');">
+                                <input type="hidden" name="_method" value="DELETE">
+                                {% include 'components/_button.html.twig' with {
+                                    label: 'Supprimer',
+                                    variant: 'danger',
+                                    size: 'sm',
+                                    type: 'submit',
+                                    icon: 'fa-solid fa-trash',
+                                } only %}
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="5" class="text-center text-text-muted py-6">
+                        Aucun client pour l'instant.
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {# Modal Crédit / Débit — Stimulus (modal controller) #}
+    <div id="creditModal"
+         data-controller="modal"
+         class="hidden fixed inset-0 z-50 items-center justify-center p-4"
+         aria-labelledby="creditModalTitle">
+        <div data-modal-target="backdrop"
+             data-action="click->modal#hideOnBackdrop"
+             class="absolute inset-0 bg-black/70"></div>
+
+        <div data-modal-target="dialog"
+             role="dialog" aria-modal="true"
+             class="relative w-full max-w-2xl bg-surface-300 border border-border rounded-md shadow-elevated max-h-[90vh] overflow-y-auto">
+
+            <div class="flex items-center justify-between px-5 py-3 border-b-2 border-accent">
+                <h5 class="font-display font-bold uppercase tracking-wide text-base m-0" id="creditModalTitle">Gérer le solde</h5>
+                <button type="button"
+                        data-action="modal#hide"
+                        class="text-text-muted hover:text-text-primary transition-colors w-8 h-8 inline-flex items-center justify-center"
+                        aria-label="Fermer">
+                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                </button>
+            </div>
+
+            <div class="p-5">
+                <div class="flex flex-col gap-6">
+
+                    <div class="flex items-center justify-between bg-surface-200 border border-border rounded-sm px-4 py-3">
+                        <span class="text-xs font-bold uppercase tracking-wide text-text-soft">Solde actuel</span>
+                        <span class="font-mono font-bold text-lg text-gold">
+                            <span id="modalCurrentBalance">0.00</span> €
+                        </span>
+                    </div>
+
+                    <section>
+                        <h6 class="m-0 mb-3 font-display font-bold text-xs uppercase tracking-wide text-text-soft">
+                            <i class="fa-solid fa-circle-plus text-accent mr-1.5" aria-hidden="true"></i>
+                            Ajouter du crédit
+                        </h6>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <div class="flex grow rounded-sm overflow-hidden border border-border">
+                                <span class="inline-flex items-center px-3 bg-surface-400 text-text-soft text-sm font-mono">€</span>
+                                <input type="number" min="0.01" step="0.01" value="1.00" id="creditAmountEuros"
+                                       class="block w-full bg-surface-200 text-text-primary border-0 px-3 py-2 text-sm focus:outline-none focus:bg-surface-100">
+                            </div>
+                            <button id="creditAddBtn" type="button"
+                                    class="inline-flex items-center justify-center gap-2 bg-transparent text-accent border-2 border-accent font-display font-bold uppercase tracking-wide text-sm px-4 py-2 rounded-md hover:bg-accent hover:text-bg transition-colors">
+                                <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                                <span>Ajouter</span>
+                            </button>
+                        </div>
+                    </section>
+
+                    <hr class="border-border m-0">
+
+                    <section>
+                        <h6 class="m-0 mb-3 font-display font-bold text-xs uppercase tracking-wide text-text-soft">
+                            <i class="fa-solid fa-print text-warning mr-1.5" aria-hidden="true"></i>
+                            Débiter pour impression
+                        </h6>
+
+                        <div class="mb-3">
+                            <label class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-2">Type</label>
+                            <div class="flex flex-wrap gap-4">
+                                {% for value, label in {'nb': 'N&B', 'color': 'Couleurs', 'photo': 'Photo'} %}
+                                    <label class="inline-flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="printType" value="{{ value }}"
+                                               {% if value == 'nb' %}checked{% endif %}
+                                               class="w-4 h-4 bg-surface-300 border border-border text-accent focus:ring-accent focus:ring-2">
+                                        <span class="text-sm text-text-primary">{{ label|raw }}</span>
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <label class="inline-flex items-center gap-2 cursor-pointer mb-3">
+                            <input type="checkbox" id="formatA3"
+                                   class="w-4 h-4 rounded-sm bg-surface-300 border border-border text-accent focus:ring-accent focus:ring-2">
+                            <span class="text-sm text-text-soft">Option A3 (tarif A3)</span>
+                        </label>
+
+                        <div class="flex flex-col sm:flex-row gap-3 mb-3">
+                            <div class="flex grow rounded-sm overflow-hidden border border-border">
+                                <span class="inline-flex items-center px-3 bg-surface-400 text-text-soft text-xs font-bold uppercase tracking-wide">Quantité</span>
+                                <input type="number" min="1" step="1" value="1" id="printCopies"
+                                       class="block w-full bg-surface-200 text-text-primary border-0 px-3 py-2 text-sm focus:outline-none focus:bg-surface-100">
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between bg-surface-200 border border-border rounded-sm px-4 py-3 mb-4">
+                            <span class="text-xs font-bold uppercase tracking-wide text-text-soft">Coût estimé</span>
+                            <span class="font-mono font-bold text-base text-warning">
+                                <strong id="printEstimatedCost">0.00</strong> €
+                            </span>
+                        </div>
+
+                        <div class="flex justify-end">
+                            <button id="printChargeBtn" type="button"
+                                    class="inline-flex items-center justify-center gap-2 bg-transparent text-warning border-2 border-warning font-display font-bold uppercase tracking-wide text-sm px-4 py-2 rounded-md hover:bg-warning hover:text-bg transition-colors">
+                                <i class="fa-solid fa-minus" aria-hidden="true"></i>
+                                <span>Débiter</span>
+                            </button>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <div class="flex justify-between px-5 py-3 border-t border-border bg-surface-200">
+                <button type="button"
+                        data-action="modal#hide"
+                        class="inline-flex items-center gap-2 px-3 py-1.5 rounded-sm text-xs font-bold uppercase tracking-wide text-text-soft hover:text-text-primary transition-colors">
+                    Fermer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === Scan téléphone : ouvre la modale crédit pour le client correspondant ============
+        (function () {
+            const scanInput = document.getElementById('scanPhoneInput');
+            scanInput?.addEventListener('keydown', (e) => {
+                if (e.key !== 'Enter') return;
+                const raw = scanInput.value.trim();
+                if (!raw) return;
+                const normalized = raw.replace(/\s+/g, '').replace(/^\+33/, '0');
+                let targetBtn = null;
+                document.querySelectorAll('#customerTable tbody tr').forEach(tr => {
+                    const phoneCell = tr.children[1];
+                    if (!phoneCell) return;
+                    const phone = phoneCell.textContent.replace(/\s+/g, '').replace(/^\+33/, '0');
+                    if (phone === normalized) targetBtn = tr.querySelector('.credit-btn');
+                });
+                if (targetBtn) {
+                    targetBtn.click();
+                    scanInput.select();
+                } else {
+                    scanInput.classList.add('border-error');
+                    setTimeout(() => scanInput.classList.remove('border-error'), 1500);
+                }
+            });
+        })();
+
+        // === Modale crédit/débit (pilotée par le controller Stimulus 'modal') ==============
+        (function () {
+            const creditModalEl = document.getElementById('creditModal');
+            const openModal  = () => creditModalEl.dispatchEvent(new CustomEvent('modal:open'));
+            const closeModal = () => creditModalEl.dispatchEvent(new CustomEvent('modal:close'));
+
+            let currentCustomerId = null;
+            const modalCurrentBalance = document.getElementById('modalCurrentBalance');
+            const amountInput = document.getElementById('creditAmountEuros');
+            const addBtn = document.getElementById('creditAddBtn');
+
+            // Délégation : couvre aussi les boutons re-rendus par DataTables
+            document.getElementById('customerTable')?.addEventListener('click', (e) => {
+                const btn = e.target.closest('.credit-btn');
+                if (!btn) return;
+                currentCustomerId = btn.dataset.customerId;
+                const cents = parseInt(btn.dataset.currentCredits, 10) || 0;
+                modalCurrentBalance.textContent = (cents / 100).toFixed(2);
+                amountInput.value = '1.00';
+                computeEstimated();
+                openModal();
+            });
+
+            async function sendCredit(mode) {
+                const euros = parseFloat(amountInput.value.replace(',', '.'));
+                if (isNaN(euros) || euros <= 0) return;
+                const cents = Math.round(euros * 100);
+                try {
+                    const resp = await fetch(`/admin/customer/${currentCustomerId}/credits`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ mode, cents })
+                    });
+                    const data = await resp.json();
+                    if (!resp.ok) { showFlash('error', data.error || 'Erreur'); return; }
+                    updateRowBalance(currentCustomerId, data.credits);
+                    closeModal();
+                } catch (err) {
+                    showFlash('error', 'Erreur réseau');
+                }
+            }
+            addBtn.addEventListener('click', () => sendCredit('add'));
+
+            // Estimation et débit impression
+            const printTypeInputs = document.getElementsByName('printType');
+            const formatA3Checkbox = document.getElementById('formatA3');
+            const copiesInput = document.getElementById('printCopies');
+            const estimatedSpan = document.getElementById('printEstimatedCost');
+            const printChargeBtn = document.getElementById('printChargeBtn');
+
+            const prices = {
+                nb:    { A4: 30,  A3: 60 },
+                color: { A4: 50,  A3: 100 },
+                photo: { A4: 50,  A3: 100 },
+            };
+
+            function getSelectedPrintType() {
+                for (const r of printTypeInputs) if (r.checked) return r.value;
+                return 'nb';
+            }
+            function computeEstimated() {
+                const type = getSelectedPrintType();
+                const format = formatA3Checkbox.checked ? 'A3' : 'A4';
+                const copies = Math.max(1, parseInt(copiesInput.value, 10) || 1);
+                const cents = prices[type][format] * copies;
+                estimatedSpan.textContent = (cents / 100).toFixed(2);
+                return cents;
+            }
+            [formatA3Checkbox, copiesInput, ...printTypeInputs].forEach(el => el?.addEventListener('change', computeEstimated));
+
+            async function chargePrint() {
+                const cents = computeEstimated();
+                try {
+                    const resp = await fetch(`/admin/customer/${currentCustomerId}/print-charge`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ cents })
+                    });
+                    const data = await resp.json();
+                    if (!resp.ok) { showFlash('error', data.error || 'Erreur'); return; }
+                    updateRowBalance(currentCustomerId, data.credits);
+                    modalCurrentBalance.textContent = (data.credits / 100).toFixed(2);
+                    showFlash('success', 'Débit appliqué.');
+                    closeModal();
+                } catch (err) {
+                    showFlash('error', 'Erreur réseau');
+                }
+            }
+            printChargeBtn?.addEventListener('click', chargePrint);
+
+            function updateRowBalance(customerId, cents) {
+                const btn = document.querySelector(`.credit-btn[data-customer-id="${customerId}"]`);
+                if (!btn) return;
+                btn.dataset.currentCredits = cents;
+                const span = btn.querySelector('span');
+                if (span) span.textContent = (cents / 100).toFixed(2) + ' €';
+            }
+        })();
+
+        // === Flash dynamique côté JS — markup compatible components/_alert.html.twig =======
+        function showFlash(type, message, timeout = 3500) {
+            const container = document.querySelector('main') || document.body;
+            const config = {
+                success: { border: 'border-l-accent',   icon_color: 'text-accent',  icon: 'fa-solid fa-circle-check' },
+                error:   { border: 'border-l-error',    icon_color: 'text-error',   icon: 'fa-solid fa-triangle-exclamation' },
+                warning: { border: 'border-l-warning',  icon_color: 'text-warning', icon: 'fa-solid fa-circle-exclamation' },
+                info:    { border: 'border-l-info',     icon_color: 'text-info',    icon: 'fa-solid fa-circle-info' },
+            };
+            const c = config[type] || config.info;
+            const alert = document.createElement('div');
+            alert.className = `flex items-start gap-3 bg-surface-300 border border-border border-l-4 ${c.border} text-text-primary rounded-sm px-4 py-3 shadow-ambient mb-3 transition-opacity duration-300`;
+            alert.setAttribute('role', type === 'error' ? 'alert' : 'status');
+            alert.innerHTML = `<i class="${c.icon} ${c.icon_color} mt-0.5 shrink-0" aria-hidden="true"></i><div class="grow text-sm"></div>`;
+            alert.querySelector('div').textContent = message;
+            container.insertBefore(alert, container.firstChild);
+            setTimeout(() => {
+                alert.style.opacity = '0';
+                setTimeout(() => alert.remove(), 300);
+            }, timeout - 300);
         }
-      });
-      if (targetBtn) {
-        targetBtn.click();
-        scanInput.select();
-      } else {
-        scanInput.classList.add('is-invalid');
-        setTimeout(()=> scanInput.classList.remove('is-invalid'), 1500);
-      }
-    }
-  });
-
-  // Gestion modal crédits
-  let creditModalEl = document.getElementById('creditModal');
-  let bsCreditModal = null;
-  const ensureModal = () => {
-    if (!bsCreditModal) {
-      bsCreditModal = new bootstrap.Modal(creditModalEl);
-    }
-    return bsCreditModal;
-  };
-  let currentCustomerId = null;
-  const modalCurrentBalance = document.getElementById('modalCurrentBalance');
-  const amountInput = document.getElementById('creditAmountEuros');
-  const addBtn = document.getElementById('creditAddBtn');
-
-  // Utiliser la délégation d'événements sur la table pour couvrir
-  // les boutons présents lors du rendu initial et ceux ajoutés
-  // par DataTables (pagination, redraws, etc.).
-  const customerTableEl = document.getElementById('customerTable');
-  customerTableEl?.addEventListener('click', (e) => {
-    const btn = e.target.closest('.credit-btn');
-    if (!btn) return;
-    // récupérer l'id client et le solde depuis les data-attributes
-    currentCustomerId = btn.dataset.customerId;
-    const cents = parseInt(btn.dataset.currentCredits, 10) || 0;
-    modalCurrentBalance.textContent = (cents/100).toFixed(2);
-    amountInput.value = '1.00';
-    computeEstimated();
-    ensureModal().show();
-  });
-
-  async function sendCredit(mode) {
-    const euros = parseFloat(amountInput.value.replace(',', '.'));
-    if (isNaN(euros) || euros <= 0) return;
-    const cents = Math.round(euros * 100);
-    try {
-      const resp = await fetch(`/admin/customer/${currentCustomerId}/credits`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode, cents })
-      });
-      const data = await resp.json();
-        if (!resp.ok) {
-          showFlash('danger', data.error || 'Erreur');
-          return;
-        }
-      // Mettre à jour le bouton dans la ligne (dataset en centimes, label en euros)
-      const btn = document.querySelector(`.credit-btn[data-customer-id="${currentCustomerId}"]`);
-      if (btn) {
-        btn.dataset.currentCredits = data.credits;
-        btn.textContent = (data.credits/100).toFixed(2) + ' €';
-      }
-      ensureModal().hide();
-    } catch (e) {
-      showFlash('danger', 'Erreur réseau');
-    }
-  }
-
-  addBtn.addEventListener('click', () => sendCredit('add'));
-
-  /* === Impression : estimation et débit === */
-  const printTypeInputs = document.getElementsByName('printType');
-  const formatA3Checkbox = document.getElementById('formatA3');
-  const copiesInput = document.getElementById('printCopies');
-  const estimatedSpan = document.getElementById('printEstimatedCost');
-  const printChargeBtn = document.getElementById('printChargeBtn');
-
-  const prices = {
-    nb: { A4: 30, A3: 60 },
-    color: { A4: 50, A3: 100 },
-    photo: { A4: 50, A3: 100 }
-  };
-
-  function getSelectedPrintType() {
-    for (const r of printTypeInputs) if (r.checked) return r.value;
-    return 'nb';
-  }
-
-  function computeEstimated() {
-    const type = getSelectedPrintType();
-    const isA3 = !!formatA3Checkbox.checked;
-    const copies = Math.max(1, parseInt(copiesInput.value, 10) || 1);
-    const format = isA3 ? 'A3' : 'A4';
-    const cents = prices[type][format] * copies;
-    estimatedSpan.textContent = (cents/100).toFixed(2);
-    return cents;
-  }
-
-  // recalculer à chaque changement
-  [formatA3Checkbox, copiesInput, ...printTypeInputs].forEach(el => el?.addEventListener('change', computeEstimated));
-
-  async function chargePrint() {
-    const cents = computeEstimated();
-    try {
-      const resp = await fetch(`/admin/customer/${currentCustomerId}/print-charge`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cents })
-      });
-      const data = await resp.json();
-  if (!resp.ok) { showFlash('danger', data.error || 'Erreur'); return; }
-      // Mise à jour UI
-      const btn = document.querySelector(`.credit-btn[data-customer-id="${currentCustomerId}"]`);
-      if (btn) {
-        btn.dataset.currentCredits = data.credits;
-        btn.textContent = (data.credits/100).toFixed(2) + ' €';
-      }
-    // afficher nouveau solde dans le modal
-    modalCurrentBalance.textContent = (data.credits/100).toFixed(2);
-    showFlash('success', 'Débit appliqué.');
-    // fermer le modal
-    ensureModal().hide();
-      // Option : ouvrir nouvelle fenêtre d'impression si nécessaire
-    } catch (e) {
-      showFlash('danger', 'Erreur réseau');
-    }
-  }
-
-  printChargeBtn?.addEventListener('click', chargePrint);
-
-  // Utilitaire flash non bloquant — même rendu que le partial serveur
-  function showFlash(type, message, timeout = 3500) {
-    const container = document.querySelector('.cover-container') || document.body;
-    const alert = document.createElement('div');
-    // Même markup que templates/partials/flash.html.twig
-    alert.className = `alert alert-${type}`;
-    alert.setAttribute('role', 'alert');
-    alert.textContent = message;
-    // Insérer en haut du container pour correspondre au partial
-    container.insertBefore(alert, container.firstChild);
-    // Auto-suppression après timeout
-    setTimeout(() => {
-      // Petite transition CSS si disponible
-      alert.classList.add('fade');
-      alert.style.transition = 'opacity 300ms';
-      alert.style.opacity = 0;
-      setTimeout(() => alert.remove(), 300);
-    }, timeout - 300);
-  }
-</script>
-  
+    </script>
 {% endblock %}

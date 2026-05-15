@@ -1,0 +1,39 @@
+{#
+  components/_pill.html.twig — Badge NVIDIA dark
+
+  Style : fond subtil + bordure fine, uppercase 10-11px weight 700.
+  NVIDIA utilise des "micro labels" : 10-11px uppercase bold.
+
+  Usage :
+    {% include 'components/_pill.html.twig' with {
+      label: 'Actif',
+      tone: 'success',
+    } only %}
+
+    {% include 'components/_pill.html.twig' with {
+      label: 'AI',
+      tone: 'accent',
+    } only %}
+
+  Params :
+    label string  texte du badge (obligatoire)
+    tone  string  neutral | accent | success | error | warning | info | gold (default: neutral)
+    icon  string  classe FontAwesome (optionnel)
+#}
+
+{%- set _tones = {
+  neutral:  'bg-surface-400 text-text-soft border-border',
+  accent:   'bg-transparent text-accent border-accent',
+  success:  'bg-success-soft text-accent border-accent',
+  error:    'bg-error-soft text-error border-error',
+  warning:  'bg-warning-soft text-warning border-warning',
+  info:     'bg-info-soft text-info border-info',
+  gold:     'bg-transparent text-gold border-gold',
+} -%}
+
+{%- set _tone_class = _tones[tone|default('neutral')] -%}
+
+<span class="inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide font-display {{ _tone_class }}">
+  {%- if icon is defined and icon %}<i class="{{ icon }} text-[0.6rem]" aria-hidden="true"></i>{% endif -%}
+  {{ label }}
+</span>

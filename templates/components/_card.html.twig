@@ -1,0 +1,52 @@
+{#
+  components/_card.html.twig — Carte NVIDIA dark
+
+  Surface Near Black avec bordure subtile et radius 2px (NVIDIA sharp).
+
+  Deux usages :
+
+  1) Simple (contenu en variable) :
+     {% include 'components/_card.html.twig' with {
+       title: 'Mon titre',
+       body: 'Mon contenu',
+     } only %}
+
+  2) Avec blocks (recommandé pour HTML riche) :
+     {% embed 'components/_card.html.twig' with { elevated: true } only %}
+       {% block title %}Mon titre{% endblock %}
+       {% block body %}<p>Contenu...</p>{% endblock %}
+       {% block footer %}<button>Action</button>{% endblock %}
+     {% endembed %}
+
+  Params :
+    title        string  titre (optionnel)
+    body         string  contenu (si pas via block)
+    elevated     bool    shadow-elevated (default: false → shadow-ambient)
+    padding      string  sm | md | lg  (default: md)
+    extra_class  string  classes additionnelles
+#}
+
+{%- set _shadow = elevated|default(false) ? 'shadow-elevated' : 'shadow-ambient' -%}
+{%- set _padding = {
+  sm: 'p-4',
+  md: 'p-6',
+  lg: 'p-8',
+}[padding|default('md')] -%}
+
+<div class="bg-surface-300 border border-border rounded-md {{ _shadow }} {{ extra_class|default('') }}">
+  {%- if title is defined and title or block('title') is defined %}
+    <div class="px-6 pt-5 pb-3 border-b-2 border-accent">
+      <h3 class="m-0">{% block title %}{{ title|default('') }}{% endblock %}</h3>
+    </div>
+  {%- endif %}
+
+  <div class="{{ _padding }}">
+    {%- block body %}{{ body|default('') }}{% endblock -%}
+  </div>
+
+  {%- if block('footer') is defined %}
+    <div class="px-6 py-4 border-t border-border bg-surface-200 rounded-b-md">
+      {% block footer %}{% endblock %}
+    </div>
+  {%- endif %}
+</div>

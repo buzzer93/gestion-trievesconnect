@@ -1,26 +1,69 @@
-{% extends './base.html.twig' %}
+{% extends 'base.html.twig' %}
 
-{% block title %}Log in!
-{% endblock %}
+{% block title %}Connexion · Trieves Connect Manager{% endblock %}
 
 {% block body %}
-	
-		<form method="post">
-			<h1 class="h3 font-weight-normal text-center">Connexion</h1>
-			<div class="mb-3">
-				<label for="inputUsername">Nom d'utilisateur</label>
-				<input type="text" placeholder="demo" name="username" id="inputUsername" class="form-control bg-dark text-light border-light" required autofocus>
-			</div>
-			<div class="mb-4">
-				<label for="inputPassword">Mot de passe</label>
-				<input type="password" name="password" id="inputPassword" placeholder="demo" class="form-control bg-dark text-light border-light" required>
-			</div>
-			<input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
-			<div class="d-flex justify-content-center">
-				<button class="btn btn-lg btn-primary" type="submit">
-					Se connecter
-				</button>
-			</div>
-		</form>
-	</div>
+    <div class="flex justify-center py-8 sm:py-16">
+        <div class="w-full max-w-md">
+            <div class="text-center mb-6">
+                <h1 class="mb-2">Connexion</h1>
+                <p class="text-text-soft m-0">
+                    Accédez à votre espace de gestion.
+                </p>
+            </div>
+
+            {% if error %}
+                {% include 'components/_alert.html.twig' with {
+                    type: 'error',
+                    message: error.messageKey|trans(error.messageData, 'security'),
+                } only %}
+            {% endif %}
+
+            {% embed 'components/_card.html.twig' with {
+                elevated: true,
+                padding: 'lg',
+                last_username: last_username|default(''),
+            } only %}
+                {% block body %}
+                    <form method="post" class="space-y-4">
+                        <div>
+                            <label for="inputUsername" class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">
+                                Nom d'utilisateur
+                            </label>
+                            <input type="text"
+                                   id="inputUsername" name="username"
+                                   value="{{ last_username|default('') }}"
+                                   placeholder="demo"
+                                   class="block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm font-display placeholder:text-text-muted transition-colors duration-150 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent"
+                                   required autofocus>
+                        </div>
+
+                        <div>
+                            <label for="inputPassword" class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">
+                                Mot de passe
+                            </label>
+                            <input type="password"
+                                   id="inputPassword" name="password"
+                                   placeholder="••••••••"
+                                   class="block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm font-display placeholder:text-text-muted transition-colors duration-150 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent"
+                                   required>
+                        </div>
+
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+                        <div class="pt-2">
+                            {% include 'components/_button.html.twig' with {
+                                label: 'Se connecter',
+                                variant: 'accent',
+                                size: 'lg',
+                                type: 'submit',
+                                icon: 'fa-solid fa-right-to-bracket',
+                                extra_class: 'w-full',
+                            } only %}
+                        </div>
+                    </form>
+                {% endblock %}
+            {% endembed %}
+        </div>
+    </div>
 {% endblock %}

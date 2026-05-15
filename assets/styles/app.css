@@ -1,3 +1,344 @@
+/* Cascade layers : theme et base layered, utilities unlayered. */
+@layer theme, base, components;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css";
+
+@source "../../templates/**/*.html.twig";
+@source "../controllers/**/*.js";
+@source "../app.js";
+
+/* ============================================================================
+   Trieves Connect Manager — Design system "NVIDIA dark"
+   Inspiré de .claude/design/awesome-design-md/nvidia (mode dark monochrome)
+   Polices : Inter (UI/display), JetBrains Mono (code-barres, mono)
+   Accent : NVIDIA Green #76b900 — UNIQUEMENT en bordures/underlines/highlights,
+   jamais en surface large.
+   ============================================================================ */
+
+@theme {
+    /* === Surfaces NVIDIA dark =============================================== */
+    --color-bg:           #1a1a1a;   /* True Black, fond principal */
+    --color-surface-100:  #151515;   /* Surface très légèrement relevée */
+    --color-surface-200:  #1f1f1f;   /* Surface neutre (inputs) */
+    --color-surface-300:  #262626;   /* Near Black, cards/dark sections */
+    --color-surface-400:  #303030;   /* Hover/active rows */
+    --color-surface-500:  #3a3a3a;   /* Surface haute */
+
+    /* === Texte ============================================================= */
+    --color-text-primary: #ffffff;
+    --color-text-soft:    #a7a7a7;   /* Gray 300 */
+    --color-text-muted:   #898989;   /* Gray 400 */
+    --color-text-faint:   #757575;   /* Gray 500 */
+
+    /* === Accents =========================================================== */
+    --color-accent:        #76b900;  /* NVIDIA Green */
+    --color-accent-hover:  #bff230;  /* NVIDIA Green Light */
+    --color-accent-soft:   rgba(118, 185, 0, 0.18);
+    --color-gold:          #ef9100;  /* Yellow 300 (warm accent NVIDIA) */
+
+    /* === Sémantique ======================================================== */
+    --color-error:        #e52020;  /* Red 500 */
+    --color-error-soft:   rgba(229, 32, 32, 0.18);
+    --color-success:      #3f8500;  /* Green 500 darker than brand */
+    --color-success-soft: rgba(63, 133, 0, 0.18);
+    --color-warning:      #df6500;  /* Orange 400 */
+    --color-warning-soft: rgba(223, 101, 0, 0.18);
+    --color-info:         #0046a4;  /* Blue 700 */
+    --color-info-soft:    rgba(0, 70, 164, 0.18);
+
+    /* === Liens hover (NVIDIA) ============================================== */
+    --color-link-hover:   #3860be;  /* Blue link hover */
+    --color-btn-hover:    #1eaedb;  /* Teal button hover */
+    --color-btn-active:   #007fff;  /* Bright blue active */
+
+    /* === Bordures ========================================================== */
+    --color-border:        #5e5e5e;             /* Gray Border NVIDIA */
+    --color-border-medium: rgba(255, 255, 255, 0.22);
+    --color-border-strong: rgba(255, 255, 255, 0.42);
+
+    /* === Polices =========================================================== */
+    --font-sans:    "Inter", Arial, Helvetica, sans-serif;
+    --font-display: "Inter", Arial, Helvetica, sans-serif;
+    --font-serif:   "Inter", Arial, Helvetica, sans-serif;
+    --font-mono:    "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+    /* === Ombres NVIDIA (essentiellement une seule) ========================= */
+    --shadow-ambient:  rgba(0, 0, 0, 0.30) 0px 0px 5px 0px;
+    --shadow-elevated: rgba(0, 0, 0, 0.50) 0px 0px 12px 0px;
+    --shadow-focus:    0 0 0 2px #000000, 0 0 0 4px var(--color-accent);
+
+    /* === Rayons NVIDIA (sharp, engineered) ================================= */
+    --radius-sm:   1px;
+    --radius-md:   2px;
+    --radius-lg:   2px;
+    --radius-pill: 9999px;
+
+    /* === Letter-spacing : NVIDIA = normal partout, sauf uppercase ========== */
+    --tracking-display: 0;
+    --tracking-heading: 0;
+    --tracking-tight:   0;
+}
+
+/* ============================================================================
+   Base — typographie globale et éléments racines (NVIDIA bold-first)
+   ============================================================================ */
+html, body {
+    background-color: var(--color-bg);
+    color: var(--color-text-primary);
+    font-family: var(--font-display);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
 body {
-    background-color: skyblue;
+    min-height: 100vh;
+}
+
+@layer base {
+    /* NVIDIA hierarchy : tight headings (1.25), bold weight 700 dominant. */
+    h1, .h1 {
+        font-family: var(--font-display);
+        font-size: 2.25rem;       /* 36px */
+        line-height: 1.25;
+        font-weight: 700;
+        color: var(--color-text-primary);
+    }
+    h2, .h2 {
+        font-family: var(--font-display);
+        font-size: 1.50rem;       /* 24px */
+        line-height: 1.25;
+        font-weight: 700;
+        color: var(--color-text-primary);
+    }
+    h3, .h3 {
+        font-family: var(--font-display);
+        font-size: 1.25rem;       /* 20px */
+        line-height: 1.25;
+        font-weight: 700;
+        color: var(--color-text-primary);
+    }
+    h4, .h4 {
+        font-family: var(--font-display);
+        font-size: 1.125rem;      /* 18px */
+        line-height: 1.40;
+        font-weight: 700;
+        color: var(--color-text-primary);
+    }
+    h5, .h5 {
+        font-family: var(--font-display);
+        font-size: 1.00rem;       /* 16px */
+        line-height: 1.40;
+        font-weight: 700;
+        color: var(--color-text-primary);
+    }
+    h6, .h6 {
+        font-family: var(--font-display);
+        font-size: 0.875rem;      /* 14px */
+        line-height: 1.43;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--color-text-primary);
+    }
+
+    /* Liens : sur fond sombre, blanc sans underline ; hover vire au bleu NVIDIA. */
+    a {
+        color: var(--color-text-primary);
+        text-decoration: none;
+        transition: color 150ms ease;
+    }
+    a:hover {
+        color: var(--color-link-hover);
+    }
+
+    hr {
+        border: none;
+        border-top: 1px solid var(--color-border);
+        margin: 2rem 0;
+    }
+}
+
+/* ============================================================================
+   Components — patterns réutilisables
+   ============================================================================ */
+@layer components {
+    /* Texte mono court (codes-barres, identifiants) */
+    .mono {
+        font-family: var(--font-mono);
+        font-size: 0.875rem;
+        letter-spacing: 0;
+        color: var(--color-text-soft);
+    }
+
+    /* Lien NVIDIA "light surface" : underline vert 2px, hover blue. */
+    .link-nvidia {
+        color: var(--color-text-primary);
+        text-decoration: underline;
+        text-decoration-color: var(--color-accent);
+        text-decoration-thickness: 2px;
+        text-underline-offset: 3px;
+    }
+    .link-nvidia:hover {
+        color: var(--color-link-hover);
+        text-decoration: none;
+    }
+}
+
+/* ============================================================================
+   Tables & simple-datatables — style NVIDIA dark
+   ============================================================================ */
+.data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background-color: var(--color-surface-300);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    font-family: var(--font-display);
+    font-size: 0.875rem;
+}
+.data-table thead {
+    background-color: var(--color-surface-400);
+}
+.data-table th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-primary);
+    border-bottom: 2px solid var(--color-accent);
+    white-space: nowrap;
+}
+.data-table td {
+    padding: 0.75rem 1rem;
+    color: var(--color-text-primary);
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
+}
+.data-table tbody tr:hover td {
+    background-color: var(--color-surface-400);
+}
+.data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+.data-table .product_name,
+.data-table .service_name,
+.data-table .data_name {
+    color: var(--color-text-primary);
+    font-weight: 700;
+    transition: color 150ms ease;
+}
+.data-table .product_name:hover,
+.data-table .service_name:hover,
+.data-table .data_name:hover {
+    color: var(--color-accent);
+}
+.data-table .bareCode {
+    font-family: var(--font-mono);
+    color: var(--color-text-soft);
+    font-size: 0.8rem;
+    letter-spacing: 0;
+}
+
+/* simple-datatables : composants injectés par la lib */
+.datatable-wrapper {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background-color: var(--color-surface-300);
+}
+.datatable-wrapper .data-table {
+    border: none;
+    border-radius: 0;
+}
+.datatable-top,
+.datatable-bottom {
+    background-color: var(--color-surface-200);
+    padding: 0.75rem 1rem;
+    color: var(--color-text-soft);
+    font-size: 0.85rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: space-between;
+}
+.datatable-top { border-bottom: 1px solid var(--color-border); }
+.datatable-bottom { border-top: 1px solid var(--color-border); }
+
+.datatable-input,
+.datatable-selector {
+    background-color: var(--color-surface-300);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 0.35rem 0.6rem;
+    font-size: 0.85rem;
+    font-family: var(--font-display);
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.datatable-input:focus,
+.datatable-selector:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 1px var(--color-accent);
+}
+.datatable-input::placeholder { color: var(--color-text-muted); }
+
+.datatable-sorter::after {
+    margin-left: 0.4rem;
+    opacity: 0.6;
+}
+
+.datatable-pagination-list {
+    display: flex;
+    gap: 0.25rem;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.datatable-pagination-list li > a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    height: 2rem;
+    padding: 0 0.5rem;
+    border-radius: var(--radius-sm);
+    background-color: var(--color-surface-300);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-soft);
+    font-size: 0.85rem;
+    font-weight: 700;
+    transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+.datatable-pagination-list li > a:hover {
+    background-color: var(--color-surface-400);
+    color: var(--color-text-primary);
+    border-color: var(--color-accent);
+}
+.datatable-pagination-list li.active > a {
+    background-color: transparent;
+    color: var(--color-text-primary);
+    border: 2px solid var(--color-accent);
+}
+.datatable-info {
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+}
+
+/* ============================================================================
+   Mode impression — bascule en clair (préserve les étiquettes et fiches print)
+   ============================================================================ */
+@media print {
+    html, body {
+        background: #fff !important;
+        color: #000 !important;
+    }
+    .no-print { display: none !important; }
+    a, a:visited { color: #000 !important; text-decoration: none; }
 }

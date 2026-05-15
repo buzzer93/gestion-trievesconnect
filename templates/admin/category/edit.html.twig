@@ -1,57 +1,103 @@
-{% extends './base.html.twig' %}
+{% extends 'base.html.twig' %}
 
-{% block title %}
-	Categorie:
-	{{ category.name }}
-{% endblock %}
-
+{% block title %}Catégorie : {{ category.name }} · Trieves Connect Manager{% endblock %}
 
 {% block body %}
+    {% embed 'components/_page_header.html.twig' with {
+        title: category.name,
+        subtitle: 'Modifier la catégorie et consulter les produits affiliés.',
+    } only %}
+        {% block actions %}
+            {% include 'components/_button.html.twig' with {
+                label: 'Retour à la liste',
+                variant: 'ghost',
+                icon: 'fa-solid fa-arrow-left',
+                href: path('admin.category.index'),
+            } only %}
+        {% endblock %}
+    {% endembed %}
 
-	<h1 class="text-center">{{ category.name }}</h1>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div class="lg:col-span-1">
+            {% embed 'components/_card.html.twig' with { padding: 'lg', form: form, category: category } only %}
+                {% block title %}Informations{% endblock %}
+                {% block body %}
+                    {{ form_start(form) }}
+                        {{ form_errors(form) }}
+                        {{ form_row(form.name) }}
 
-	{{ form_start(form) }}
-	{{ form_errors(form) }}
-	<div class="row">
-		<div class="col-sm">{{ form_row(form.name)}}</div>
-	</div>
-	{{ form_end(form) }}
+                        <div class="mt-4">
+                            {% include 'components/_button.html.twig' with {
+                                label: 'Enregistrer',
+                                variant: 'accent',
+                                type: 'submit',
+                                icon: 'fa-solid fa-check',
+                                extra_class: 'w-full',
+                            } only %}
+                        </div>
+                    {{ form_end(form) }}
+                {% endblock %}
+            {% endembed %}
+        </div>
 
-    <table class="table table-dark border border-light" id="productTable">
-    <thead>
-        <tr>
-            <th class="h4 text-center">Nom</th>
-            <th class="h4 text-center">Fournisseur</th>
-            <th class="h4 text-center">Actions</th>
-            <th class="h4 text-center">Code-barre</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for product in category.products %}
-            <tr>
-                <td>
-                    <a class="text-light h5" href="{{ path('admin.product.edit', {id: product.id}) }}">{{ product.name }}</a>
-                </td>
-                <td>
-                    <p class="text-center text-light h5">{{ product.supplier }}</p>
-                </td>
-                <td>
-                    <div class="d-flex justify-content-center gap-1">
-                        <a class="btn btn-primary btn-sm rounded" href="{{ path('admin.product.edit', {id: product.id}) }}">Modifier</a>
+        <div class="lg:col-span-2">
+            <div class="mb-3 flex items-center justify-between gap-3">
+                <h2 class="m-0">Produits affiliés</h2>
+                {% include 'components/_pill.html.twig' with {
+                    label: category.products|length,
+                    tone: 'neutral',
+                } only %}
+            </div>
 
-                        <form method="post" action="{{ path('admin.product.delete', {'id': product.id}) }}" onsubmit="return confirm('Voulez-vous vraiment supprimer ce produit ?');">
-                            <input type="hidden" name="_method" value="DELETE">
-                            <button type="submit" class="btn btn-danger btn-sm rounded">Supprimer</button>
-                        </form>
-                    </div>
-                </td>
-                <td>
-                    <p class="text-center text-light h5">{{ product.barCode }}</p>
-                </td>
-            </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-
+            <table class="data-table" id="productTable">
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Fournisseur</th>
+                        <th>Code-barre</th>
+                        <th class="text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in category.products %}
+                        <tr>
+                            <td>
+                                <a class="product_name" href="{{ path('admin.product.edit', {id: product.id}) }}">{{ product.name }}</a>
+                            </td>
+                            <td>{{ product.supplier }}</td>
+                            <td><span class="bareCode">{{ product.barCode }}</span></td>
+                            <td>
+                                <div class="flex justify-end gap-2">
+                                    {% include 'components/_button.html.twig' with {
+                                        label: 'Modifier',
+                                        variant: 'primary',
+                                        size: 'sm',
+                                        icon: 'fa-solid fa-pen',
+                                        href: path('admin.product.edit', {id: product.id}),
+                                    } only %}
+                                    <form method="post" action="{{ path('admin.product.delete', {id: product.id}) }}"
+                                          onsubmit="return confirm('Supprimer ce produit ?');">
+                                        <input type="hidden" name="_method" value="DELETE">
+                                        {% include 'components/_button.html.twig' with {
+                                            label: 'Supprimer',
+                                            variant: 'danger',
+                                            size: 'sm',
+                                            type: 'submit',
+                                            icon: 'fa-solid fa-trash',
+                                        } only %}
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-text-muted italic font-serif py-6">
+                                Aucun produit dans cette catégorie.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 {% endblock %}

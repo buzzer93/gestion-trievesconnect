@@ -1,0 +1,60 @@
+{#
+  components/_alert.html.twig — Alerte NVIDIA dark
+
+  Style : surface Near Black + bordure gauche colorée 4px + texte blanc.
+  Le dismiss utilise un controller Stimulus 'dismissible' (Bootstrap retiré).
+
+  Usage :
+    {% include 'components/_alert.html.twig' with {
+      message: 'Client enregistré',
+      type: 'success',
+    } only %}
+
+  Params :
+    message      string  texte (échappé)  (obligatoire si pas de block)
+    type         string  success | error | warning | info  (default: info)
+    title        string  titre court optionnel
+    icon         string  classe FontAwesome (auto si non fourni)
+    dismissible  bool    affiche la croix de fermeture (default: false)
+    extra_class  string  classes additionnelles
+
+  Avec contenu HTML :
+    {% embed 'components/_alert.html.twig' with { type: 'error' } only %}
+      {% block content %}Message <strong>important</strong>.{% endblock %}
+    {% endembed %}
+#}
+
+{%- set _config = {
+  success: { border: 'border-l-accent',  icon_color: 'text-accent',  icon: 'fa-solid fa-circle-check'  },
+  error:   { border: 'border-l-error',   icon_color: 'text-error',   icon: 'fa-solid fa-triangle-exclamation' },
+  warning: { border: 'border-l-warning', icon_color: 'text-warning', icon: 'fa-solid fa-circle-exclamation' },
+  info:    { border: 'border-l-info',    icon_color: 'text-info',    icon: 'fa-solid fa-circle-info'  },
+} -%}
+
+{%- set _t = type|default('info') -%}
+{%- set _c = _config[_t] ?? _config.info -%}
+{%- set _icon = icon|default(_c.icon) -%}
+
+<div class="flex items-start gap-3 bg-surface-300 border border-border border-l-4 {{ _c.border }} text-text-primary rounded-sm px-4 py-3 shadow-ambient {{ extra_class|default('') }}"
+  role="{{ _t == 'error' ? 'alert' : 'status' }}"
+  {% if dismissible|default(false) %}data-controller="dismissible"{% endif %}>
+  {%- if _icon %}
+    <i class="{{ _icon }} {{ _c.icon_color }} mt-0.5 shrink-0" aria-hidden="true"></i>
+  {%- endif %}
+  <div class="grow min-w-0">
+    {%- if title is defined and title %}
+      <div class="font-bold uppercase tracking-wide text-sm mb-0.5">{{ title }}</div>
+    {%- endif %}
+    <div class="text-sm">
+      {%- block content %}{{ message|default('') }}{% endblock -%}
+    </div>
+  </div>
+  {%- if dismissible|default(false) %}
+    <button type="button"
+            data-action="dismissible#dismiss"
+            class="ml-2 text-text-muted hover:text-text-primary transition-colors"
+            aria-label="Fermer">
+      <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+    </button>
+  {%- endif %}
+</div>

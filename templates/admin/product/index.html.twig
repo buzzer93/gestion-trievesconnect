@@ -1,93 +1,94 @@
-{% extends './base.html.twig' %}
+{% extends 'base.html.twig' %}
 
-{% block title %}
-	Tous les Produits
-{% endblock %}
+{% block title %}Produits · Trieves Connect Manager{% endblock %}
 
 {% block body %}
-	<h1 class="text-center text-light">Tous les produits</h1>
+    {% embed 'components/_page_header.html.twig' with {
+        title: 'Produits',
+        subtitle: 'Catalogue, marges et codes-barres.',
+    } only %}
+        {% block actions %}
+            {% include 'components/_button.html.twig' with {
+                label: 'Exporter',
+                variant: 'primary',
+                size: 'md',
+                icon: 'fa-solid fa-download',
+                href: path('admin.product.export'),
+            } only %}
+            {% include 'components/_button.html.twig' with {
+                label: 'Nouveau produit',
+                variant: 'accent',
+                icon: 'fa-solid fa-plus',
+                href: path('admin.product.create'),
+            } only %}
+        {% endblock %}
+    {% endembed %}
 
+    <div class="mb-4 max-w-md">
+        <label for="filterInput" class="block text-sm font-medium text-text-soft mb-1.5">
+            Filtrer par code-barre
+        </label>
+        <input type="text" id="filterInput"
+               placeholder="Saisir ou scanner un code-barre"
+               autocomplete="off"
+               class="block w-full bg-surface-200 text-text-primary border border-border rounded-md px-3 py-2 text-sm font-mono placeholder:text-text-muted focus:outline-none focus:border-accent focus:shadow-focus">
+    </div>
 
-	<div
-		class="row align-items-space-around mb-4">
+    <div class="overflow-x-auto">
+        <table class="data-table" id="sortableTable">
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>Achat HT</th>
+                    <th>Vente TTC</th>
+                    <th>Marge</th>
+                    <th>Montant marge</th>
+                    <th>Marque</th>
+                    <th>Fournisseur</th>
+                    <th>Code-barre</th>
+                    <th class="text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products %}
+                    <tr data-controller="row-link"
+                        data-row-link-url-value="{{ path('admin.product.edit', {id: product.id}) }}">
+                        <td>
+                            <a class="product_name" href="{{ path('admin.product.edit', {id: product.id}) }}">{{ product.name }}</a>
+                        </td>
+                        <td>{{ product.purchasePrice|number_format(2, ',', ' ') }} €</td>
+                        <td>{{ product.sellingPrice|number_format(2, ',', ' ') }} €</td>
+                        <td class="text-text-soft">{{ product.marginRate }}%</td>
+                        <td class="text-text-soft">{{ product.marginAmount|number_format(2, ',', ' ') }} €</td>
+                        <td class="text-text-soft">{{ product.markRate }}%</td>
+                        <td>{{ product.supplier }}</td>
+                        <td><span class="bareCode">{{ product.barCode }}</span></td>
+                        <td>
+                            <div class="flex justify-end gap-2">
+                                <form method="post" action="{{ path('admin.product.delete', {id: product.id}) }}"
+                                      onsubmit="return confirm('Supprimer ce produit ?');">
+                                    <input type="hidden" name="_method" value="DELETE">
+                                    {% include 'components/_button.html.twig' with {
+                                        label: 'Supprimer',
+                                        variant: 'danger',
+                                        size: 'sm',
+                                        type: 'submit',
+                                        icon: 'fa-solid fa-trash',
+                                    } only %}
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center text-text-muted italic font-serif py-6">
+                            Aucun produit pour l'instant.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
-		{# bouton Ajouter #}
-		<div class="col-12 col-md-auto">
-			<a class="btn btn-primary w-100 w-md-auto" href="{{ path('admin.product.create') }}">
-				Ajouter un produit
-			</a>
-		</div>
-
-		{# champ Code‑barre #}
-		<div class="col-6 col-md-6">
-			<input id="filterInput" class="form-control bg-dark text-light border-light rounded" placeholder="Code barre">
-		</div>
-
-		{# icône Download #}
-		<div class="col-auto d-flex align-items-center">
-			<a href="{{ path('admin.product.export') }}" class="text-light fs-4">
-				<i class="fa-solid fa-download"></i>
-			</a>
-		</div>
-
-	</div>
-	<table class="table table-dark border border-light datatable" id="sortableTable">
-		<thead>
-			<tr>
-				<th class="h4 text-center">Nom</th>
-				<th class="h4 text-center">Prix d'achat HT</th>
-				<th class="h4 text-center">Prix de vente TTC</th>
-				<th class="h4 text-center">Taux de marge</th>
-				<th class="h4 text-center">montant de la marge</th>
-				<th class="h4 text-center">Taux de marque</th>
-				<th class="h4 text-center">Fournisseur</th>
-				<th class="h4 text-center">Code-barre</th>
-				<th class="h4 text-center">Actions</th>
-			</tr>
-		</thead>
-		<tbody>
-			{% for product in products %}
-				<tr>
-					<td>
-						<a class="text-light h5 product_name" href="{{ path('admin.product.edit',{id: product.id}) }}">{{ product.name }}</a>
-					</td>
-					<td>
-						<p class="text-center text-light h5">{{ product.purchasePrice| number_format(2, ',', ' ') }}
-							€</p>
-					</td>
-					<td>
-						<p class="text-center text-light h5">{{ product.sellingPrice| number_format(2, ',', ' ') }}
-							€</p>
-					</td>
-					<td>
-						<p class="text-center text-light h5">{{ product.marginRate }}%</p>
-					</td>
-					<td>
-						<p class="text-center text-light h5">{{ product.marginAmount| number_format(2, ',', ' ') }}
-							€</p>
-					</td>
-					<td>
-						<p class="text-center text-light h5">{{ product.markRate }}%</p>
-					</td>
-					<td>
-						<p class="text-center text-light h5">{{ product.supplier }}</p>
-					</td>
-					<td>
-						<p class="text-center text-light h5 bareCode">{{ product.barCode }}</p>
-					</td>
-					<td>
-						<div class="d-flex justify-content-center h5 gap-1">
-							<a class="btn btn-primary btn-sm rounded" href="{{ path('admin.product.edit',{id: product.id}) }}">Modifier</a>
-							<form method="post" action="{{ path('admin.product.delete', {'id': product.id}) }}" onsubmit="return confirm('Voulez-vous vraiment supprimer ce produit ?');">
-								<input type="hidden" name="_method" value="DELETE">
-								<button class="btn btn-danger rounded">Supprimer</button>
-							</form>
-						</div>
-					</td>
-				</tr>
-			{% endfor %}
-		</tbody>
-	</table>
-
-	 <script src="{{ asset('js/filter.js') }}"></script>
+    <script src="{{ asset('js/filter.js') }}"></script>
 {% endblock %}

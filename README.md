@@ -77,22 +77,7 @@ symfony server:start
 ## TODO:
 
 Plan détaillé — Refonte Tailwind / Cursor warm-dark
-Phase 0 — Reset (≈ 5 min)
-git restore sur public/css/styles.css + tous les templates modifiés.
-Vérification : git status doit être propre, HEAD = 29eb70c.
-Conséquence : le styles.css actuel (≈ 700 lignes warm-dark) est perdu. On le réécrira en Tailwind.
-Phase 1 — Setup technique Tailwind (≈ 15 min)
-composer require symfonycasts/tailwind-bundle (compatible AssetMapper, binaire standalone, pas de Node requis).
-php bin/console tailwind:init → crée tailwind.config.js et assets/styles/app.css.
-Configurer tailwind.config.js avec tokens Cursor warm-dark :
-Couleurs : bg, surface.100→500, text.primary/soft/muted/faint, accent, accent-soft, error, success, warning, gold, thinking/grep/read/edit.
-Polices : Geist (UI/display), EB Garamond (editorial), JetBrains Mono (code) — chargées via Google Fonts dans <head> (le projet le faisait déjà).
-Ombres : ambient, elevated, focus.
-Radius : sm:4px, DEFAULT:8px, lg:10px, full:9999px.
-Letter-spacing : display:-2.16px@72, heading:-0.72px@36, subhead:-0.325px@26, title:-0.11px@22.
-assets/styles/app.css : @tailwind base/components/utilities + @layer base pour la typographie globale (h1-h6, body, a:hover→error).
-Modifier base.html.twig : importer app.css via AssetMapper, garder Bootstrap temporairement (cohabitation contrôlée — Tailwind preflight désactivé sur conflits clés).
-⚠️ Décision clé sur la cohabitation : pendant Phase 1, Bootstrap reste chargé dans base.html.twig pour que les pages admin non encore migrées (customer, product, etc.) ne cassent pas. Tailwind cohabite. On retire Bootstrap en fin de Phase 3.
+
 
 Phase 2 — Composants Twig réutilisables (≈ 30 min)
 Création dans templates/components/ :

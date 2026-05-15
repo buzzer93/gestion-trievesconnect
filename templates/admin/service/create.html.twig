@@ -1,35 +1,52 @@
-{% extends './base.html.twig' %}
+{% extends 'base.html.twig' %}
 
-{% block title %}
-	Nouveau Service
-{% endblock %}
-
+{% block title %}Nouveau service · Trieves Connect Manager{% endblock %}
 
 {% block body %}
+    {% embed 'components/_page_header.html.twig' with {
+        title: 'Nouveau service',
+        subtitle: 'Créer une prestation facturable.',
+    } only %}
+        {% block actions %}
+            {% include 'components/_button.html.twig' with {
+                label: 'Retour',
+                variant: 'ghost',
+                icon: 'fa-solid fa-arrow-left',
+                href: path('admin.service.index'),
+            } only %}
+        {% endblock %}
+    {% endembed %}
 
-	<h1 class="text-center">Nouveau Service</h1>
+    {% embed 'components/_card.html.twig' with { padding: 'lg', form: form } only %}
+        {% block body %}
+            {{ form_start(form, { attr: { id: 'form' } }) }}
+                {{ form_errors(form) }}
 
-	<div class="container d-flex justify-content-center px-5">
-		{{ form_start(form, { 'attr': { 'id': 'form' } }) }}
-		{{ form_errors(form) }}
-		<div class="row">
-			<div class="col-sm">{{ form_row(form.name) }}</div>
-			<div class="col-sm">{{ form_row(form.barCode) }}</div>
-		</div>
-		<div class="row">
-			<div class="col-sm">{{ form_row(form.purchasePrice) }}</div>
-			<div class="col-sm">{{ form_row(form.marginRate) }}</div>
-			<div class="col-sm">{{ form_row(form.sellingPrice) }}</div>
-		</div>
-		<div class="row">
-			<div class="col-sm">{{ form_row(form.description) }}</div>
-		</div>
-		<div class="row">
-			<div class="col-sm">{{ form_row(form.save) }}</div>
-		</div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {{ form_row(form.name) }}
+                    {{ form_row(form.barCode) }}
+                </div>
 
-		{{ form_end(form) }}
-	</div>
-	<script src="{{ asset('js/margin.js') }}"></script>
-	<script src="{{ asset('js/preventDefault.js') }}"></script>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {{ form_row(form.purchasePrice) }}
+                    {{ form_row(form.marginRate) }}
+                    {{ form_row(form.sellingPrice) }}
+                </div>
+
+                {{ form_row(form.description) }}
+
+                <div class="flex items-center gap-3 mt-6 pt-4 border-t border-border">
+                    {{ form_widget(form.save, { attr: { class: 'inline-flex items-center justify-center gap-2 bg-accent text-bg font-display font-semibold text-sm px-4 py-2 rounded-md border border-accent hover:bg-accent-hover hover:border-accent-hover transition-colors duration-150 focus:outline-none focus:shadow-focus' } }) }}
+                    {% include 'components/_button.html.twig' with {
+                        label: 'Annuler',
+                        variant: 'ghost',
+                        href: path('admin.service.index'),
+                    } only %}
+                </div>
+            {{ form_end(form) }}
+        {% endblock %}
+    {% endembed %}
+
+    <script src="{{ asset('js/margin.js') }}"></script>
+    <script src="{{ asset('js/preventDefault.js') }}"></script>
 {% endblock %}

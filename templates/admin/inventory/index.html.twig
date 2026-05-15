@@ -1,98 +1,102 @@
-{% extends './base.html.twig' %}
+{% extends 'base.html.twig' %}
 
-{% block title %}
-	Inventaire
-{% endblock %}
+{% block title %}Inventaire · Trieves Connect Manager{% endblock %}
 
 {% block body %}
-	<div class="d-flex justify-content-center align-items-center mb-4">
-		<h1 class="text-center text-light">Inventaire</h1>
-	</div>
-	<div class="row align-items-start">
-		<div class="col-md-8">
-			<div class="card bg-dark border-light mb-3">
-				<div class="card-body">
-					{{ form_start(form) }}
-					<div class="row g-3">
-						<div class="col-md-6">
-							<div class="form-group">
-								<label for="{{ form.barCode.vars.id }}" class="form-label text-light">Code-barre</label>
-								{{ form_widget(form.barCode, {'attr': {'class': 'form-control'}}) }}
-							</div>
-						</div>
-						<div class="col-md-6">
-							<div class="form-group">
-								<label for="{{ form.quantity.vars.id }}" class="form-label text-light">Quantité</label>
-								{{ form_widget(form.quantity, {'attr': {'class': 'form-control'}}) }}
-							</div>
-						</div>
-					</div>
-					<div class="text-center mt-4">
-						{{ form_widget(form.save, {'attr': {'class': 'btn btn-primary px-5'}}) }}
-					</div>
-					{{ form_end(form) }}
-				</div>
-			</div>
-		</div>
+    {% include 'components/_page_header.html.twig' with {
+        title: 'Inventaire',
+        subtitle: 'Saisie et suivi du stock.',
+    } only %}
 
-		<div class="col-md-4">
-			<div class="form-group mb-4">
-				<label for="filterInput" class="form-label text-light">Recherche</label>
-				<input type="text" id="filterInput" class="form-control bg-dark text-light border-light rounded" placeholder="Recherche" style="color: #adb5bd;">
-			</div>
-			<div class="text-center">
-				<form method="post" action="{{ path('admin.inventory.delete', { id: 0, all: 'true' }) }}" onsubmit="return confirm('Voulez-vous vraiment supprimer tous les produits de l\'inventaire ?');">
-					<input type="hidden" name="_method" value="DELETE">
-					<button class="btn btn-danger btn-lg rounded w-100" type="submit">Supprimer tout</button>
-				</form>
-			</div>
-		</div>
-	</div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {# Formulaire ajout — 2/3 colonne #}
+        <div class="lg:col-span-2 bg-surface-300 border border-border rounded-md p-6 shadow-ambient">
+            {{ form_start(form) }}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="{{ form.barCode.vars.id }}"
+                           class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">Code-barre</label>
+                    {{ form_widget(form.barCode, {'attr': {'class': 'block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm font-mono focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent transition-colors'}}) }}
+                </div>
+                <div>
+                    <label for="{{ form.quantity.vars.id }}"
+                           class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">Quantité</label>
+                    {{ form_widget(form.quantity, {'attr': {'class': 'block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm font-mono focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent transition-colors'}}) }}
+                </div>
+            </div>
+            <div class="mt-5 flex justify-end">
+                {{ form_widget(form.save, {'attr': {'class': 'inline-flex items-center justify-center gap-2 bg-transparent text-text-primary border-2 border-accent font-display font-bold uppercase tracking-wide text-sm px-6 py-2 rounded-md hover:bg-accent hover:text-bg transition-colors'}}) }}
+            </div>
+            {{ form_end(form) }}
+        </div>
 
-	<h1 class="text-center text-light mt-5">Total de l'inventaire en cours :
-		{{ inventoryValue | number_format(2, ',', ' ') }}
-		€</h1>
+        {# Recherche + suppression globale — 1/3 colonne #}
+        <div class="flex flex-col gap-4">
+            <div>
+                <label for="filterInput" class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">Recherche</label>
+                <input type="text" id="filterInput"
+                       placeholder="Filtrer un produit"
+                       class="block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent transition-colors">
+            </div>
+            <form method="post"
+                  action="{{ path('admin.inventory.delete', { id: 0, all: 'true' }) }}"
+                  onsubmit="return confirm('Voulez-vous vraiment supprimer tous les produits de l\'inventaire ?');">
+                <input type="hidden" name="_method" value="DELETE">
+                <button type="submit"
+                        class="w-full inline-flex items-center justify-center gap-2 bg-transparent text-error border-2 border-error font-display font-bold uppercase tracking-wide text-sm px-4 py-2.5 rounded-md hover:bg-error hover:text-text-primary transition-colors">
+                    <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                    <span>Supprimer tout</span>
+                </button>
+            </form>
+        </div>
+    </div>
 
+    <div class="flex items-center justify-between mb-5 px-1">
+        <h2 class="m-0">Total de l'inventaire</h2>
+        <span class="font-mono font-bold text-2xl text-accent">{{ inventoryValue | number_format(2, ',', ' ') }} €</span>
+    </div>
 
-	<table class="table table-dark border border-light my-5" id="productTable">
-		<thead>
-			<tr>
-				<th class="h4 text-center">Nom</th>
-				<th class="h4 text-center">Prix d'achat HT</th>
-				<th class="h4 text-center">Quantité</th>
-				<th class="h4 text-center">Code-barre</th>
-				<th class="h4 text-center">Actions</th>
-			</tr>
-		</thead>
-		<tbody>
-			{% for product in inventoryList %}
-				<tr>
-					<td>
-						<a class="text-light h5 product_name " href="{{ path('admin.' ~ product.getType() ~ '.edit', { id: product.id }) }}">{{ product.name }}</a>
-					</td>
-					<td>
-						<p class="text-center text-light h5 ">{{ product.purchasePrice | number_format(2, ',', ' ') }}
-							€</p>
-					</td>
-					<td>
-						<p class="text-center text-light h5 ">{{ product.stock }}</p>
-					</td>
-					<td>
-						<p class="text-center text-light h5 bareCode ">{{ product.barCode }}</p>
-					</td>
-					<td>
-						<div class="d-flex justify-content-center h5 gap-1">
-							<form method="post" action="{{ path('admin.inventory.delete', { id: product.id , all: 'false'}) }}" onsubmit="return confirm('Voulez-vous vraiment supprimer ce produit de l'inventaire ?');">
-								<input type="hidden" name="_method" value="DELETE">
-								<button class="btn btn-danger btn-sm rounded" type="submit">Supprimer</button>
-							</form>
-						</div>
-					</td>
-				</tr>
-			{% endfor %}
-		</tbody>
-	</table>
+    <table class="data-table" id="productTable">
+        <thead>
+            <tr>
+                <th>Nom</th>
+                <th class="text-right">Prix d'achat HT</th>
+                <th class="text-right">Quantité</th>
+                <th>Code-barre</th>
+                <th class="text-right">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in inventoryList %}
+                <tr data-controller="row-link"
+                    data-row-link-url-value="{{ path('admin.' ~ product.getType() ~ '.edit', { id: product.id }) }}">
+                    <td>
+                        <a class="product_name" href="{{ path('admin.' ~ product.getType() ~ '.edit', { id: product.id }) }}">{{ product.name }}</a>
+                    </td>
+                    <td class="text-right font-mono text-sm">{{ product.purchasePrice | number_format(2, ',', ' ') }} €</td>
+                    <td class="text-right font-mono text-sm">{{ product.stock }}</td>
+                    <td><span class="bareCode">{{ product.barCode }}</span></td>
+                    <td>
+                        <div class="flex justify-end">
+                            <form method="post"
+                                  action="{{ path('admin.inventory.delete', { id: product.id, all: 'false' }) }}"
+                                  onsubmit="return confirm('Voulez-vous vraiment supprimer ce produit de l\'inventaire ?');">
+                                <input type="hidden" name="_method" value="DELETE">
+                                {% include 'components/_button.html.twig' with {
+                                    label: 'Supprimer',
+                                    variant: 'danger',
+                                    size: 'sm',
+                                    type: 'submit',
+                                    icon: 'fa-solid fa-trash',
+                                } only %}
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 
-	 <script src="{{ asset('js/preventDefault.js') }}"></script>
-	 <script src="{{ asset('js/filter.js') }}"></script>
+    <script src="{{ asset('js/preventDefault.js') }}"></script>
+    <script src="{{ asset('js/filter.js') }}"></script>
 {% endblock %}

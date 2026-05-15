@@ -1,25 +1,25 @@
-{% extends './base.html.twig' %}
+{% extends 'base.html.twig' %}
 
 {% block body %}
-	<div class="d-flex justify-content-center">
-		<div class="spinner-border" role="status">
-			<span class="visually-hidden">Loading...</span>
-		</div>
-	</div>
+    <div class="flex justify-center items-center py-16">
+        <div class="flex flex-col items-center gap-4">
+            <span class="inline-block w-12 h-12 border-4 border-border border-t-accent rounded-full animate-spin"
+                  role="status" aria-label="Téléchargement en cours"></span>
+            <p class="text-text-soft text-sm font-bold uppercase tracking-wide m-0">Export en cours…</p>
+        </div>
+    </div>
 
-	<script>
-		// 2. Créer un lien de téléchargement pour le fichier généré
-const filePath = 'public/export/ProductsDatas.xlsx';
-const link = document.createElement('a');
-link.href = filePath;
-link.download = 'ProductsDatas.xlsx'; // Nom du fichier
-document.body.appendChild(link);
-link.click();
-document.body.removeChild(link);
+    <script>
+        const filePath = 'public/export/ProductsDatas.xlsx';
+        const link = document.createElement('a');
+        link.href = filePath;
+        link.download = 'ProductsDatas.xlsx';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
 
-// 3. Rediriger après un court délai
-setTimeout(() => {
-window.location.href = '{{ path('admin.product.index') }}';
-}, 2000);
-	</script>
+        setTimeout(() => {
+            window.location.href = '{{ path('admin.product.index') }}';
+        }, 2000);
+    </script>
 {% endblock %}

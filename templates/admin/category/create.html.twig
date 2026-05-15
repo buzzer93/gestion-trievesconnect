@@ -1,19 +1,35 @@
-{% extends './base.html.twig' %}
+{% extends 'base.html.twig' %}
 
-{% block title %}
-	Nouvelle categorie
-{% endblock %}
-
+{% block title %}Nouvelle catégorie · Trieves Connect Manager{% endblock %}
 
 {% block body %}
+    {% embed 'components/_page_header.html.twig' with {
+        title: 'Nouvelle catégorie',
+        subtitle: 'Donnez-lui un nom clair, court, et reconnaissable.',
+    } only %}{% endembed %}
 
-	<h1 class="text-center">Nouvelle categorie</h1>
+    <div class="max-w-xl">
+        {% embed 'components/_card.html.twig' with { padding: 'lg', form: form } only %}
+            {% block body %}
+                {{ form_start(form) }}
+                    {{ form_errors(form) }}
+                    {{ form_row(form.name) }}
 
-	{{ form_start(form) }}
-	{{ form_errors(form) }}
-	<div class="row">
-		<div class="col-sm">{{ form_row(form.name)}}</div>
-	</div>
-	{{ form_end(form) }}
-
+                    <div class="flex items-center gap-3 mt-6 pt-4 border-t border-border">
+                        {% include 'components/_button.html.twig' with {
+                            label: 'Créer',
+                            variant: 'accent',
+                            type: 'submit',
+                            icon: 'fa-solid fa-check',
+                        } only %}
+                        {% include 'components/_button.html.twig' with {
+                            label: 'Annuler',
+                            variant: 'ghost',
+                            href: path('admin.category.index'),
+                        } only %}
+                    </div>
+                {{ form_end(form) }}
+            {% endblock %}
+        {% endembed %}
+    </div>
 {% endblock %}

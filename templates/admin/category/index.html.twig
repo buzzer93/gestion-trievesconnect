@@ -1,50 +1,66 @@
-{% extends './base.html.twig' %}
+{% extends 'base.html.twig' %}
 
-{% block title %}
-	Toutes les Catégories
-{% endblock %}
+{% block title %}Catégories · Trieves Connect Manager{% endblock %}
 
 {% block body %}
-	<div class="d-flex justify-content-center align-items-center">
-		<h1 class="text-center text-light">Toutes les Catégories</h1>
-	</div>
+    {% embed 'components/_page_header.html.twig' with {
+        title: 'Catégories',
+        subtitle: 'Regroupement des produits par thème.',
+    } only %}
+        {% block actions %}
+            {% include 'components/_button.html.twig' with {
+                label: 'Nouvelle catégorie',
+                variant: 'accent',
+                icon: 'fa-solid fa-plus',
+                href: path('admin.category.create'),
+            } only %}
+        {% endblock %}
+    {% endembed %}
 
-	<div class="row d-flex justify-content-around mb-4">
-		<div class="text-center mb-3">
-			<a class="btn btn-primary btn-md" href="{{ path('admin.category.create') }}">Ajouter</a>
-		</div>
-	</div>
-	<table class="table table-dark border border-light" id="categoryTable">
-		<thead>
-			<tr>
-				<th class="h4 text-center">Nom</th>
-				<th class="h4 text-center">Nombre de produits affiliés</th>
-				<th class="h4 text-center">Actions</th>
-			</tr>
-		</thead>
-		<tbody>
-			{% for category in categories %}
-				<tr>
-					<td>
-						<a class="text-light h5" href="{{ path('admin.category.edit', {id: category.id}) }}">{{ category.name }}</a>
-					</td>
-					<td>
-						<p class="text-center text-light h5">{{ category.count }}</p>
-					</td>
-					<td>
-						<div class="d-flex justify-content-center gap-1">
-							<a class="btn btn-primary btn-sm rounded" href="{{ path('admin.category.edit', {id: category.id}) }}">Éditer</a>
-
-							<form action="{{ path('admin.category.delete', {id: category.id}) }}" method="post">
-								<input type="hidden" name="_method" value="DELETE">
-								<button type="submit" class="btn btn-danger btn-sm rounded">Supprimer</button>
-							</form>
-						</div>
-					</td>
-				</tr>
-			{% endfor %}
-		</tbody>
-	</table>
-
-	 <script src="{{ asset('js/filter.js') }}"></script>
+    <table class="data-table" id="categoryTable">
+        <thead>
+            <tr>
+                <th>Nom</th>
+                <th>Produits affiliés</th>
+                <th class="text-right">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for category in categories %}
+                <tr data-controller="row-link"
+                    data-row-link-url-value="{{ path('admin.category.edit', {id: category.id}) }}">
+                    <td>
+                        <a class="data_name" href="{{ path('admin.category.edit', {id: category.id}) }}">{{ category.name }}</a>
+                    </td>
+                    <td>
+                        {% include 'components/_pill.html.twig' with {
+                            label: category.count,
+                            tone: 'neutral',
+                        } only %}
+                    </td>
+                    <td>
+                        <div class="flex justify-end gap-2">
+                            <form method="post" action="{{ path('admin.category.delete', {id: category.id}) }}"
+                                  onsubmit="return confirm('Supprimer cette catégorie ?');">
+                                <input type="hidden" name="_method" value="DELETE">
+                                {% include 'components/_button.html.twig' with {
+                                    label: 'Supprimer',
+                                    variant: 'danger',
+                                    size: 'sm',
+                                    type: 'submit',
+                                    icon: 'fa-solid fa-trash',
+                                } only %}
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="3" class="text-center text-text-muted italic font-serif py-6">
+                        Aucune catégorie pour l'instant.
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 {% endblock %}

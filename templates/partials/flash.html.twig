@@ -1,5 +1,29 @@
-{% for type, messages in app.flashes %}
-    <div class="alert alert-{{type}}">
-        {{messages | join('. ')}}
+{#
+  Affiche tous les flash messages Symfony.
+  Mappe les types Symfony historiques (success/danger/warning/info/notice/error)
+  vers les 4 types reconnus par components/_alert.html.twig.
+#}
+
+{%- set flash_type_map = {
+    success: 'success',
+    danger:  'error',
+    error:   'error',
+    warning: 'warning',
+    info:    'info',
+    notice:  'info',
+} -%}
+
+{% if app.flashes is not empty %}
+    <div class="space-y-3 mb-6">
+        {% for raw_type, messages in app.flashes %}
+            {% set alert_type = flash_type_map[raw_type] ?? 'info' %}
+            {% for message in messages %}
+                {% include 'components/_alert.html.twig' with {
+                    message: message,
+                    type: alert_type,
+                    dismissible: true,
+                } only %}
+            {% endfor %}
+        {% endfor %}
     </div>
-{% endfor %}
+{% endif %}

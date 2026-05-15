@@ -1,0 +1,6 @@
+when@dev:
+    dev_controllers:
+        resource:
+            path: ../../src/Controller/Dev/
+            namespace: App\Controller\Dev
+        type: attribute
