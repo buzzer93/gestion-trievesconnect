@@ -11,7 +11,8 @@
 
   Surcharges :
     - form_row, form_label, form_widget_simple
-    - textarea_widget, choice_widget_collapsed
+    - money_widget, percent_widget
+    - textarea_widget, choice_widget_collapsed, choice_widget_expanded
     - checkbox_widget, radio_widget
     - form_errors, form_help
     - submit_widget, button_widget
@@ -65,6 +66,43 @@
     <input type="{{ type }}" {{ block('widget_attributes') }} {% if value is not empty %}value="{{ value }}" {% endif %}/>
 {%- endblock form_widget_simple -%}
 
+{#────────────────────────────  Money (€)  ────────────────────────────#}
+{%- block money_widget -%}
+    {#- prepend = il y a un symbole avant le widget (pattern ne commence pas par "{{") -#}
+    {%- set prepend = '{{' != money_pattern[0:2] -%}
+    {#- append = il y a un symbole après le widget (pattern ne finit pas par "}}") -#}
+    {%- set append = '}}' != money_pattern[-2:] -%}
+    {%- set symbol = money_pattern|replace({'{{ widget }}': ''})|trim -%}
+    {%- set input_classes = 'block w-full bg-surface-200 text-text-primary border border-border px-3 py-2 text-sm font-display placeholder:text-text-muted transition-colors duration-150 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed' -%}
+    {%- if errors is defined and errors|length > 0 -%}
+        {%- set input_classes = input_classes ~ ' border-error' -%}
+    {%- endif -%}
+    {%- set input_classes = input_classes ~ (prepend ? ' rounded-l-none border-l-0' : ' rounded-l-sm') ~ (append ? ' rounded-r-none border-r-0' : ' rounded-r-sm') -%}
+    {%- set attr = attr|merge({class: (attr.class|default(''))|trim ~ ' ' ~ input_classes}) -%}
+    <div class="flex items-stretch">
+        {%- if prepend -%}
+            <span class="inline-flex items-center px-3 text-sm text-text-soft bg-surface-300 border border-r-0 border-border rounded-l-sm">{{- symbol -}}</span>
+        {%- endif -%}
+        <input type="{{ type|default('text') }}" {{ block('widget_attributes') }} {% if value is not empty %}value="{{ value }}" {% endif %}/>
+        {%- if append -%}
+            <span class="inline-flex items-center px-3 text-sm text-text-soft bg-surface-300 border border-l-0 border-border rounded-r-sm">{{- symbol -}}</span>
+        {%- endif -%}
+    </div>
+{%- endblock money_widget -%}
+
+{#────────────────────────────  Percent (%)  ────────────────────────────#}
+{%- block percent_widget -%}
+    {%- set input_classes = 'block w-full bg-surface-200 text-text-primary border border-r-0 border-border rounded-l-sm rounded-r-none px-3 py-2 text-sm font-display placeholder:text-text-muted transition-colors duration-150 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent disabled:opacity-50' -%}
+    {%- if errors is defined and errors|length > 0 -%}
+        {%- set input_classes = input_classes ~ ' border-error' -%}
+    {%- endif -%}
+    {%- set attr = attr|merge({class: (attr.class|default(''))|trim ~ ' ' ~ input_classes}) -%}
+    <div class="flex items-stretch">
+        <input type="{{ type|default('text') }}" {{ block('widget_attributes') }} {% if value is not empty %}value="{{ value }}" {% endif %}/>
+        <span class="inline-flex items-center px-3 text-sm text-text-soft bg-surface-300 border border-border rounded-r-sm">%</span>
+    </div>
+{%- endblock percent_widget -%}
+
 {#────────────────────────────  Textarea  ────────────────────────────#}
 {%- block textarea_widget -%}
     {%- set field_classes = 'block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm font-display placeholder:text-text-muted transition-colors duration-150 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent disabled:opacity-50' -%}
@@ -99,6 +137,16 @@
     </select>
 {%- endblock choice_widget_collapsed -%}
 
+{#────────────────────────────  Choice expanded (checkbox/radio list)  ────────────────────────────#}
+{%- block choice_widget_expanded -%}
+    {%- set container_classes = multiple|default(false) ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-2 bg-surface-200 border border-border rounded-sm p-3' : 'flex flex-wrap gap-x-5 gap-y-2' -%}
+    <div class="{{ container_classes }}">
+        {%- for child in form -%}
+            {{- form_widget(child, {translation_domain: choice_translation_domain}) -}}
+        {%- endfor -%}
+    </div>
+{%- endblock choice_widget_expanded -%}
+
 {#────────────────────────────  Checkbox  ────────────────────────────#}
 {%- block checkbox_widget -%}
     <label class="inline-flex items-center gap-2 cursor-pointer select-none">
@@ -124,6 +172,7 @@
 
 {#────────────────────────────  Submit & Button  ────────────────────────────#}
 {%- block submit_widget -%}
+    {%- set type = 'submit' -%}
     {%- set attr = attr|merge({class: (attr.class|default(''))|trim ~ ' inline-flex items-center justify-center gap-2 bg-transparent text-text-primary font-display font-bold uppercase tracking-wide text-sm px-4 py-2 rounded-md border-2 border-accent hover:bg-accent hover:text-bg transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50'}) -%}
     {{- block('button_widget') -}}
 {%- endblock submit_widget -%}

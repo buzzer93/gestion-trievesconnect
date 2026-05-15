@@ -102,7 +102,7 @@ class Service
     public function getBarCodeImage(): string
     {
         $barcodeGenerator = new BarcodeGeneratorPNG();
-        return 'data:image/png;base64,' . base64_encode($barcodeGenerator->getBarcode($this->barCode, $barcodeGenerator::TYPE_CODE_128));
+        return 'data:image/png;base64,' . base64_encode($barcodeGenerator->getBarcode($this->barCode, $barcodeGenerator::TYPE_CODE_128, 3, 80));
     }
 
     public function setBarCode(string $barCode): static

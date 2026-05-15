@@ -46,7 +46,7 @@
                     <th>Marque</th>
                     <th>Fournisseur</th>
                     <th>Code-barre</th>
-                    <th class="text-right">Actions</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -64,7 +64,7 @@
                         <td>{{ product.supplier }}</td>
                         <td><span class="bareCode">{{ product.barCode }}</span></td>
                         <td>
-                            <div class="flex justify-end gap-2">
+                            <div class="flex justify-center gap-2">
                                 <form method="post" action="{{ path('admin.product.delete', {id: product.id}) }}"
                                       onsubmit="return confirm('Supprimer ce produit ?');">
                                     <input type="hidden" name="_method" value="DELETE">

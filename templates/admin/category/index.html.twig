@@ -22,7 +22,7 @@
             <tr>
                 <th>Nom</th>
                 <th>Produits affiliés</th>
-                <th class="text-right">Actions</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -39,7 +39,7 @@
                         } only %}
                     </td>
                     <td>
-                        <div class="flex justify-end gap-2">
+                        <div class="flex justify-center gap-2">
                             <form method="post" action="{{ path('admin.category.delete', {id: category.id}) }}"
                                   onsubmit="return confirm('Supprimer cette catégorie ?');">
                                 <input type="hidden" name="_method" value="DELETE">

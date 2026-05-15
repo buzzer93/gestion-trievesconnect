@@ -35,7 +35,7 @@
                 <th>Téléphone</th>
                 <th>Email</th>
                 <th>Solde</th>
-                <th class="text-right">Actions</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -58,7 +58,7 @@
                         </button>
                     </td>
                     <td>
-                        <div class="flex justify-end gap-2">
+                        <div class="flex justify-center gap-2">
                             <form method="post" action="{{ path('admin.customer.delete', {id: customer.id}) }}"
                                   onsubmit="return confirm('Supprimer ce client ?');">
                                 <input type="hidden" name="_method" value="DELETE">

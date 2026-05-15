@@ -1,0 +1,35 @@
+{#
+  admin/product/_form_fields.html.twig
+  Layout commun des champs du formulaire produit (create / edit).
+
+  Params :
+    form  Form  l'objet form Symfony
+#}
+
+<div class="space-y-6">
+    <section>
+        <h4 class="text-xs font-bold uppercase tracking-wide text-text-muted mb-3">Identité</h4>
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <div class="md:col-span-6">{{ form_row(form.name) }}</div>
+            <div class="md:col-span-4">{{ form_row(form.barCode) }}</div>
+            <div class="md:col-span-2">{{ form_row(form.supplier) }}</div>
+        </div>
+    </section>
+
+    <section>
+        <h4 class="text-xs font-bold uppercase tracking-wide text-text-muted mb-3">Tarification</h4>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {{ form_row(form.purchasePrice) }}
+            {{ form_row(form.marginRate) }}
+            {{ form_row(form.sellingPrice) }}
+        </div>
+    </section>
+
+    <section>
+        {{ form_row(form.categories) }}
+    </section>
+
+    <section>
+        {{ form_row(form.comment) }}
+    </section>
+</div>

@@ -60,10 +60,10 @@
         <thead>
             <tr>
                 <th>Nom</th>
-                <th class="text-right">Prix d'achat HT</th>
-                <th class="text-right">Quantité</th>
+                <th>Prix d'achat HT</th>
+                <th class="text-center">Quantité</th>
                 <th>Code-barre</th>
-                <th class="text-right">Actions</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -73,11 +73,11 @@
                     <td>
                         <a class="product_name" href="{{ path('admin.' ~ product.getType() ~ '.edit', { id: product.id }) }}">{{ product.name }}</a>
                     </td>
-                    <td class="text-right font-mono text-sm">{{ product.purchasePrice | number_format(2, ',', ' ') }} €</td>
-                    <td class="text-right font-mono text-sm">{{ product.stock }}</td>
+                    <td class="font-mono text-sm">{{ product.purchasePrice | number_format(2, ',', ' ') }} €</td>
+                    <td class="text-center font-mono text-sm">{{ product.stock }}</td>
                     <td><span class="bareCode">{{ product.barCode }}</span></td>
                     <td>
-                        <div class="flex justify-end">
+                        <div class="flex justify-center">
                             <form method="post"
                                   action="{{ path('admin.inventory.delete', { id: product.id, all: 'false' }) }}"
                                   onsubmit="return confirm('Voulez-vous vraiment supprimer ce produit de l\'inventaire ?');">

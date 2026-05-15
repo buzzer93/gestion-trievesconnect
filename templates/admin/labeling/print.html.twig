@@ -43,15 +43,25 @@
 
 {% block stylesheets %}
 	<style>
+		/* === Conteneur de labels === */
+		.row {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0;
+			align-content: flex-start;
+		}
+
 		/* === Base commune === */
 		.label {
 			margin: 0;
 			padding: 0;
+			box-sizing: border-box;
 			border: 1px solid black;
 			background-color: white;
 			display: flex;
 			align-items: center;
 			justify-content: center;
+			flex-shrink: 0;
 		}
 
 		.label-content {
@@ -70,7 +80,7 @@
 			color: #000;
 		}
 
-		/* === Petit format : 6cm x 4cm (existant) === */
+		/* === Petit format : 6cm x 4cm === */
 		.label-small {
 			width: 6cm;
 			height: 4cm;
@@ -79,13 +89,22 @@
 
 		.label-small .label-content {
 			flex-direction: column;
+			width: 100%;
+			padding: 2px 8px;
+			box-sizing: border-box;
+		}
+
+		.label-small .label-text {
+			width: 100%;
 		}
 
 		.label-small .barcode-img {
-			max-width: 50%;
-			max-height: 50%;
+			display: block;
+			width: 100%;
+			height: auto;
+			max-height: 1.8cm;
 			object-fit: contain;
-			margin-top: 5px;
+			margin-top: 4px;
 		}
 
 		/* === Grand format : 12cm x 4cm === */
@@ -125,13 +144,14 @@
 			justify-content: center;
 			width: 3cm;
 			height: 100%;
-			overflow: hidden;
+			overflow: visible;
 		}
 
 		.label-large .barcode-img {
-			transform: translateX(20%) rotate(-90deg);
-			width: 3.5cm;   /* devient la HAUTEUR visuelle après rotation */
-			height: 2.5cm;  /* devient la LARGEUR visuelle après rotation */
+			transform: rotate(-90deg);
+			width: 3.5cm;   /* devient la HAUTEUR visuelle après rotation (padding ~0.25cm haut/bas) */
+			height: 2.9cm;  /* devient la LARGEUR visuelle après rotation */
+			max-width: none; /* override Tailwind preflight max-width: 100% */
 			object-fit: contain;
 		}
 

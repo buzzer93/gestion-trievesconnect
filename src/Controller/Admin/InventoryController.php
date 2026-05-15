@@ -35,7 +35,7 @@ class InventoryController extends AbstractController
 
                 // Vérifier si le produit est déjà dans la liste
                 if (!in_array($product, $inventoryList, false)) {
-                    $product->setStock($data['quantity']);
+                    $product->setStock((int) $data['quantity']);
                     $inventoryList[] = $product;
                     $session->set('inventoryList', $inventoryList);
                     $this->addFlash('success', "Produit ajoutée à l'inventaire: {$product->getName()}");

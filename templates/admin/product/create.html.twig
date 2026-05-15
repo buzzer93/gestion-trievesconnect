@@ -22,19 +22,7 @@
             {{ form_start(form, { attr: { id: 'form' } }) }}
                 {{ form_errors(form) }}
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {{ form_row(form.name) }}
-                    {{ form_row(form.barCode) }}
-                    {{ form_row(form.supplier) }}
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {{ form_row(form.purchasePrice) }}
-                    {{ form_row(form.marginRate) }}
-                    {{ form_row(form.sellingPrice) }}
-                </div>
-
-                {{ form_row(form.comment) }}
+                {% include 'admin/product/_form_fields.html.twig' with { form: form } only %}
 
                 <div class="flex items-center gap-3 mt-6 pt-4 border-t border-border">
                     {{ form_widget(form.save, { attr: { class: 'inline-flex items-center justify-center gap-2 bg-accent text-bg font-display font-semibold text-sm px-4 py-2 rounded-md border border-accent hover:bg-accent-hover hover:border-accent-hover transition-colors duration-150 focus:outline-none focus:shadow-focus' } }) }}

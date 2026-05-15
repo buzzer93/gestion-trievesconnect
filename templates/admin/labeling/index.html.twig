@@ -58,10 +58,10 @@
         <thead>
             <tr>
                 <th>Nom</th>
-                <th class="text-right">Prix de vente TTC</th>
+                <th>Prix de vente TTC</th>
                 <th>Code-barre</th>
                 <th class="text-center">Grand format</th>
-                <th class="text-right">Actions</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -72,7 +72,7 @@
                     <td>
                         <a class="data_name" href="{{ path('admin.' ~ data.getType() ~ '.edit', { id: data.id }) }}">{{ data.name }}</a>
                     </td>
-                    <td class="text-right font-mono text-sm">{{ data.sellingPrice | number_format(2, ',', ' ') }} €</td>
+                    <td class="font-mono text-sm">{{ data.sellingPrice | number_format(2, ',', ' ') }} €</td>
                     <td><span class="bareCode">{{ data.barCode }}</span></td>
                     <td class="text-center">
                         <input type="checkbox" class="large-format-toggle w-4 h-4 bg-surface-300 border border-border text-accent focus:ring-accent focus:ring-2"
@@ -80,7 +80,7 @@
                                {{ item.format == 'large' ? 'checked' : '' }}>
                     </td>
                     <td>
-                        <div class="flex justify-end">
+                        <div class="flex justify-center">
                             <form method="post"
                                   action="{{ path('admin.labeling.delete', { index: index, all: 'false' }) }}"
                                   onsubmit="return confirm('Voulez-vous vraiment supprimer cette étiquette ?');">

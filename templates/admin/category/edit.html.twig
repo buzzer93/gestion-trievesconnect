@@ -55,7 +55,7 @@
                         <th>Nom</th>
                         <th>Fournisseur</th>
                         <th>Code-barre</th>
-                        <th class="text-right">Actions</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -67,7 +67,7 @@
                             <td>{{ product.supplier }}</td>
                             <td><span class="bareCode">{{ product.barCode }}</span></td>
                             <td>
-                                <div class="flex justify-end gap-2">
+                                <div class="flex justify-center gap-2">
                                     {% include 'components/_button.html.twig' with {
                                         label: 'Modifier',
                                         variant: 'primary',

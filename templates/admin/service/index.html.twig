@@ -34,7 +34,7 @@
                 <th>Prix vente TTC</th>
                 <th>Marge</th>
                 <th>Code-barre</th>
-                <th class="text-right">Actions</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -48,7 +48,7 @@
                     <td class="text-text-soft">{{ service.marginAmount|number_format(2, ',', ' ') }} €</td>
                     <td><span class="bareCode">{{ service.barCode }}</span></td>
                     <td>
-                        <div class="flex justify-end gap-2">
+                        <div class="flex justify-center gap-2">
                             <form method="post" action="{{ path('admin.service.delete', {id: service.id}) }}"
                                   onsubmit="return confirm('Supprimer ce service ?');">
                                 <input type="hidden" name="_method" value="DELETE">
