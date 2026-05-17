@@ -1,7 +1,17 @@
 {
   "permissions": {
     "allow": [
-      "Bash(php bin/console cache:clear)"
+      "Bash(php bin/console cache:clear)",
+      "Bash(find /home/buzzer93/PARA/Projects/dev/perso/portfolio -name \"README.md\" -maxdepth 2 2>/dev/null)",
+      "Read(//home/buzzer93/PARA/Projects/dev/perso/**)",
+      "Bash(git -C /home/buzzer93/PARA/Projects/dev/Pro/gestion-trieves remote get-url origin)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); req=d.get\\('require',{}\\); [print\\(k,':',v\\) for k,v in req.items\\(\\) if k not in \\('php',\\) and 'symfony' not in k and 'doctrine' not in k and 'ext-' not in k]\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); req=d.get\\('require-dev',{}\\); [print\\(k,':',v\\) for k,v in req.items\\(\\)]\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); req=d.get\\('require',{}\\); [print\\(k,':',v\\) for k,v in req.items\\(\\) if 'tailwind' in k]\")",
+      "Bash(git add *)",
+      "Bash(git rebase *)",
+      "Bash(GIT_EDITOR=true git rebase --continue)",
+      "Bash(EDITOR=true git rebase --continue)"
     ]
   }
 }
