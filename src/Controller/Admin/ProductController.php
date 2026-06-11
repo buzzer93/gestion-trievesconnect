@@ -9,8 +9,10 @@ use App\Repository\ServiceRepository;
 use App\Service\DataExport;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -46,18 +48,20 @@ class ProductController extends AbstractController
         $products = $pr->findAll();
         $services = $sr->findAll();
 
-        $this->dataExport->exportData($products, $services);
+        $writer = $this->dataExport->exportData($products, $services);
 
-         // Chemin du fichier à télécharger
-         $filePath = './export/ProductsDatas.xlsx';
+        $response = new StreamedResponse(static function () use ($writer): void {
+            $writer->save('php://output');
+        });
 
-         // Vérifier si le fichier existe
-         if (!file_exists($filePath)) {
-             throw $this->createNotFoundException("Le fichier n'a pas été trouvé.");
-         }
-     
-        $this->addFlash('success','Téléchargement du fichier d\'export en cours');
-        return $this->file($filePath);
+        $response->headers->set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $response->headers->set(
+            'Content-Disposition',
+            HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_ATTACHMENT, 'ProductsDatas.xlsx')
+        );
+        $response->headers->set('Cache-Control', 'no-store, no-cache');
+
+        return $response;
     }
     
 

@@ -11,12 +11,12 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 class DataExport
 {
     /**
-     * Summary of exportProduct
+     * Construit le fichier d'export des produits et services.
+     *
      * @param array<Product> $products Tableau contenant des objets Product
      * @param array<Service> $services Tableau contenant des objets Service
-     * @return void
      */
-    public function exportData($products, $services): void
+    public function exportData(array $products, array $services): Xlsx
     {
 
         $spreadsheet = new Spreadsheet();
@@ -57,7 +57,6 @@ class DataExport
             $activeWorksheet->getStyle('A' . $key)->getNumberFormat()
                 ->setFormatCode(NumberFormat::FORMAT_NUMBER);
         }
-        $writer = new Xlsx($spreadsheet);
-        $writer->save('./export/ProductsDatas.xlsx');
+        return new Xlsx($spreadsheet);
     }
 }
