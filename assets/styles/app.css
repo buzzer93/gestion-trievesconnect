@@ -13,7 +13,7 @@
    Trieves Connect Manager — Design system "NVIDIA dark"
    Inspiré de .claude/design/awesome-design-md/nvidia (mode dark monochrome)
    Polices : Inter (UI/display), JetBrains Mono (code-barres, mono)
-   Accent : NVIDIA Green #76b900 — UNIQUEMENT en bordures/underlines/highlights,
+   Accent : NVIDIA Orange #f56600 — UNIQUEMENT en bordures/underlines/highlights,
    jamais en surface large.
    ============================================================================ */
 
@@ -33,15 +33,15 @@
     --color-text-faint:   #757575;   /* Gray 500 */
 
     /* === Accents =========================================================== */
-    --color-accent:        #76b900;  /* NVIDIA Green */
-    --color-accent-hover:  #bff230;  /* NVIDIA Green Light */
-    --color-accent-soft:   rgba(118, 185, 0, 0.18);
+    --color-accent:        #f56600;  /* NVIDIA Orange */
+    --color-accent-hover:  #ff9a3d;  /* NVIDIA Orange Light */
+    --color-accent-soft:   rgba(245, 102, 0, 0.18);
     --color-gold:          #ef9100;  /* Yellow 300 (warm accent NVIDIA) */
 
     /* === Sémantique ======================================================== */
     --color-error:        #e52020;  /* Red 500 */
     --color-error-soft:   rgba(229, 32, 32, 0.18);
-    --color-success:      #3f8500;  /* Green 500 darker than brand */
+    --color-success:      #3f8500;  /* Green 500 */
     --color-success-soft: rgba(63, 133, 0, 0.18);
     --color-warning:      #df6500;  /* Orange 400 */
     --color-warning-soft: rgba(223, 101, 0, 0.18);
@@ -171,7 +171,7 @@ body {
         color: var(--color-text-soft);
     }
 
-    /* Lien NVIDIA "light surface" : underline vert 2px, hover blue. */
+    /* Lien NVIDIA "light surface" : underline orange 2px, hover blue. */
     .link-nvidia {
         color: var(--color-text-primary);
         text-decoration: underline;
