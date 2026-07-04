@@ -55,16 +55,26 @@ final class PrintGateAuthorizeIntegrityListener
 
         [$device, $claims] = $this->verifier->verify($jwt, $rawBody);
 
+        // IMPORTANT : markAsSeen() modifie une entité déjà managée (donc
+        // suivie par l'UnitOfWork de Doctrine) mais ne la persiste pas
+        // elle-même -- elle doit être positionnée AVANT l'appel qui
+        // déclenche réellement un flush() (markAsUsed ci-dessous), sans
+        // quoi le changement de lastSeenAt est silencieusement perdu.
+        // (Bug détecté après coup : dans la première version de ce
+        // listener, markAsUsed() était appelé avant markAsSeen(), et
+        // lastSeenAt n'était donc jamais écrit en base.)
+        $device->markAsSeen(new \DateTimeImmutable());
+
         // L'anti-rejeu n'est appliqué qu'après un verify() réussi, pour ne
         // consommer le jti qu'une fois toutes les autres vérifications
-        // passées (signature, claims, intégrité du corps).
+        // passées (signature, claims, intégrité du corps). Le flush()
+        // interne à markAsUsed() persiste dans la foulée le changement de
+        // lastSeenAt ci-dessus, puisque $device est déjà managé.
         $this->usedTokenRepository->markAsUsed(
             (string) $claims['jti'],
             $device,
             (new \DateTimeImmutable())->setTimestamp((int) $claims['exp']),
         );
-
-        $device->markAsSeen(new \DateTimeImmutable());
 
         // Mis à disposition du contrôleur/service pour les étapes suivantes
         // (règles métier, étape 6) -- ne pas dupliquer la résolution du
