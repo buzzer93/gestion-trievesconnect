@@ -9,6 +9,15 @@ parameters:
     # le relais). Mettre à false pour tester le chemin de refus.
     printgate.default_authorization: true
 
+    printgate.jwt.issuer: 'printgate-agent'
+    printgate.jwt.audience: 'gestion.trievesconnect.fr'
+    printgate.jwt.allowed_algorithms: ['EdDSA', 'RS256']
+    # Tolérance de désynchronisation d'horloge entre poste et serveur.
+    # Documenter/vérifier chrony ou systemd-timesyncd actif sur les postes
+    # (cf. résumé technique §4.3) : une horloge désynchronisée au-delà de
+    # cette marge provoque un refus systématique et silencieux du poste concerné.
+    printgate.jwt.clock_skew_seconds: 5
+
 services:
     # default configuration for services in *this* file
     _defaults:
