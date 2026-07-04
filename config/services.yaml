@@ -4,11 +4,6 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
-    # Pilote la décision fixe de PrintAuthorizationManager (étape 4 uniquement,
-    # sera supprimé/remplacé à l'étape 6 quand PrintPolicyEvaluator prendra
-    # le relais). Mettre à false pour tester le chemin de refus.
-    printgate.default_authorization: true
-
     printgate.jwt.issuer: 'printgate-agent'
     printgate.jwt.audience: 'gestion.trievesconnect.fr'
     printgate.jwt.allowed_algorithms: ['EdDSA', 'RS256']

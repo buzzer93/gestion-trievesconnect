@@ -17,7 +17,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 final readonly class PrintAuthorizationRequest
 {
     public function __construct(
-        #[Assert\NotBlank(message: 'Identifiant invalide')]
+        #[Assert\NotBlank(normalizer: 'trim', message: 'Identifiant invalide')]
         #[Assert\Length(max: 190)]
         public string $identifier,
 

@@ -36,7 +36,11 @@ final class PrintAuthorizationControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $payload = json_decode($client->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
-        self::assertArrayHasKey('authorizedImpression', $payload);
+        // Étape 6 : PrintPolicyEvaluator n'a aucune règle active en V1,
+        // la décision est donc déterministe (toujours autorisée) plutôt
+        // que pilotée par un paramètre de config comme à l'étape 4.
+        self::assertTrue($payload['authorizedImpression']);
+        self::assertNull($payload['reason'] ?? null);
     }
 
     public function testAccessWithoutJwtIsRejected(): void

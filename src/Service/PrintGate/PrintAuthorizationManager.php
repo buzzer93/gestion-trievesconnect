@@ -6,37 +6,34 @@ namespace App\Service\PrintGate;
 
 use App\DTO\PrintGate\PrintAuthorizationRequest;
 use App\DTO\PrintGate\PrintAuthorizationResponse;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
- * Étape 4 (module minimal) : implémentation TEMPORAIRE à décision fixe,
- * pilotée par le paramètre `printgate.default_authorization` plutôt qu'un
- * booléen en dur, pour pouvoir tester le cas de refus sans toucher au code.
+ * Étape 6 : délègue désormais la décision à PrintPolicyEvaluator, au lieu
+ * de la décision fixe de l'étape 4 (paramètre printgate.default_authorization
+ * -- devenu obsolet, à retirer de config/services.yaml).
  *
- * Volontairement SANS dépendance à PrintGateDeviceRepository ni
- * PrintGateJwtVerifier à ce stade : le couplage sera introduit à l'étape 5
- * (vérification JWT + résolution du poste) puis à l'étape 6 (règles
- * métier via PrintPolicyEvaluator). Ne pas anticiper cette dépendance ici.
- *
- * TODO étape 5 : injecter PrintGateJwtVerifier, résoudre le PrintGateDevice
- *                 à partir du JWT déjà vérifié en amont (listener dédié).
- * TODO étape 6 : déléguer la décision à PrintPolicyEvaluator plutôt que de
- *                 renvoyer la valeur fixe ci-dessous.
+ * Ne reçoit volontairement PAS le PrintGateDevice résolu par le listener
+ * JWT (disponible dans $request->attributes->get('printGateDevice') côté
+ * HttpFoundation) : aucune règle V1 n'en a besoin. Si une règle V2 en a
+ * besoin un jour (ex. quota par poste), ajouter le paramètre à ce moment
+ * -- pas avant (cf. règles projet : éviter les abstractions/paramètres
+ * anticipés sans besoin réel).
  */
 final class PrintAuthorizationManager
 {
     public function __construct(
-        #[Autowire(param: 'printgate.default_authorization')]
-        private readonly bool $defaultAuthorization,
+        private readonly PrintPolicyEvaluator $policyEvaluator,
     ) {
     }
 
     public function authorize(PrintAuthorizationRequest $request): PrintAuthorizationResponse
     {
-        if ($this->defaultAuthorization) {
-            return PrintAuthorizationResponse::authorized();
+        $decision = $this->policyEvaluator->evaluate($request);
+
+        if (!$decision->authorized) {
+            return PrintAuthorizationResponse::refused($decision->reason ?? 'Requête refusée');
         }
 
-        return PrintAuthorizationResponse::refused('Décision fixe de test (étape 4) : autorisation désactivée');
+        return PrintAuthorizationResponse::authorized();
     }
 }
