@@ -1,0 +1,92 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Postes PrintGate · Trieves Connect Manager{% endblock %}
+
+{% block body %}
+    {% embed 'components/_page_header.html.twig' with {
+        title: 'Postes PrintGate',
+        subtitle: 'Postes Linux autorisés à interroger l\'API d\'impression.',
+    } only %}
+        {% block actions %}
+            {% include 'components/_button.html.twig' with {
+                label: 'Ajouter un poste',
+                variant: 'accent',
+                icon: 'fa-solid fa-plus',
+                href: path('admin.printgate_device.create'),
+            } only %}
+        {% endblock %}
+    {% endembed %}
+
+    <form method="get" class="mb-4 max-w-md">
+        <label for="filterInput" class="block text-sm font-medium text-text-soft mb-1.5">
+            Rechercher (hôte, identifiant, nom)
+        </label>
+        <input type="text" id="filterInput" name="q" value="{{ query }}"
+               placeholder="poste-linux-01"
+               autocomplete="off"
+               class="block w-full bg-surface-200 text-text-primary border border-border rounded-md px-3 py-2 text-sm font-mono placeholder:text-text-muted focus:outline-none focus:border-accent focus:shadow-focus">
+    </form>
+
+    <div class="overflow-x-auto">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Hôte</th>
+                    <th>Identifiant</th>
+                    <th>Nom affiché</th>
+                    <th>Statut</th>
+                    <th>Dernière connexion</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for device in devices %}
+                    <tr id="printgate-device-{{ device.id }}">
+                        <td>
+                            <a class="product_name" href="{{ path('admin.printgate_device.edit', {id: device.id}) }}">{{ device.hostname }}</a>
+                        </td>
+                        <td class="text-text-soft font-mono">{{ device.computerId }}</td>
+                        <td class="text-text-soft">{{ device.displayName ?? '—' }}</td>
+                        <td>
+                            {% include 'components/_pill.html.twig' with {
+                                label: device.enabled ? 'Actif' : 'Désactivé',
+                                tone: device.enabled ? 'success' : 'neutral',
+                            } only %}
+                        </td>
+                        <td class="text-text-soft">
+                            {{ device.lastSeenAt ? device.lastSeenAt|date('d/m/Y H:i') : 'jamais' }}
+                        </td>
+                        <td>
+                            <div class="flex justify-center gap-2">
+                                {% include 'components/_button.html.twig' with {
+                                    label: 'Modifier',
+                                    variant: 'primary',
+                                    size: 'sm',
+                                    icon: 'fa-solid fa-pen',
+                                    href: path('admin.printgate_device.edit', {id: device.id}),
+                                } only %}
+                                <form method="post" action="{{ path('admin.printgate_device.toggle', {id: device.id}) }}"
+                                      data-controller="printgate-toggle">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('printgate_device_toggle_' ~ device.id) }}">
+                                    {% include 'components/_button.html.twig' with {
+                                        label: device.enabled ? 'Désactiver' : 'Activer',
+                                        variant: device.enabled ? 'danger' : 'success',
+                                        size: 'sm',
+                                        type: 'submit',
+                                        icon: device.enabled ? 'fa-solid fa-ban' : 'fa-solid fa-check',
+                                    } only %}
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-text-muted italic font-serif py-6">
+                            Aucun poste enregistré.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

@@ -1,0 +1,32 @@
+{{ form_start(form) }}
+    {{ form_errors(form) }}
+    <div class="space-y-4 max-w-lg">
+        {{ form_row(form.hostname) }}
+        {{ form_row(form.computerId) }}
+        {{ form_row(form.displayName) }}
+        {{ form_row(form.enabled) }}
+
+        <div class="border-t border-border pt-4">
+            <p class="text-sm text-text-soft mb-2">
+                Clé publique du poste : fournir soit un fichier, soit le texte collé.
+                La clé privée correspondante ne doit jamais être transmise au serveur.
+            </p>
+            {{ form_row(form.publicKeyFile) }}
+            {{ form_row(form.publicKeyText) }}
+        </div>
+    </div>
+
+    <div class="flex items-center gap-3 mt-6 pt-4 border-t border-border">
+        {% include 'components/_button.html.twig' with {
+            label: 'Enregistrer',
+            variant: 'accent',
+            type: 'submit',
+            icon: 'fa-solid fa-check',
+        } only %}
+        {% include 'components/_button.html.twig' with {
+            label: 'Annuler',
+            variant: 'ghost',
+            href: path('admin.printgate_device.index'),
+        } only %}
+    </div>
+{{ form_end(form) }}
