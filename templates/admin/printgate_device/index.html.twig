@@ -76,6 +76,18 @@
                                         icon: device.enabled ? 'fa-solid fa-ban' : 'fa-solid fa-check',
                                     } only %}
                                 </form>
+                                <form method="post" action="{{ path('admin.printgate_device.delete', {id: device.id}) }}"
+                                      onsubmit="return confirm('Supprimer ce poste ? Cette action est irréversible.');">
+                                    <input type="hidden" name="_method" value="DELETE">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('printgate_device_delete_' ~ device.id) }}">
+                                    {% include 'components/_button.html.twig' with {
+                                        label: 'Supprimer',
+                                        variant: 'danger',
+                                        size: 'sm',
+                                        type: 'submit',
+                                        icon: 'fa-solid fa-trash',
+                                    } only %}
+                                </form>
                             </div>
                         </td>
                     </tr>

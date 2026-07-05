@@ -7,6 +7,7 @@ namespace App\Controller\Admin;
 use App\Entity\PrintGateDevice;
 use App\Form\PrintGateDeviceType;
 use App\Repository\PrintGateDeviceRepository;
+use App\Repository\PrintGateUsedTokenRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
@@ -94,6 +95,32 @@ class PrintGateDeviceController extends AbstractController
             $device->getHostname(),
             $device->isEnabled() ? 'activé' : 'désactivé',
         ));
+
+        return $this->redirectToRoute('admin.printgate_device.index');
+    }
+
+    #[Route(path: '/{id}/delete', name: '.delete', methods: ['DELETE'], requirements: ['id' => Requirement::DIGITS])]
+    public function delete(
+        Request $request,
+        PrintGateDevice $device,
+        EntityManagerInterface $em,
+        PrintGateUsedTokenRepository $usedTokenRepository,
+    ): Response {
+        if (!$this->isCsrfTokenValid('printgate_device_delete_'.$device->getId(), (string) $request->request->get('_token'))) {
+            throw $this->createAccessDeniedException('Jeton CSRF invalide');
+        }
+
+        $hostname = $device->getHostname();
+
+        // L'historique anti-rejeu (device_id non nullable, cf. migration)
+        // doit être supprimé avant le poste, sans quoi la contrainte de clé
+        // étrangère rejetterait la suppression.
+        $usedTokenRepository->deleteAllForDevice($device);
+
+        $em->remove($device);
+        $em->flush();
+
+        $this->addFlash('success', \sprintf('Poste "%s" supprimé.', $hostname));
 
         return $this->redirectToRoute('admin.printgate_device.index');
     }

@@ -41,4 +41,20 @@ class PrintGateUsedTokenRepository extends ServiceEntityRepository
             throw new PrintGateReplayException(\sprintf('jti "%s" déjà utilisé', $jti));
         }
     }
+
+    /**
+     * Supprime l'historique anti-rejeu d'un poste avant sa suppression
+     * (contrainte de clé étrangère non-nullable device_id). Suppression en
+     * masse via DQL plutôt qu'un chargement en mémoire : ces lignes ne sont
+     * jamais consultées individuellement à la suppression d'un poste.
+     */
+    public function deleteAllForDevice(PrintGateDevice $device): void
+    {
+        $this->createQueryBuilder('t')
+            ->delete()
+            ->where('t.device = :device')
+            ->setParameter('device', $device)
+            ->getQuery()
+            ->execute();
+    }
 }

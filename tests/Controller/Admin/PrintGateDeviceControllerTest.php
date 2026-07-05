@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Controller\Admin;
 
 use App\Entity\PrintGateDevice;
+use App\Entity\PrintGateUsedToken;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -136,6 +137,52 @@ final class PrintGateDeviceControllerTest extends WebTestCase
         $entityManager->flush();
 
         $client->request('POST', '/admin/printgate-device/'.$device->getId().'/toggle', ['_token' => 'jeton-invalide']);
+
+        self::assertResponseStatusCodeSame(403);
+    }
+
+    public function testDeleteRemovesDeviceAndItsUsedTokens(): void
+    {
+        $client = static::createClient();
+        $client->loginUser($this->buildUser(self::ADMIN_EMAIL));
+
+        $this->removeDeviceIfExists('POSTE-TEST-DELETE');
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $device = new PrintGateDevice('POSTE-TEST-DELETE', 'poste-delete');
+        $entityManager->persist($device);
+        $entityManager->flush();
+        $deviceId = $device->getId();
+
+        // Un jeton anti-rejeu associé : vérifie que la suppression ne se
+        // heurte pas à la contrainte de clé étrangère device_id (cf.
+        // PrintGateUsedTokenRepository::deleteAllForDevice()).
+        $entityManager->persist(new PrintGateUsedToken('jti-test-delete', $device, new \DateTimeImmutable('+1 hour')));
+        $entityManager->flush();
+
+        $crawler = $client->request('GET', '/admin/printgate-device/');
+        $token = $crawler->filter('#printgate-device-'.$deviceId.' form[action$="/delete"] input[name="_token"]')->attr('value');
+
+        $client->request('DELETE', '/admin/printgate-device/'.$deviceId.'/delete', ['_token' => $token]);
+
+        self::assertResponseRedirects('/admin/printgate-device/');
+
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        self::assertNull($entityManager->getRepository(PrintGateDevice::class)->find($deviceId));
+        self::assertSame([], $entityManager->getRepository(PrintGateUsedToken::class)->findBy(['device' => $deviceId]));
+    }
+
+    public function testDeleteRejectsInvalidCsrfToken(): void
+    {
+        $client = static::createClient();
+        $client->loginUser($this->buildUser(self::ADMIN_EMAIL));
+
+        $this->removeDeviceIfExists('POSTE-TEST-DELETE-CSRF');
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $device = new PrintGateDevice('POSTE-TEST-DELETE-CSRF', 'poste-delete-csrf');
+        $entityManager->persist($device);
+        $entityManager->flush();
+
+        $client->request('DELETE', '/admin/printgate-device/'.$device->getId().'/delete', ['_token' => 'jeton-invalide']);
 
         self::assertResponseStatusCodeSame(403);
     }
