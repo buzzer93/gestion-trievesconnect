@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Service\PrintGate;
 
 use App\DTO\PrintGate\PrintAuthorizationRequest;
+use App\Repository\CustomerRepository;
 
 /**
- * Cœur métier, pur et stateless : ne dépend d'aucune classe Doctrine ni
- * HTTP, testable en isolation totale.
+ * Cœur métier de l'autorisation PrintGate.
  *
  * DÉLIBÉRÉMENT SANS règle "poste connu" / "poste actif" ici, contrairement
  * à ce qu'un premier sous-plan envisageait. Ces vérifications sont déjà
@@ -25,12 +25,12 @@ use App\DTO\PrintGate\PrintAuthorizationRequest;
  * anti-surengineering : ne pas dupliquer une vérification déjà faite
  * ailleurs).
  *
- * Point d'extension V2 (résumé technique §16) : quotas, restrictions
- * couleur, limite de pages. Ajouter une méthode privée par règle
- * (signature `?string` : null si acceptée, raison de refus sinon) et
- * l'enregistrer dans $rules, évaluées en fail-fast (une seule reason
- * retournée). En V1, $rules est vide : aucune règle métier active au-delà
- * de ce qui est déjà garanti par les couches JWT et validation.
+ * N'est plus stateless depuis l'ajout de la règle "client + crédits" :
+ * relier une impression à un Customer et débiter son solde nécessite un
+ * accès à Doctrine (CustomerRepository). Toute règle purement dérivée de
+ * la requête (quotas, limite de pages...) peut s'ajouter comme un
+ * contrôle supplémentaire avant le débit, en retournant tôt un
+ * PolicyDecision::refused() -- même logique fail-fast qu'avant.
  *
  * Non final (contrairement aux autres classes PrintGate) : PHPUnit ne peut
  * pas doubler une classe finale, et PrintAuthorizationManagerTest a besoin
@@ -41,33 +41,47 @@ use App\DTO\PrintGate\PrintAuthorizationRequest;
 class PrintPolicyEvaluator
 {
     /**
-     * @var list<callable(PrintAuthorizationRequest): (string|null)>
+     * Grille tarifaire en centimes, identique à celle du débit manuel
+     * (cf. modale crédit dans templates/admin/customer/index.html.twig)
+     * pour rester cohérente avec le tarif déjà pratiqué au comptoir.
+     * Ignore volontairement `pageCount`, comme le fait déjà ce système
+     * manuel : le tarif porte sur le nombre de copies, pas sur le nombre
+     * de pages par copie.
      */
-    private readonly array $rules;
+    private const PRICES_CENTS = [
+        'MONOCHROME' => ['A4' => 30, 'A3' => 60],
+        'COLOR' => ['A4' => 50, 'A3' => 100],
+    ];
 
-    public function __construct()
-    {
-        $this->rules = [
-            // Aucune règle V1. Exemple de forme attendue pour une future
-            // règle V2 (laissé en commentaire plutôt qu'implémenté à vide,
-            // pour ne pas suggérer une limite qui n'existe pas encore) :
-            //
-            // fn (PrintAuthorizationRequest $r): ?string => $r->printJob->pageCount > 500
-            //     ? 'Nombre de pages supérieur à la limite autorisée'
-            //     : null,
-        ];
+    public function __construct(
+        private readonly CustomerRepository $customerRepository,
+    ) {
     }
 
     public function evaluate(PrintAuthorizationRequest $request): PolicyDecision
     {
-        foreach ($this->rules as $rule) {
-            $reason = $rule($request);
+        $customer = $this->customerRepository->findOneByPrintGateIdentifier($request->identifier);
 
-            if (null !== $reason) {
-                return PolicyDecision::refused($reason);
-            }
+        if (null === $customer) {
+            return PolicyDecision::refused('Identifiant inconnu');
         }
 
+        $costCents = $this->computeCostCents($request);
+
+        if ($customer->getBalanceCents() < $costCents) {
+            return PolicyDecision::refused('Crédits insuffisants');
+        }
+
+        $this->customerRepository->debitBalance($customer, $costCents);
+
         return PolicyDecision::authorized();
+    }
+
+    private function computeCostCents(PrintAuthorizationRequest $request): int
+    {
+        $colorMode = $request->printJob->colorMode ?? 'MONOCHROME';
+        $paperSize = 'A3' === strtoupper((string) $request->printJob->paperSize) ? 'A3' : 'A4';
+
+        return self::PRICES_CENTS[$colorMode][$paperSize] * $request->printJob->copies;
     }
 }

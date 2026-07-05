@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Controller\Api\PrintGate;
 
+use App\Entity\Customer;
 use App\Entity\PrintGateDevice;
 use Doctrine\ORM\EntityManagerInterface;
 use Firebase\JWT\JWT;
@@ -27,6 +28,7 @@ final class PrintAuthorizationControllerTest extends WebTestCase
     {
         $client = static::createClient();
         $secretKey = $this->registerTestDevice();
+        $this->registerTestCustomer();
         $body = $this->samplePayload();
 
         $client->request('POST', '/api/printgate/authorize', server: [
@@ -36,9 +38,8 @@ final class PrintAuthorizationControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $payload = json_decode($client->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
-        // Étape 6 : PrintPolicyEvaluator n'a aucune règle active en V1,
-        // la décision est donc déterministe (toujours autorisée) plutôt
-        // que pilotée par un paramètre de config comme à l'étape 4.
+        // PrintPolicyEvaluator autorise si le Customer("j.dupont") existe
+        // et a assez de crédits -- cf. registerTestCustomer().
         self::assertTrue($payload['authorizedImpression']);
         self::assertNull($payload['reason'] ?? null);
     }
@@ -109,6 +110,7 @@ final class PrintAuthorizationControllerTest extends WebTestCase
     {
         $client = static::createClient();
         $secretKey = $this->registerTestDevice();
+        $this->registerTestCustomer();
         $body = $this->samplePayload();
         $jwt = $this->signJwt($secretKey, $body);
 
@@ -173,6 +175,35 @@ final class PrintAuthorizationControllerTest extends WebTestCase
         $entityManager->flush();
 
         return $secretKey;
+    }
+
+    /**
+     * Enregistre (ou réenregistre) le Customer "j.dupont" attendu par
+     * samplePayload(), avec assez de crédits pour que PrintPolicyEvaluator
+     * autorise l'impression (30c en MONOCHROME/A4 x1 copie -- ici COLOR/A4
+     * x1 = 50c, largement couvert par 10000c).
+     */
+    private function registerTestCustomer(int $balanceCents = 10000): void
+    {
+        /** @var EntityManagerInterface $entityManager */
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+
+        $existing = $entityManager->getRepository(Customer::class)
+            ->findOneBy(['printGateIdentifier' => 'j.dupont']);
+
+        if (null !== $existing) {
+            $entityManager->remove($existing);
+            $entityManager->flush();
+        }
+
+        $customer = (new Customer())
+            ->setName('J. Dupont')
+            ->setPhoneNumber('0600000000')
+            ->setPrintGateIdentifier('j.dupont')
+            ->setBalanceCents($balanceCents);
+
+        $entityManager->persist($customer);
+        $entityManager->flush();
     }
 
     private function signJwt(string $secretKey, string $body): string

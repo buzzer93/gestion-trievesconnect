@@ -24,6 +24,24 @@ class CustomerRepository extends ServiceEntityRepository
             ->getOneOrNullResult()
         ;
     }
+
+    public function findOneByPrintGateIdentifier(string $identifier): ?Customer
+    {
+        return $this->findOneBy(['printGateIdentifier' => $identifier]);
+    }
+
+    /**
+     * Débite le solde d'un client suite à une impression PrintGate
+     * autorisée. Persistance dans le repository (comme
+     * PrintGateUsedTokenRepository::markAsUsed()) plutôt que dans
+     * PrintPolicyEvaluator, qui n'a pas d'autre raison de dépendre de
+     * l'EntityManager.
+     */
+    public function debitBalance(Customer $customer, int $cents): void
+    {
+        $customer->removeBalanceCents($cents);
+        $this->getEntityManager()->flush();
+    }
     
     /**
      * @return Customer[] Returns an array of Customer objects
