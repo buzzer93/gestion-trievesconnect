@@ -38,15 +38,6 @@ class Customer
     #[ORM\Column]
     private int $credits = 0;
 
-    /**
-     * Identifiant envoyé par l'agent PrintGate (claim "identifier" de la
-     * requête d'autorisation) pour relier une impression à ce client et
-     * débiter ses crédits. Optionnel : un client n'utilisant pas PrintGate
-     * n'a pas besoin de le renseigner.
-     */
-    #[ORM\Column(length: 190, nullable: true, unique: true)]
-    private ?string $printGateIdentifier = null;
-
     public function getId(): ?int
     {
         return $this->id;
@@ -108,18 +99,6 @@ class Customer
     public function setCity(string $city): static
     {
         $this->city = $city;
-
-        return $this;
-    }
-
-    public function getPrintGateIdentifier(): ?string
-    {
-        return $this->printGateIdentifier;
-    }
-
-    public function setPrintGateIdentifier(?string $printGateIdentifier): static
-    {
-        $this->printGateIdentifier = $printGateIdentifier;
 
         return $this;
     }

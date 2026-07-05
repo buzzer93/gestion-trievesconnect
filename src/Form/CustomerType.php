@@ -50,13 +50,7 @@ class CustomerType extends AbstractType
                 'required' => false,
                 'attr' => ['placeholder' => 'Paris']
             ])
-            ->add('printGateIdentifier', TextType::class, [
-                'label' => 'Identifiant PrintGate',
-                'required' => false,
-                'help' => 'Identifiant envoyé par le poste Linux pour relier une impression à ce client (optionnel).',
-                'attr' => ['placeholder' => 'j.dupont']
-            ])
-            ->add('balanceEuros', 
+            ->add('balanceEuros',
                 // NumberType est préférable pour les valeurs décimales d'affichage
                 \Symfony\Component\Form\Extension\Core\Type\NumberType::class,
                 [

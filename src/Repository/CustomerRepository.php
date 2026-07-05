@@ -25,11 +25,6 @@ class CustomerRepository extends ServiceEntityRepository
         ;
     }
 
-    public function findOneByPrintGateIdentifier(string $identifier): ?Customer
-    {
-        return $this->findOneBy(['printGateIdentifier' => $identifier]);
-    }
-
     /**
      * Débite le solde d'un client suite à une impression PrintGate
      * autorisée. Persistance dans le repository (comme

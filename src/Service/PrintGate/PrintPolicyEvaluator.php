@@ -32,6 +32,11 @@ use App\Repository\CustomerRepository;
  * contrôle supplémentaire avant le débit, en retournant tôt un
  * PolicyDecision::refused() -- même logique fail-fast qu'avant.
  *
+ * `identifier` est le numéro de téléphone du client (même identifiant que
+ * pour la carte client physique/scannée, cf. Customer::$phoneNumber) --
+ * pas un identifiant PrintGate dédié : aucun champ supplémentaire à
+ * renseigner pour qu'un client existant puisse utiliser PrintGate.
+ *
  * Non final (contrairement aux autres classes PrintGate) : PHPUnit ne peut
  * pas doubler une classe finale, et PrintAuthorizationManagerTest a besoin
  * de la mocker pour tester la traduction PolicyDecision -> réponse HTTP en
@@ -60,7 +65,7 @@ class PrintPolicyEvaluator
 
     public function evaluate(PrintAuthorizationRequest $request): PolicyDecision
     {
-        $customer = $this->customerRepository->findOneByPrintGateIdentifier($request->identifier);
+        $customer = $this->customerRepository->findOneByPhoneNumber($request->identifier);
 
         if (null === $customer) {
             return PolicyDecision::refused('Identifiant inconnu');

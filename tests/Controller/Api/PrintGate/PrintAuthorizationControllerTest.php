@@ -23,6 +23,7 @@ final class PrintAuthorizationControllerTest extends WebTestCase
     private const COMPUTER_ID = 'TEST-POSTE-CI';
     private const ISSUER = 'printgate-agent';
     private const AUDIENCE = 'gestion.trievesconnect.fr';
+    private const CUSTOMER_PHONE_NUMBER = '0611223344';
 
     public function testNominalRequestReturnsAuthorizationDecision(): void
     {
@@ -38,8 +39,8 @@ final class PrintAuthorizationControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $payload = json_decode($client->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
-        // PrintPolicyEvaluator autorise si le Customer("j.dupont") existe
-        // et a assez de crédits -- cf. registerTestCustomer().
+        // PrintPolicyEvaluator autorise si un Customer avec ce numéro de
+        // téléphone existe et a assez de crédits -- cf. registerTestCustomer().
         self::assertTrue($payload['authorizedImpression']);
         self::assertNull($payload['reason'] ?? null);
     }
@@ -131,7 +132,7 @@ final class PrintAuthorizationControllerTest extends WebTestCase
     private function samplePayload(): string
     {
         return json_encode([
-            'identifier' => 'j.dupont',
+            'identifier' => self::CUSTOMER_PHONE_NUMBER,
             'computerId' => self::COMPUTER_ID,
             'hostname' => 'poste-ci',
             'printJob' => [
@@ -178,10 +179,11 @@ final class PrintAuthorizationControllerTest extends WebTestCase
     }
 
     /**
-     * Enregistre (ou réenregistre) le Customer "j.dupont" attendu par
-     * samplePayload(), avec assez de crédits pour que PrintPolicyEvaluator
-     * autorise l'impression (30c en MONOCHROME/A4 x1 copie -- ici COLOR/A4
-     * x1 = 50c, largement couvert par 10000c).
+     * Enregistre (ou réenregistre) le Customer attendu par samplePayload()
+     * (identifier = numéro de téléphone, même identifiant que la carte
+     * client), avec assez de crédits pour que PrintPolicyEvaluator
+     * autorise l'impression (COLOR/A4 x1 copie = 50c, largement couvert
+     * par 10000c).
      */
     private function registerTestCustomer(int $balanceCents = 10000): void
     {
@@ -189,7 +191,7 @@ final class PrintAuthorizationControllerTest extends WebTestCase
         $entityManager = static::getContainer()->get(EntityManagerInterface::class);
 
         $existing = $entityManager->getRepository(Customer::class)
-            ->findOneBy(['printGateIdentifier' => 'j.dupont']);
+            ->findOneBy(['phoneNumber' => self::CUSTOMER_PHONE_NUMBER]);
 
         if (null !== $existing) {
             $entityManager->remove($existing);
@@ -198,8 +200,7 @@ final class PrintAuthorizationControllerTest extends WebTestCase
 
         $customer = (new Customer())
             ->setName('J. Dupont')
-            ->setPhoneNumber('0600000000')
-            ->setPrintGateIdentifier('j.dupont')
+            ->setPhoneNumber(self::CUSTOMER_PHONE_NUMBER)
             ->setBalanceCents($balanceCents);
 
         $entityManager->persist($customer);

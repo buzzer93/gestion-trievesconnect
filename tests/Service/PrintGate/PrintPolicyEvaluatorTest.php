@@ -16,7 +16,7 @@ final class PrintPolicyEvaluatorTest extends TestCase
     public function testUnknownIdentifierIsRefused(): void
     {
         $customerRepository = $this->createMock(CustomerRepository::class);
-        $customerRepository->method('findOneByPrintGateIdentifier')->willReturn(null);
+        $customerRepository->method('findOneByPhoneNumber')->willReturn(null);
         $customerRepository->expects(self::never())->method('debitBalance');
 
         $evaluator = new PrintPolicyEvaluator($customerRepository);
@@ -31,7 +31,7 @@ final class PrintPolicyEvaluatorTest extends TestCase
         $customer = $this->customerWithBalance(29); // < 30 (MONOCHROME/A4/1 copie)
 
         $customerRepository = $this->createMock(CustomerRepository::class);
-        $customerRepository->method('findOneByPrintGateIdentifier')->willReturn($customer);
+        $customerRepository->method('findOneByPhoneNumber')->willReturn($customer);
         $customerRepository->expects(self::never())->method('debitBalance');
 
         $evaluator = new PrintPolicyEvaluator($customerRepository);
@@ -46,7 +46,7 @@ final class PrintPolicyEvaluatorTest extends TestCase
         $customer = $this->customerWithBalance(30);
 
         $customerRepository = $this->createMock(CustomerRepository::class);
-        $customerRepository->method('findOneByPrintGateIdentifier')->willReturn($customer);
+        $customerRepository->method('findOneByPhoneNumber')->willReturn($customer);
         $customerRepository->expects(self::once())->method('debitBalance')->with($customer, 30);
 
         $evaluator = new PrintPolicyEvaluator($customerRepository);
@@ -86,7 +86,7 @@ final class PrintPolicyEvaluatorTest extends TestCase
         $customer = $this->customerWithBalance($expectedCents);
 
         $customerRepository = $this->createMock(CustomerRepository::class);
-        $customerRepository->method('findOneByPrintGateIdentifier')->willReturn($customer);
+        $customerRepository->method('findOneByPhoneNumber')->willReturn($customer);
         $customerRepository->expects(self::once())->method('debitBalance')->with($customer, $expectedCents);
 
         $evaluator = new PrintPolicyEvaluator($customerRepository);
@@ -105,7 +105,7 @@ final class PrintPolicyEvaluatorTest extends TestCase
         $customer = $this->customerWithBalance(30);
 
         $customerRepository = $this->createMock(CustomerRepository::class);
-        $customerRepository->method('findOneByPrintGateIdentifier')->willReturn($customer);
+        $customerRepository->method('findOneByPhoneNumber')->willReturn($customer);
         $customerRepository->expects(self::once())->method('debitBalance')->with($customer, 30);
 
         $evaluator = new PrintPolicyEvaluator($customerRepository);
@@ -129,7 +129,7 @@ final class PrintPolicyEvaluatorTest extends TestCase
         int $copies = 1,
     ): PrintAuthorizationRequest {
         return new PrintAuthorizationRequest(
-            identifier: 'j.dupont',
+            identifier: '0600000000',
             computerId: 'POSTE-LINUX-01',
             hostname: 'poste-linux-01',
             printJob: new PrintJobPayload(
