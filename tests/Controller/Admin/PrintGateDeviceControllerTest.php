@@ -96,6 +96,45 @@ final class PrintGateDeviceControllerTest extends WebTestCase
         self::assertSelectorTextContains('form', 'Format de clé publique non reconnu');
     }
 
+    /**
+     * publicKeyText est mapped: false (upload OU collage) : sans
+     * pré-remplissage explicite dans le contrôleur, ce champ apparaît
+     * toujours vide en édition, donnant l'impression qu'une clé déjà
+     * enregistrée ne l'a jamais été. Vérifie le pré-remplissage, et que
+     * resoumettre le formulaire sans y toucher ne fait pas perdre la clé.
+     */
+    public function testEditFormPrefillsExistingPublicKeyAndKeepsItOnResubmit(): void
+    {
+        $client = static::createClient();
+        $client->loginUser($this->buildUser(self::ADMIN_EMAIL));
+
+        $this->removeDeviceIfExists('POSTE-TEST-EDIT-KEY');
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $existingKey = "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\n-----END PUBLIC KEY-----";
+        $device = new PrintGateDevice('POSTE-TEST-EDIT-KEY', 'poste-edit-key');
+        $device->setPublicKey($existingKey);
+        $entityManager->persist($device);
+        $entityManager->flush();
+        $deviceId = $device->getId();
+
+        $crawler = $client->request('GET', '/admin/printgate-device/'.$deviceId.'/edit');
+
+        self::assertSame(
+            $existingKey,
+            trim($crawler->filter('textarea[name="print_gate_device[publicKeyText]"]')->text(normalizeWhitespace: false)),
+        );
+
+        $client->submitForm('Enregistrer', [
+            'print_gate_device[hostname]' => 'poste-edit-key-renamed',
+        ]);
+
+        self::assertResponseRedirects('/admin/printgate-device/');
+
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $device = $entityManager->getRepository(PrintGateDevice::class)->find($deviceId);
+        self::assertSame($existingKey, $device->getPublicKey());
+    }
+
     public function testToggleEnabledFlipsStatus(): void
     {
         $client = static::createClient();
@@ -188,9 +227,9 @@ final class PrintGateDeviceControllerTest extends WebTestCase
     }
 
     /**
-     * Base partagée avec le dev local (var/data.db, cf. .env.test) : un
-     * computerId fixe réutilisé d'un run à l'autre viole la contrainte
-     * unique sans ce nettoyage préalable.
+     * Base de test isolée (var/data_test.db, cf. .env.test) : un computerId
+     * fixe réutilisé d'un run à l'autre viole la contrainte unique sans ce
+     * nettoyage préalable.
      */
     private function removeDeviceIfExists(string $computerId): void
     {
@@ -204,11 +243,19 @@ final class PrintGateDeviceControllerTest extends WebTestCase
     }
 
     /**
-     * Enregistre (ou réenregistre) un utilisateur de test en base : la
+     * Enregistre (ou réutilise) un utilisateur de test en base : la
      * "main" firewall n'est pas stateless, Symfony recharge l'utilisateur
      * depuis le provider (entity, cf. security.yaml) à chaque requête --
      * un objet User simplement construit en mémoire sans être persisté
      * serait introuvable et la session traitée comme anonyme.
+     *
+     * IMPORTANT : ne supprime jamais un utilisateur existant trouvé par cet
+     * email -- même sur la base de test isolée, cf. incident du 2026-07-06
+     * où ce test avait écrasé un compte "contact@trievesconnect.fr" réel
+     * sur la base de dev partagée d'alors (mot de passe remplacé par une
+     * valeur factice, sans sauvegarde possible). On réutilise l'existant
+     * tel quel : ses rôles dépendent uniquement de son email
+     * (cf. User::getRoles()), pas de son mot de passe.
      */
     private function buildUser(string $email): User
     {
@@ -216,8 +263,7 @@ final class PrintGateDeviceControllerTest extends WebTestCase
 
         $existing = $entityManager->getRepository(User::class)->findOneBy(['username' => $email]);
         if (null !== $existing) {
-            $entityManager->remove($existing);
-            $entityManager->flush();
+            return $existing;
         }
 
         $user = (new User())

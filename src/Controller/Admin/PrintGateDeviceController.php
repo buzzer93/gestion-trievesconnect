@@ -63,6 +63,11 @@ class PrintGateDeviceController extends AbstractController
     public function edit(Request $request, PrintGateDevice $device, EntityManagerInterface $em): Response
     {
         $form = $this->createForm(PrintGateDeviceType::class, $device, ['is_edit' => true]);
+        // publicKeyText est mapped: false (upload OU collage, cf. PrintGateDeviceType) :
+        // sans ce pré-remplissage, le champ apparaît toujours vide en édition,
+        // même quand une clé est déjà enregistrée -- donnant l'impression
+        // qu'elle n'a jamais été sauvegardée.
+        $form->get('publicKeyText')->setData($device->getPublicKey());
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {

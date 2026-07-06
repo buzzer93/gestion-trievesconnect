@@ -11,6 +11,16 @@
                 Clé publique du poste : fournir soit un fichier, soit le texte collé.
                 La clé privée correspondante ne doit jamais être transmise au serveur.
             </p>
+            {% if device is defined %}
+                {% include 'components/_pill.html.twig' with {
+                    label: device.publicKey ? 'Clé actuellement enregistrée' : 'Aucune clé enregistrée',
+                    tone: device.publicKey ? 'success' : 'neutral',
+                } only %}
+                <p class="text-xs text-text-muted mt-1.5 mb-3">
+                    Laisser le champ ci-dessous tel quel pour conserver la clé actuelle,
+                    ou le remplacer pour l'enregistrer.
+                </p>
+            {% endif %}
             {{ form_row(form.publicKeyFile) }}
             {{ form_row(form.publicKeyText) }}
         </div>

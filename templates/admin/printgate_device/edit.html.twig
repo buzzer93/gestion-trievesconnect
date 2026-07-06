@@ -19,7 +19,7 @@
 
     {% embed 'components/_card.html.twig' with { padding: 'lg', form: form, device: device } only %}
         {% block body %}
-            {% include 'admin/printgate_device/_form.html.twig' with { form: form } only %}
+            {% include 'admin/printgate_device/_form.html.twig' with { form: form, device: device } only %}
         {% endblock %}
     {% endembed %}
 {% endblock %}
