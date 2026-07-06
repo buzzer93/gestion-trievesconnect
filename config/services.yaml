@@ -11,7 +11,7 @@ parameters:
     # Documenter/vérifier chrony ou systemd-timesyncd actif sur les postes
     # (cf. résumé technique §4.3) : une horloge désynchronisée au-delà de
     # cette marge provoque un refus systématique et silencieux du poste concerné.
-    printgate.jwt.clock_skew_seconds: 5
+    printgate.jwt.clock_skew_seconds: 200
 
 services:
     # default configuration for services in *this* file

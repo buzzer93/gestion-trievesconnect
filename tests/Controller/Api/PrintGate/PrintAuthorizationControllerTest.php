@@ -179,11 +179,17 @@ final class PrintAuthorizationControllerTest extends WebTestCase
     }
 
     /**
-     * Enregistre (ou réenregistre) le Customer attendu par samplePayload()
+     * Enregistre (ou réutilise) le Customer attendu par samplePayload()
      * (identifier = numéro de téléphone, même identifiant que la carte
      * client), avec assez de crédits pour que PrintPolicyEvaluator
      * autorise l'impression (COLOR/A4 x1 copie = 50c, largement couvert
      * par 10000c).
+     *
+     * IMPORTANT : ne supprime jamais un client existant trouvé par ce
+     * numéro -- même sur la base de test isolée, cf. incident du
+     * 2026-07-06 où ce test avait écrasé un vrai client (nom, solde) sur
+     * la base de dev partagée d'alors. Si un client existe déjà, on se
+     * contente de remonter son solde au minimum requis.
      */
     private function registerTestCustomer(int $balanceCents = 10000): void
     {
@@ -194,12 +200,16 @@ final class PrintAuthorizationControllerTest extends WebTestCase
             ->findOneBy(['phoneNumber' => self::CUSTOMER_PHONE_NUMBER]);
 
         if (null !== $existing) {
-            $entityManager->remove($existing);
-            $entityManager->flush();
+            if ($existing->getBalanceCents() < $balanceCents) {
+                $existing->setBalanceCents($balanceCents);
+                $entityManager->flush();
+            }
+
+            return;
         }
 
         $customer = (new Customer())
-            ->setName('J. Dupont')
+            ->setName('J. Dupont (test PrintGate)')
             ->setPhoneNumber(self::CUSTOMER_PHONE_NUMBER)
             ->setBalanceCents($balanceCents);
 
