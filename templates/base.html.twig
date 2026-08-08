@@ -30,14 +30,44 @@
 
     {% if not is_print_route %}
         {% set route = app.current_route %}
-        {% set nav_links = [
-            { route: 'admin.customer.',  href: path('admin.customer.index'),  label: 'Clients' },
-            { route: 'admin.product.',   href: path('admin.product.index'),   label: 'Produits' },
-            { route: 'admin.service.',   href: path('admin.service.index'),   label: 'Services' },
-            { route: 'admin.category.',  href: path('admin.category.index'),  label: 'Catégories' },
-            { route: 'admin.labeling.',  href: path('admin.labeling.index'),  label: 'Étiquetage' },
-            { route: 'admin.inventory.', href: path('admin.inventory.index'), label: 'Inventaire' },
-            { route: 'admin.printgate_device.', href: path('admin.printgate_device.index'), label: 'PrintGate' },
+        {# Regroupées par thème pour garder une barre desktop courte : chaque
+           entrée devient un menu déroulant plutôt qu'un lien direct (10 liens
+           à plat rendaient la nav illisible). #}
+        {% set nav_groups = [
+            {
+                label: 'Clients',
+                icon: 'fa-solid fa-address-book',
+                links: [
+                    { route: 'admin.customer.',  href: path('admin.customer.index'),  label: 'Clients' },
+                    { route: 'admin.association.', href: path('admin.association.index'), label: 'Associations' },
+                ],
+            },
+            {
+                label: 'Catalogue',
+                icon: 'fa-solid fa-box-open',
+                links: [
+                    { route: 'admin.product.',  href: path('admin.product.index'),  label: 'Produits' },
+                    { route: 'admin.service.',  href: path('admin.service.index'),  label: 'Services' },
+                    { route: 'admin.category.', href: path('admin.category.index'), label: 'Catégories' },
+                ],
+            },
+            {
+                label: 'Stock',
+                icon: 'fa-solid fa-warehouse',
+                links: [
+                    { route: 'admin.labeling.',  href: path('admin.labeling.index'),  label: 'Étiquetage' },
+                    { route: 'admin.inventory.', href: path('admin.inventory.index'), label: 'Inventaire' },
+                ],
+            },
+            {
+                label: 'PrintGate',
+                icon: 'fa-solid fa-print',
+                links: [
+                    { route: 'admin.printgate_device.', href: path('admin.printgate_device.index'), label: 'Postes' },
+                    { route: 'admin.print_pricing.', href: path('admin.print_pricing.index'), label: 'Tarifs impression' },
+                    { route: 'admin.municipal_budget.', href: path('admin.municipal_budget.index'), label: 'Budget mairie' },
+                ],
+            },
         ] %}
 
         <nav class="sticky top-0 z-40 bg-bg border-b-2 border-accent shadow-ambient"
@@ -52,18 +82,38 @@
                     <span class="font-display font-bold text-sm uppercase tracking-wide">Trieves Connect</span>
                 </a>
 
-                {# Liens desktop : uppercase 14px weight 700, hover bleu NVIDIA #}
+                {# Groupes desktop : chaque item est un menu déroulant indépendant
+                   (data-controller="dropdown" imbriqué, ciblage Stimulus isolé
+                   par instance -- ne collisionne pas avec le burger mobile). #}
                 <ul class="hidden md:flex items-center gap-1 list-none m-0 p-0">
-                    {% for link in nav_links %}
-                        {% set active = route starts with link.route %}
-                        <li>
-                            <a href="{{ link.href }}"
-                               class="inline-flex items-center px-3 py-2 text-xs font-bold uppercase tracking-wide transition-colors duration-150
-                                      {{ active
-                                        ? 'text-text-primary border-b-2 border-accent -mb-px'
-                                        : 'text-text-soft hover:text-text-primary' }}">
-                                {{ link.label }}
-                            </a>
+                    {% for group in nav_groups %}
+                        {% set group_active = group.links|filter(l => route starts with l.route)|length > 0 %}
+                        <li class="relative" data-controller="dropdown">
+                            <button type="button"
+                                    data-dropdown-target="button"
+                                    data-action="dropdown#toggle"
+                                    aria-expanded="false" aria-haspopup="true"
+                                    class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold uppercase tracking-wide transition-colors duration-150
+                                           {{ group_active
+                                             ? 'text-text-primary border-b-2 border-accent -mb-px'
+                                             : 'text-text-soft hover:text-text-primary' }}">
+                                <i class="{{ group.icon }} text-[11px]" aria-hidden="true"></i>
+                                {{ group.label }}
+                                <i class="fa-solid fa-chevron-down text-[9px] opacity-70" aria-hidden="true"></i>
+                            </button>
+                            <div data-dropdown-target="menu"
+                                 class="hidden absolute left-0 top-full mt-1 min-w-[190px] bg-surface-300 border border-border rounded-md shadow-elevated py-1 z-50">
+                                {% for link in group.links %}
+                                    {% set active = route starts with link.route %}
+                                    <a href="{{ link.href }}"
+                                       class="block px-3 py-2 text-xs font-bold uppercase tracking-wide transition-colors duration-150
+                                              {{ active
+                                                ? 'text-text-primary bg-surface-400 border-l-2 border-accent'
+                                                : 'text-text-soft hover:text-text-primary hover:bg-surface-400' }}">
+                                        {{ link.label }}
+                                    </a>
+                                {% endfor %}
+                            </div>
                         </li>
                     {% endfor %}
                 </ul>
@@ -95,19 +145,31 @@
                 </div>
             </div>
 
-            {# Menu mobile #}
+            {# Menu mobile : mêmes groupes qu'en desktop, affichés en sections
+               (pas de sous-dropdown ici -- le burger sert déjà de toggle
+               global, inutile d'empiler un second niveau de repli). #}
             <div id="mobile-menu" data-dropdown-target="menu" class="hidden md:hidden border-t border-border bg-surface-300">
-                <ul class="list-none m-0 p-2 space-y-1">
-                    {% for link in nav_links %}
-                        {% set active = route starts with link.route %}
+                <ul class="list-none m-0 p-2 space-y-3">
+                    {% for group in nav_groups %}
                         <li>
-                            <a href="{{ link.href }}"
-                               class="block px-3 py-2 text-xs font-bold uppercase tracking-wide transition-colors
-                                      {{ active
-                                        ? 'text-text-primary border-l-2 border-accent bg-surface-400'
-                                        : 'text-text-soft hover:text-text-primary hover:bg-surface-400' }}">
-                                {{ link.label }}
-                            </a>
+                            <p class="px-3 pb-1 text-[10px] font-bold uppercase tracking-wide text-text-muted flex items-center gap-1.5">
+                                <i class="{{ group.icon }}" aria-hidden="true"></i>
+                                {{ group.label }}
+                            </p>
+                            <ul class="list-none m-0 p-0 space-y-1">
+                                {% for link in group.links %}
+                                    {% set active = route starts with link.route %}
+                                    <li>
+                                        <a href="{{ link.href }}"
+                                           class="block px-3 py-2 text-xs font-bold uppercase tracking-wide transition-colors
+                                                  {{ active
+                                                    ? 'text-text-primary border-l-2 border-accent bg-surface-400'
+                                                    : 'text-text-soft hover:text-text-primary hover:bg-surface-400' }}">
+                                            {{ link.label }}
+                                        </a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
                         </li>
                     {% endfor %}
                     <li class="pt-2 mt-2 border-t border-border">

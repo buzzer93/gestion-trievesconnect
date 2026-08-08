@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Service\PrintGate;
 
 use App\DTO\PrintGate\PrintAuthorizationRequest;
+use App\Entity\Association;
+use App\Repository\AssociationRepository;
 use App\Repository\CustomerRepository;
+use App\Repository\PrintPriceRateRepository;
 
 /**
  * Cœur métier de l'autorisation PrintGate.
@@ -45,21 +48,10 @@ use App\Repository\CustomerRepository;
  */
 class PrintPolicyEvaluator
 {
-    /**
-     * Grille tarifaire en centimes, identique à celle du débit manuel
-     * (cf. modale crédit dans templates/admin/customer/index.html.twig)
-     * pour rester cohérente avec le tarif déjà pratiqué au comptoir.
-     * Ignore volontairement `pageCount`, comme le fait déjà ce système
-     * manuel : le tarif porte sur le nombre de copies, pas sur le nombre
-     * de pages par copie.
-     */
-    private const PRICES_CENTS = [
-        'MONOCHROME' => ['A4' => 30, 'A3' => 60],
-        'COLOR' => ['A4' => 50, 'A3' => 100],
-    ];
-
     public function __construct(
         private readonly CustomerRepository $customerRepository,
+        private readonly AssociationRepository $associationRepository,
+        private readonly PrintPriceRateRepository $priceRateRepository,
     ) {
     }
 
@@ -73,6 +65,26 @@ class PrintPolicyEvaluator
 
         $costCents = $this->computeCostCents($request);
 
+        if (null === $costCents) {
+            return PolicyDecision::refused('Tarif non configuré');
+        }
+
+        // Une association dispose d'un solde mairie en plus de son solde
+        // personnel : le crédit mairie est débité en priorité, le crédit
+        // personnel ne couvre que ce que le crédit mairie ne peut pas
+        // (cf. AssociationRepository::debitForPrintJob()).
+        if ($customer instanceof Association) {
+            $availableCents = $customer->getBalanceCents() + $customer->getMunicipalBalanceCents();
+
+            if ($availableCents < $costCents) {
+                return PolicyDecision::refused('Crédits insuffisants');
+            }
+
+            $this->associationRepository->debitForPrintJob($customer, $costCents, $request->printJob);
+
+            return PolicyDecision::authorized();
+        }
+
         if ($customer->getBalanceCents() < $costCents) {
             return PolicyDecision::refused('Crédits insuffisants');
         }
@@ -82,11 +94,29 @@ class PrintPolicyEvaluator
         return PolicyDecision::authorized();
     }
 
-    private function computeCostCents(PrintAuthorizationRequest $request): int
+    /**
+     * Tarif d'impression, lu depuis PrintPriceRate (page admin "Tarifs
+     * d'impression") plutôt qu'une grille codée en dur, pour rester
+     * configurable sans déploiement. Ignore volontairement `pageCount` :
+     * le tarif porte sur le nombre de copies, pas sur le nombre de pages
+     * par copie -- même convention que l'ancien débit manuel (cf. modale
+     * crédit dans templates/admin/customer/index.html.twig).
+     *
+     * Retourne null si aucun tarif n'est configuré pour la combinaison
+     * demandée -- fail-closed, pour ne jamais autoriser une impression à
+     * un tarif arbitraire ou nul.
+     */
+    private function computeCostCents(PrintAuthorizationRequest $request): ?int
     {
         $colorMode = $request->printJob->colorMode ?? 'MONOCHROME';
         $paperSize = 'A3' === strtoupper((string) $request->printJob->paperSize) ? 'A3' : 'A4';
 
-        return self::PRICES_CENTS[$colorMode][$paperSize] * $request->printJob->copies;
+        $rate = $this->priceRateRepository->findOneByTypeAndFormat($colorMode, $paperSize);
+
+        if (null === $rate) {
+            return null;
+        }
+
+        return $rate->getPriceCents() * $request->printJob->copies;
     }
 }

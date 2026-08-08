@@ -7,7 +7,18 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Picqer\Barcode\BarcodeGeneratorPNG;
 
+/**
+ * Héritage Doctrine (Single Table Inheritance) : Association (cf.
+ * App\Entity\Association) partage la même table `customer` et tout le
+ * comportement de cette classe (solde, recherche par téléphone...), en
+ * ajoutant uniquement le crédit mairie. Pas de nouvelle table ni de
+ * duplication de logique -- une association reste un client, avec un
+ * solde supplémentaire.
+ */
 #[ORM\Entity(repositoryClass: CustomerRepository::class)]
+#[ORM\InheritanceType('SINGLE_TABLE')]
+#[ORM\DiscriminatorColumn(name: 'type', type: 'string')]
+#[ORM\DiscriminatorMap(['customer' => Customer::class, 'association' => Association::class])]
 class Customer
 {
     #[ORM\Id]

@@ -1,0 +1,75 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Associations · Trieves Connect Manager{% endblock %}
+
+{% block body %}
+    {% embed 'components/_page_header.html.twig' with {
+        title: 'Associations',
+        subtitle: 'Comptes bénéficiant du forfait mairie annuel.',
+    } only %}
+        {% block actions %}
+            {% include 'components/_button.html.twig' with {
+                label: 'Nouvelle association',
+                variant: 'accent',
+                icon: 'fa-solid fa-plus',
+                href: path('admin.association.create'),
+            } only %}
+        {% endblock %}
+    {% endembed %}
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Nom</th>
+                <th>Téléphone</th>
+                <th>Solde personnel</th>
+                <th>Solde mairie</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for association in associations %}
+                <tr data-controller="row-link"
+                    data-row-link-url-value="{{ path('admin.association.edit', {id: association.id}) }}">
+                    <td>
+                        <a class="data_name" href="{{ path('admin.association.edit', {id: association.id}) }}">{{ association.name }}</a>
+                    </td>
+                    <td class="font-mono text-sm text-text-soft">{{ association.phoneNumber }}</td>
+                    <td class="font-mono text-sm text-text-soft">{{ association.getBalanceEuros() }} €</td>
+                    <td class="font-mono text-sm text-gold font-bold">
+                        {{ (association.getMunicipalBalanceCents() / 100)|number_format(2, ',', '') }} €
+                    </td>
+                    <td>
+                        <div class="flex justify-center gap-2">
+                            {% include 'components/_button.html.twig' with {
+                                label: 'Conso. trimestre',
+                                variant: 'primary',
+                                size: 'sm',
+                                icon: 'fa-solid fa-chart-column',
+                                href: path('admin.association.consumption', {id: association.id}),
+                            } only %}
+                            <form method="post" action="{{ path('admin.association.delete', {id: association.id}) }}"
+                                  onsubmit="return confirm('Supprimer cette association ?');">
+                                <input type="hidden" name="_method" value="DELETE">
+                                <input type="hidden" name="_token" value="{{ csrf_token('association_delete_' ~ association.id) }}">
+                                {% include 'components/_button.html.twig' with {
+                                    label: 'Supprimer',
+                                    variant: 'danger',
+                                    size: 'sm',
+                                    type: 'submit',
+                                    icon: 'fa-solid fa-trash',
+                                } only %}
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="5" class="text-center text-text-muted py-6">
+                        Aucune association pour l'instant.
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

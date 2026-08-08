@@ -1,0 +1,122 @@
+{% extends 'base.html.twig' %}
+
+{% set prevQuarter = quarter == 1 ? 4 : quarter - 1 %}
+{% set prevYear = quarter == 1 ? year - 1 : year %}
+{% set nextQuarter = quarter == 4 ? 1 : quarter + 1 %}
+{% set nextYear = quarter == 4 ? year + 1 : year %}
+
+{% block title %}Conso. mairie : {{ association.name }} · Trieves Connect Manager{% endblock %}
+
+{% block body %}
+    {% embed 'components/_page_header.html.twig' with {
+        title: association.name,
+        subtitle: 'Consommation du crédit mairie, trimestre ' ~ quarter ~ ' ' ~ year ~ '.',
+        association: association,
+    } only %}
+        {% block actions %}
+            {% include 'components/_button.html.twig' with {
+                label: 'Retour',
+                variant: 'ghost',
+                icon: 'fa-solid fa-arrow-left',
+                href: path('admin.association.edit', {id: association.id}),
+            } only %}
+        {% endblock %}
+    {% endembed %}
+
+    <div class="flex items-center justify-between mb-5 max-w-xl">
+        {% include 'components/_button.html.twig' with {
+            label: 'Trimestre ' ~ prevQuarter ~ ' ' ~ prevYear,
+            variant: 'ghost',
+            size: 'sm',
+            icon: 'fa-solid fa-chevron-left',
+            href: path('admin.association.consumption', {id: association.id, year: prevYear, quarter: prevQuarter}),
+        } only %}
+        <span class="font-display font-bold uppercase tracking-wide text-text-primary">
+            T{{ quarter }} {{ year }}
+        </span>
+        {% include 'components/_button.html.twig' with {
+            label: 'Trimestre ' ~ nextQuarter ~ ' ' ~ nextYear,
+            variant: 'ghost',
+            size: 'sm',
+            icon: 'fa-solid fa-chevron-right',
+            href: path('admin.association.consumption', {id: association.id, year: nextYear, quarter: nextQuarter}),
+        } only %}
+    </div>
+
+    <div class="mb-6 flex items-center justify-between bg-surface-200 border border-border rounded-sm px-4 py-3 max-w-xl">
+        <span class="text-xs font-bold uppercase tracking-wide text-text-soft">Solde mairie actuel</span>
+        <span class="font-mono font-bold text-lg text-gold">
+            {{ (association.getMunicipalBalanceCents() / 100)|number_format(2, ',', '') }} €
+        </span>
+    </div>
+
+    <h6 class="font-display font-bold text-xs uppercase tracking-wide text-text-soft mb-3">
+        Total par type d'impression -- pour la facture mairie
+    </h6>
+    <table class="data-table mb-6">
+        <thead>
+            <tr>
+                <th>Type (couleur / format)</th>
+                <th>Copies</th>
+                <th>Pages</th>
+                <th>Montant</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for type, totals in byType %}
+                <tr>
+                    <td>{{ type }}</td>
+                    <td class="font-mono text-sm text-text-soft">{{ totals.copies }}</td>
+                    <td class="font-mono text-sm text-text-soft">{{ totals.pageCount }}</td>
+                    <td class="font-mono text-sm text-text-soft">{{ (totals.amountCents / 100)|number_format(2, ',', '') }} €</td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="4" class="text-center text-text-muted py-6">
+                        Aucune impression sur le crédit mairie ce trimestre.
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr class="font-bold">
+                <td colspan="3" class="text-right uppercase text-xs tracking-wide text-text-soft">Total à facturer</td>
+                <td class="font-mono text-gold">{{ (totalCents / 100)|number_format(2, ',', '') }} €</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <h6 class="font-display font-bold text-xs uppercase tracking-wide text-text-soft mb-3">
+        Détail par impression -- justificatif
+    </h6>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Job</th>
+                <th>Type</th>
+                <th>Copies</th>
+                <th>Pages</th>
+                <th>Montant mairie</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in entries %}
+                <tr>
+                    <td class="text-text-soft">{{ entry.createdAt|date('d/m/Y H:i') }}</td>
+                    <td class="font-mono text-sm text-text-soft">#{{ entry.printJobId }}</td>
+                    <td class="text-text-soft">{{ entry.colorMode ?? 'MONOCHROME' }} / {{ entry.paperSize ?? 'A4' }}</td>
+                    <td class="font-mono text-sm text-text-soft">{{ entry.copies }}</td>
+                    <td class="font-mono text-sm text-text-soft">{{ entry.pageCount }}</td>
+                    <td class="font-mono text-sm text-text-soft">{{ (entry.amountSpentCents / 100)|number_format(2, ',', '') }} €</td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="6" class="text-center text-text-muted py-6">
+                        Rien à afficher.
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
