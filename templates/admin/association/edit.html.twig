@@ -19,7 +19,7 @@
                 label: 'Retour',
                 variant: 'ghost',
                 icon: 'fa-solid fa-arrow-left',
-                href: path('admin.association.index'),
+                href: path('admin.association.show', {id: association.id}),
             } only %}
         {% endblock %}
     {% endembed %}
@@ -57,7 +57,7 @@
                     {% include 'components/_button.html.twig' with {
                         label: 'Annuler',
                         variant: 'ghost',
-                        href: path('admin.association.index'),
+                        href: path('admin.association.show', {id: association.id}),
                     } only %}
                 </div>
             {{ form_end(form) }}

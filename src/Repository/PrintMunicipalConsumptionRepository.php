@@ -21,10 +21,12 @@ class PrintMunicipalConsumptionRepository extends ServiceEntityRepository
 
     /**
      * Impressions payées par le crédit mairie d'une association sur un
-     * trimestre donné, pour la page admin de facturation. Le regroupement
-     * par type (couleur/format) et le total se calculent côté PHP à
-     * l'affichage : peu de lignes par trimestre, pas besoin d'agrégation
-     * SQL (cf. règles projet anti-surengineering).
+     * trimestre donné, pour la page admin de facturation -- ne remonte que
+     * la source MUNICIPAL, seule concernée par la facture mairie (cf.
+     * AssociationController::consumption()). Le regroupement par type
+     * (couleur/format) et le total se calculent côté PHP à l'affichage :
+     * peu de lignes par trimestre, pas besoin d'agrégation SQL (cf. règles
+     * projet anti-surengineering).
      *
      * @return PrintMunicipalConsumption[]
      */
@@ -34,12 +36,57 @@ class PrintMunicipalConsumptionRepository extends ServiceEntityRepository
 
         return $this->createQueryBuilder('c')
             ->andWhere('c.association = :association')
+            ->andWhere('c.fundingSource = :fundingSource')
             ->andWhere('c.createdAt >= :start')
             ->andWhere('c.createdAt < :end')
             ->setParameter('association', $association)
+            ->setParameter('fundingSource', PrintMunicipalConsumption::SOURCE_MUNICIPAL)
             ->setParameter('start', $start)
             ->setParameter('end', $end)
             ->orderBy('c.createdAt', 'ASC')
+            ->getQuery()
+            ->getResult()
+        ;
+    }
+
+    /**
+     * Impressions financées par le crédit mairie de TOUTES les associations
+     * sur un trimestre donné, pour le récap de la page "Budget mairie".
+     * Le regroupement par association se fait côté PHP dans le contrôleur,
+     * même logique que findForQuarter().
+     *
+     * @return PrintMunicipalConsumption[]
+     */
+    public function findMunicipalForQuarterAllAssociations(int $year, int $quarter): array
+    {
+        [$start, $end] = self::quarterBounds($year, $quarter);
+
+        return $this->createQueryBuilder('c')
+            ->andWhere('c.fundingSource = :fundingSource')
+            ->andWhere('c.createdAt >= :start')
+            ->andWhere('c.createdAt < :end')
+            ->setParameter('fundingSource', PrintMunicipalConsumption::SOURCE_MUNICIPAL)
+            ->setParameter('start', $start)
+            ->setParameter('end', $end)
+            ->orderBy('c.createdAt', 'ASC')
+            ->getQuery()
+            ->getResult()
+        ;
+    }
+
+    /**
+     * Historique complet d'une association, mairie et perso confondus --
+     * la fiche association (page "show") les sépare à l'affichage via
+     * PrintMunicipalConsumption::isMunicipal().
+     *
+     * @return PrintMunicipalConsumption[]
+     */
+    public function findAllForAssociation(Association $association): array
+    {
+        return $this->createQueryBuilder('c')
+            ->andWhere('c.association = :association')
+            ->setParameter('association', $association)
+            ->orderBy('c.createdAt', 'DESC')
             ->getQuery()
             ->getResult()
         ;

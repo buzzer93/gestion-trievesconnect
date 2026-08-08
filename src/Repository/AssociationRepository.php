@@ -37,10 +37,11 @@ class AssociationRepository extends ServiceEntityRepository
      * crédit mairie, puis bascule sur le crédit personnel pour la part
      * restante si le crédit mairie ne couvre pas tout (cf. décision prise
      * avec l'utilisateur : le crédit mairie fonctionne comme un
-     * "bouclier" absorbé en premier). Journalise la part réellement payée
-     * par la mairie dans PrintMunicipalConsumption, seule source utilisée
-     * pour la facturation trimestrielle -- aucune ligne n'est créée si le
-     * crédit mairie n'a pas été sollicité.
+     * "bouclier" absorbé en premier). Journalise chaque part réellement
+     * prélevée dans PrintMunicipalConsumption (une ligne par source
+     * sollicitée) : la part mairie sert de justificatif pour la
+     * facturation trimestrielle, les deux ensemble alimentent l'historique
+     * complet affiché sur la fiche association.
      *
      * Persistance ici plutôt que dans PrintPolicyEvaluator, comme
      * CustomerRepository::debitBalance() (même raison : ce service n'a pas
@@ -69,6 +70,20 @@ class AssociationRepository extends ServiceEntityRepository
                 colorMode: $printJob->colorMode,
                 paperSize: $printJob->paperSize,
                 amountSpentCents: $municipalPortion,
+                fundingSource: PrintMunicipalConsumption::SOURCE_MUNICIPAL,
+            ));
+        }
+
+        if ($personalPortion > 0) {
+            $em->persist(new PrintMunicipalConsumption(
+                association: $association,
+                printJobId: $printJob->jobId,
+                pageCount: $printJob->pageCount,
+                copies: $printJob->copies,
+                colorMode: $printJob->colorMode,
+                paperSize: $printJob->paperSize,
+                amountSpentCents: $personalPortion,
+                fundingSource: PrintMunicipalConsumption::SOURCE_PERSONAL,
             ));
         }
 

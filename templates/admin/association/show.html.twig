@@ -1,0 +1,114 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ association.name }} · Trieves Connect Manager{% endblock %}
+
+{% block body %}
+    {% embed 'components/_page_header.html.twig' with {
+        title: association.name,
+        subtitle: 'Fiche association -- soldes et historique d\'impression.',
+        association: association,
+    } only %}
+        {% block actions %}
+            {% include 'components/_button.html.twig' with {
+                label: 'Modifier',
+                variant: 'primary',
+                size: 'sm',
+                icon: 'fa-solid fa-pen',
+                href: path('admin.association.edit', {id: association.id}),
+            } only %}
+            {% include 'components/_button.html.twig' with {
+                label: 'Conso. trimestre',
+                variant: 'ghost',
+                size: 'sm',
+                icon: 'fa-solid fa-chart-column',
+                href: path('admin.association.consumption', {id: association.id}),
+            } only %}
+            {% include 'components/_button.html.twig' with {
+                label: 'Retour',
+                variant: 'ghost',
+                size: 'sm',
+                icon: 'fa-solid fa-arrow-left',
+                href: path('admin.association.index'),
+            } only %}
+        {% endblock %}
+    {% endembed %}
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 max-w-xl">
+        <div class="bg-surface-200 border border-border rounded-sm px-4 py-3">
+            <span class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1">Solde personnel</span>
+            <span class="font-mono font-bold text-lg text-text-primary">{{ association.getBalanceEuros() }} €</span>
+        </div>
+        <div class="bg-surface-200 border border-border rounded-sm px-4 py-3">
+            <span class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1">Solde mairie</span>
+            <span class="font-mono font-bold text-lg text-gold">
+                {{ (association.getMunicipalBalanceCents() / 100)|number_format(2, ',', '') }} €
+            </span>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div>
+            <h6 class="font-display font-bold text-xs uppercase tracking-wide text-gold mb-3">
+                Historique -- crédit mairie
+            </h6>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Job</th>
+                        <th>Type</th>
+                        <th>Montant</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in municipalEntries %}
+                        <tr>
+                            <td class="text-text-soft">{{ entry.createdAt|date('d/m/Y H:i') }}</td>
+                            <td class="font-mono text-sm text-text-soft">#{{ entry.printJobId }}</td>
+                            <td class="text-text-soft">{{ entry.colorMode ?? 'MONOCHROME' }} / {{ entry.paperSize ?? 'A4' }}</td>
+                            <td class="font-mono text-sm text-gold">{{ (entry.amountSpentCents / 100)|number_format(2, ',', '') }} €</td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-text-muted py-6">
+                                Rien à afficher.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div>
+            <h6 class="font-display font-bold text-xs uppercase tracking-wide text-text-soft mb-3">
+                Historique -- crédit personnel
+            </h6>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Job</th>
+                        <th>Type</th>
+                        <th>Montant</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in personalEntries %}
+                        <tr>
+                            <td class="text-text-soft">{{ entry.createdAt|date('d/m/Y H:i') }}</td>
+                            <td class="font-mono text-sm text-text-soft">#{{ entry.printJobId }}</td>
+                            <td class="text-text-soft">{{ entry.colorMode ?? 'MONOCHROME' }} / {{ entry.paperSize ?? 'A4' }}</td>
+                            <td class="font-mono text-sm text-text-soft">{{ (entry.amountSpentCents / 100)|number_format(2, ',', '') }} €</td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-text-muted py-6">
+                                Rien à afficher.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

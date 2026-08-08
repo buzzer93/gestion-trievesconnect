@@ -30,9 +30,9 @@
         <tbody>
             {% for association in associations %}
                 <tr data-controller="row-link"
-                    data-row-link-url-value="{{ path('admin.association.edit', {id: association.id}) }}">
+                    data-row-link-url-value="{{ path('admin.association.show', {id: association.id}) }}">
                     <td>
-                        <a class="data_name" href="{{ path('admin.association.edit', {id: association.id}) }}">{{ association.name }}</a>
+                        <a class="data_name" href="{{ path('admin.association.show', {id: association.id}) }}">{{ association.name }}</a>
                     </td>
                     <td class="font-mono text-sm text-text-soft">{{ association.phoneNumber }}</td>
                     <td class="font-mono text-sm text-text-soft">{{ association.getBalanceEuros() }} €</td>

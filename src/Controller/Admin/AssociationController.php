@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Entity\Association;
+use App\Entity\PrintMunicipalConsumption;
 use App\Form\AssociationType;
 use App\Repository\AssociationRepository;
 use App\Repository\PrintMunicipalConsumptionRepository;
@@ -51,6 +52,25 @@ class AssociationController extends AbstractController
         ]);
     }
 
+    /**
+     * Fiche association : soldes courants + historique complet des
+     * impressions, mairie et personnel séparés (cf.
+     * PrintMunicipalConsumption::$fundingSource). Contrairement à
+     * /consumption, pas de filtre trimestre ici -- c'est la vue globale,
+     * la page trimestrielle reste dédiée à la facturation mairie.
+     */
+    #[Route('/{id}', name: '.show', methods: ['GET'], requirements: ['id' => Requirement::DIGITS])]
+    public function show(Association $association, PrintMunicipalConsumptionRepository $repository): Response
+    {
+        $entries = $repository->findAllForAssociation($association);
+
+        return $this->render('admin/association/show.html.twig', [
+            'association' => $association,
+            'municipalEntries' => array_values(array_filter($entries, static fn (PrintMunicipalConsumption $entry): bool => $entry->isMunicipal())),
+            'personalEntries' => array_values(array_filter($entries, static fn (PrintMunicipalConsumption $entry): bool => !$entry->isMunicipal())),
+        ]);
+    }
+
     #[Route('/{id}/edit', name: '.edit', methods: ['GET', 'POST'], requirements: ['id' => Requirement::DIGITS])]
     public function edit(Association $association, Request $request, EntityManagerInterface $em): Response
     {
@@ -64,7 +84,7 @@ class AssociationController extends AbstractController
             $em->flush();
             $this->addFlash('success', 'L\'association a bien été modifiée');
 
-            return $this->redirectToRoute('admin.association.index');
+            return $this->redirectToRoute('admin.association.show', ['id' => $association->getId()]);
         }
 
         return $this->render('admin/association/edit.html.twig', [

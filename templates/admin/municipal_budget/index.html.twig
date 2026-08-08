@@ -1,5 +1,10 @@
 {% extends 'base.html.twig' %}
 
+{% set prevQuarter = quarter == 1 ? 4 : quarter - 1 %}
+{% set prevYear = quarter == 1 ? year - 1 : year %}
+{% set nextQuarter = quarter == 4 ? 1 : quarter + 1 %}
+{% set nextYear = quarter == 4 ? year + 1 : year %}
+
 {% block title %}Budget mairie · Trieves Connect Manager{% endblock %}
 
 {% block body %}
@@ -13,24 +18,13 @@
             <form method="post" action="{{ path('admin.municipal_budget.index') }}">
                 <input type="hidden" name="_token" value="{{ csrf_token('municipal_budget_edit') }}">
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm text-text-soft mb-1" for="annual_page_allowance">Nombre de pages annuel</label>
-                        <input type="number" step="1" min="0" id="annual_page_allowance" name="annual_page_allowance"
-                               value="{{ settings.annualPageAllowance }}"
-                               class="bg-surface-200 border border-border rounded-md px-3 py-1.5 text-sm w-full">
-                    </div>
-                    <div>
-                        <label class="block text-sm text-text-soft mb-1" for="price_per_page_euros">Prix par page (€)</label>
-                        <input type="number" step="0.01" min="0" id="price_per_page_euros" name="price_per_page_euros"
-                               value="{{ (settings.pricePerPageCents / 100)|number_format(2, '.', '') }}"
-                               class="bg-surface-200 border border-border rounded-md px-3 py-1.5 text-sm w-full">
-                    </div>
+                <div class="max-w-xs">
+                    <label class="block text-sm text-text-soft mb-1" for="annual_allowance_euros">Forfait mairie annuel (€)</label>
+                    <input type="number" step="0.01" min="0" id="annual_allowance_euros" name="annual_allowance_euros"
+                           value="{{ (settings.annualAllowanceCents / 100)|number_format(2, '.', '') }}"
+                           class="bg-surface-200 border border-border rounded-md px-3 py-1.5 text-sm w-full">
+                    <p class="text-xs text-text-muted mt-1">Montant crédité à chaque association lors du renouvellement du 1er janvier.</p>
                 </div>
-
-                <p class="text-sm text-text-soft mt-4">
-                    Forfait annuel total : <span class="text-gold font-bold">{{ (settings.annualAllowanceCents / 100)|number_format(2, ',', '') }} €</span>
-                </p>
 
                 <div class="flex items-center gap-3 mt-6 pt-4 border-t border-border">
                     <button type="submit" class="inline-flex items-center justify-center gap-2 bg-accent text-bg font-display font-semibold text-sm px-4 py-2 rounded-md border border-accent hover:bg-accent-hover hover:border-accent-hover transition-colors duration-150 focus:outline-none focus:shadow-focus">
@@ -40,4 +34,60 @@
             </form>
         {% endblock %}
     {% endembed %}
+
+    <h6 class="font-display font-bold text-xs uppercase tracking-wide text-text-soft mt-8 mb-3">
+        Consommation du crédit mairie par association
+    </h6>
+
+    <div class="flex items-center justify-between mb-5 max-w-xl">
+        {% include 'components/_button.html.twig' with {
+            label: 'Trimestre ' ~ prevQuarter ~ ' ' ~ prevYear,
+            variant: 'ghost',
+            size: 'sm',
+            icon: 'fa-solid fa-chevron-left',
+            href: path('admin.municipal_budget.index', {year: prevYear, quarter: prevQuarter}),
+        } only %}
+        <span class="font-display font-bold uppercase tracking-wide text-text-primary">
+            T{{ quarter }} {{ year }}
+        </span>
+        {% include 'components/_button.html.twig' with {
+            label: 'Trimestre ' ~ nextQuarter ~ ' ' ~ nextYear,
+            variant: 'ghost',
+            size: 'sm',
+            icon: 'fa-solid fa-chevron-right',
+            href: path('admin.municipal_budget.index', {year: nextYear, quarter: nextQuarter}),
+        } only %}
+    </div>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Association</th>
+                <th>Montant mairie consommé</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in byAssociation %}
+                <tr data-controller="row-link"
+                    data-row-link-url-value="{{ path('admin.association.show', {id: row.association.id}) }}">
+                    <td>
+                        <a class="data_name" href="{{ path('admin.association.show', {id: row.association.id}) }}">{{ row.association.name }}</a>
+                    </td>
+                    <td class="font-mono text-sm text-gold font-bold">{{ (row.amountCents / 100)|number_format(2, ',', '') }} €</td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="2" class="text-center text-text-muted py-6">
+                        Aucune association pour l'instant.
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr class="font-bold">
+                <td class="text-right uppercase text-xs tracking-wide text-text-soft">Total à facturer</td>
+                <td class="font-mono text-gold">{{ (totalCents / 100)|number_format(2, ',', '') }} €</td>
+            </tr>
+        </tfoot>
+    </table>
 {% endblock %}
