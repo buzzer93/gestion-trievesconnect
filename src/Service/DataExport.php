@@ -28,8 +28,9 @@ class DataExport
         $activeWorksheet->setCellValue('D1', 'Famille');
         $activeWorksheet->setCellValue('E1', 'Description');
         $activeWorksheet->setCellValue('F1', 'Prix de vente HT');
-        $activeWorksheet->setCellValue('G1', 'Unité');
-        $activeWorksheet->setCellValue('H1', 'Compte comptable');
+        $activeWorksheet->setCellValue('G1', "Prix d'achat HT");
+        $activeWorksheet->setCellValue('H1', 'Unité');
+        $activeWorksheet->setCellValue('I1', 'Compte comptable');
 
         foreach ($products as $key => $product) {
             $key = $key + 2;
@@ -40,8 +41,9 @@ class DataExport
             $activeWorksheet->setCellValue('E' . $key, $product->getComment());
             $activeWorksheet->getStyle('E' . $key)->getAlignment()->setWrapText(true);
             $activeWorksheet->setCellValue('F' . $key, round($product->getSellingPriceHT(), 2));
-            $activeWorksheet->setCellValue('G' . $key, 'Pièce');
-            $activeWorksheet->setCellValue('H' . $key, 707000);
+            $activeWorksheet->setCellValue('G' . $key, round((float) $product->getPurchasePrice(), 2));
+            $activeWorksheet->setCellValue('H' . $key, 'Pièce');
+            $activeWorksheet->setCellValue('I' . $key, 707000);
             $activeWorksheet->getStyle('A' . $key)->getNumberFormat()
                 ->setFormatCode(NumberFormat::FORMAT_NUMBER);
         }
@@ -53,7 +55,7 @@ class DataExport
             $activeWorksheet->setCellValue('E' . $key, $service->getDescription());
             $activeWorksheet->getStyle('E' . $key)->getAlignment()->setWrapText(true);
             $activeWorksheet->setCellValue('F' . $key, round($service->getSellingPriceHT(), 2));
-            $activeWorksheet->setCellValue('H' . $key, 706000);
+            $activeWorksheet->setCellValue('I' . $key, 706000);
             $activeWorksheet->getStyle('A' . $key)->getNumberFormat()
                 ->setFormatCode(NumberFormat::FORMAT_NUMBER);
         }
