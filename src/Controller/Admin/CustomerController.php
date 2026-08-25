@@ -5,6 +5,8 @@ namespace App\Controller\Admin;
 use App\Entity\Customer;
 use App\Form\CustomerType;
 use App\Repository\CustomerRepository;
+use App\Repository\PrintPriceRateRepository;
+use App\Service\PrintGate\PrintCostCalculator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,11 +21,12 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class CustomerController extends AbstractController
 {
     #[Route('/', name: '.index')]
-    public function index(CustomerRepository $cr): Response
+    public function index(CustomerRepository $cr, PrintPriceRateRepository $rateRepository): Response
     {
         $customers = $cr->findAll();
         return $this->render('admin/customer/index.html.twig', [
-            'customers' => $customers
+            'customers' => $customers,
+            'rates' => $rateRepository->findAll(),
         ]);
     }
 
@@ -127,12 +130,16 @@ class CustomerController extends AbstractController
     }
 
     #[Route('/{id}/print-charge', name: '.print_charge', methods: ['POST'], requirements: ['id' => Requirement::DIGITS])]
-    public function printCharge(Customer $customer, Request $request, EntityManagerInterface $em): JsonResponse
+    public function printCharge(Customer $customer, Request $request, EntityManagerInterface $em, PrintCostCalculator $costCalculator): JsonResponse
     {
         $payload = json_decode($request->getContent(), true) ?? [];
-        $cents = (int)($payload['cents'] ?? 0);
-        if ($cents <= 0) {
-            return new JsonResponse(['error' => 'Montant invalide'], 400);
+        $colorMode = strtoupper((string)($payload['colorMode'] ?? ''));
+        $paperSize = strtoupper((string)($payload['paperSize'] ?? ''));
+        $copies = max(1, (int)($payload['copies'] ?? 1));
+
+        $cents = $costCalculator->computeCostCents($colorMode, $paperSize, $copies);
+        if (null === $cents) {
+            return new JsonResponse(['error' => 'Tarif non configuré'], 400);
         }
         if ($customer->getBalanceCents() < $cents) {
             return new JsonResponse(['error' => 'Solde insuffisant'], 400);

@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
+use App\DTO\PrintGate\PrintJobPayload;
 use App\Entity\Association;
 use App\Entity\PrintMunicipalConsumption;
 use App\Form\AssociationType;
 use App\Repository\AssociationRepository;
 use App\Repository\PrintMunicipalConsumptionRepository;
+use App\Repository\PrintPriceRateRepository;
+use App\Service\PrintGate\PrintCostCalculator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -22,10 +26,11 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class AssociationController extends AbstractController
 {
     #[Route('/', name: '.index')]
-    public function index(AssociationRepository $repository): Response
+    public function index(AssociationRepository $repository, PrintPriceRateRepository $rateRepository): Response
     {
         return $this->render('admin/association/index.html.twig', [
             'associations' => $repository->findAll(),
+            'rates' => $rateRepository->findAll(),
         ]);
     }
 
@@ -60,7 +65,7 @@ class AssociationController extends AbstractController
      * la page trimestrielle reste dédiée à la facturation mairie.
      */
     #[Route('/{id}', name: '.show', methods: ['GET'], requirements: ['id' => Requirement::DIGITS])]
-    public function show(Association $association, PrintMunicipalConsumptionRepository $repository): Response
+    public function show(Association $association, PrintMunicipalConsumptionRepository $repository, PrintPriceRateRepository $rateRepository): Response
     {
         $entries = $repository->findAllForAssociation($association);
 
@@ -68,6 +73,7 @@ class AssociationController extends AbstractController
             'association' => $association,
             'municipalEntries' => array_values(array_filter($entries, static fn (PrintMunicipalConsumption $entry): bool => $entry->isMunicipal())),
             'personalEntries' => array_values(array_filter($entries, static fn (PrintMunicipalConsumption $entry): bool => !$entry->isMunicipal())),
+            'rates' => $rateRepository->findAll(),
         ]);
     }
 
@@ -140,6 +146,75 @@ class AssociationController extends AbstractController
             'byType' => $byType,
             'totalCents' => $totalCents,
             'entries' => $entries,
+        ]);
+    }
+
+    /**
+     * Ajustement manuel du solde personnel depuis la modale back-office
+     * (comptoir) -- même contrat que CustomerController::credits(). Ne
+     * touche jamais au crédit mairie : celui-ci n'évolue que par débit
+     * d'impression (cf. printCharge ci-dessous) ou renouvellement annuel
+     * (cf. RenewMunicipalCreditsCommand).
+     */
+    #[Route('/{id}/credits', name: '.credits', methods: ['POST'], requirements: ['id' => Requirement::DIGITS])]
+    public function credits(Association $association, Request $request, EntityManagerInterface $em): JsonResponse
+    {
+        $payload = json_decode($request->getContent(), true) ?? [];
+        $mode = $payload['mode'] ?? null; // 'add' ou 'remove'
+        $cents = (int) ($payload['cents'] ?? 0);
+        if ($cents <= 0 || !in_array($mode, ['add', 'remove'], true)) {
+            return new JsonResponse(['error' => 'Requête invalide'], 400);
+        }
+
+        if ('add' === $mode) {
+            $association->addBalanceCents($cents);
+        } else {
+            $association->removeBalanceCents($cents);
+        }
+        $em->flush();
+
+        return new JsonResponse(['success' => true, 'credits' => $association->getBalanceCents()]);
+    }
+
+    /**
+     * Débit manuel pour impression depuis la modale back-office. Réutilise
+     * AssociationRepository::debitForPrintJob() -- pas de débit direct du
+     * solde personnel ici -- pour respecter la priorité au crédit mairie et
+     * alimenter l'historique (PrintMunicipalConsumption) exactement comme
+     * le flux PrintGate automatique (cf. PrintPolicyEvaluator).
+     */
+    #[Route('/{id}/print-charge', name: '.print_charge', methods: ['POST'], requirements: ['id' => Requirement::DIGITS])]
+    public function printCharge(Association $association, Request $request, AssociationRepository $repository, PrintCostCalculator $costCalculator): JsonResponse
+    {
+        $payload = json_decode($request->getContent(), true) ?? [];
+        $colorMode = strtoupper((string) ($payload['colorMode'] ?? ''));
+        $paperSize = strtoupper((string) ($payload['paperSize'] ?? ''));
+        $copies = max(1, (int) ($payload['copies'] ?? 1));
+
+        $cents = $costCalculator->computeCostCents($colorMode, $paperSize, $copies);
+        if (null === $cents) {
+            return new JsonResponse(['error' => 'Tarif non configuré'], 400);
+        }
+
+        $availableCents = $association->getBalanceCents() + $association->getMunicipalBalanceCents();
+        if ($availableCents < $cents) {
+            return new JsonResponse(['error' => 'Solde insuffisant'], 400);
+        }
+
+        $printJob = new PrintJobPayload(
+            jobId: random_int(1, PHP_INT_MAX),
+            printerName: 'Back-office',
+            documentName: 'Débit manuel (admin)',
+            copies: $copies,
+            paperSize: $paperSize,
+            colorMode: $colorMode,
+        );
+        $repository->debitForPrintJob($association, $cents, $printJob);
+
+        return new JsonResponse([
+            'success' => true,
+            'personalCredits' => $association->getBalanceCents(),
+            'municipalCredits' => $association->getMunicipalBalanceCents(),
         ]);
     }
 
