@@ -17,59 +17,78 @@
         {% endblock %}
     {% endembed %}
 
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>Nom</th>
-                <th>Téléphone</th>
-                <th>Solde personnel</th>
-                <th>Solde mairie</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for association in associations %}
-                <tr data-controller="row-link"
-                    data-row-link-url-value="{{ path('admin.association.show', {id: association.id}) }}">
-                    <td>
-                        <a class="data_name" href="{{ path('admin.association.show', {id: association.id}) }}">{{ association.name }}</a>
-                    </td>
-                    <td class="font-mono text-sm text-text-soft">{{ association.phoneNumber }}</td>
-                    <td class="font-mono text-sm text-text-soft">{{ association.getBalanceEuros() }} €</td>
-                    <td class="font-mono text-sm text-gold font-bold">
-                        {{ (association.getMunicipalBalanceCents() / 100)|number_format(2, ',', '') }} €
-                    </td>
-                    <td>
-                        <div class="flex justify-center gap-2">
-                            {% include 'components/_button.html.twig' with {
-                                label: 'Conso. trimestre',
-                                variant: 'primary',
-                                size: 'sm',
-                                icon: 'fa-solid fa-chart-column',
-                                href: path('admin.association.consumption', {id: association.id}),
-                            } only %}
-                            <form method="post" action="{{ path('admin.association.delete', {id: association.id}) }}"
-                                  onsubmit="return confirm('Supprimer cette association ?');">
-                                <input type="hidden" name="_method" value="DELETE">
-                                <input type="hidden" name="_token" value="{{ csrf_token('association_delete_' ~ association.id) }}">
-                                {% include 'components/_button.html.twig' with {
-                                    label: 'Supprimer',
-                                    variant: 'danger',
-                                    size: 'sm',
-                                    type: 'submit',
-                                    icon: 'fa-solid fa-trash',
-                                } only %}
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-            {% else %}
+    <div data-controller="credit-modal"
+         data-credit-modal-base-path-value="{{ path('admin.association.index') }}"
+         data-credit-modal-rates-value="{{ rates|map(r => {colorMode: r.colorMode, paperSize: r.paperSize, priceCents: r.priceCents})|json_encode }}"
+         data-credit-modal-has-municipal-value="true">
+
+        <table class="data-table">
+            <thead>
                 <tr>
-                    <td colspan="5" class="text-center text-text-muted py-6">
-                        Aucune association pour l'instant.
-                    </td>
+                    <th>Nom</th>
+                    <th>Téléphone</th>
+                    <th>Solde personnel</th>
+                    <th>Solde mairie</th>
+                    <th>Actions</th>
                 </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                {% for association in associations %}
+                    <tr data-controller="row-link"
+                        data-row-link-url-value="{{ path('admin.association.show', {id: association.id}) }}">
+                        <td>
+                            <a class="data_name" href="{{ path('admin.association.show', {id: association.id}) }}">{{ association.name }}</a>
+                        </td>
+                        <td class="font-mono text-sm text-text-soft">{{ association.phoneNumber }}</td>
+                        <td>
+                            <button type="button"
+                                    class="credit-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-xs font-bold uppercase tracking-wide bg-transparent border-2 border-gold text-gold hover:bg-gold hover:text-bg transition-colors duration-150"
+                                    data-action="click->credit-modal#open"
+                                    data-id="{{ association.id }}"
+                                    data-credit-modal-id-param="{{ association.id }}"
+                                    data-credit-modal-personal-param="{{ association.getBalanceCents() }}"
+                                    data-credit-modal-municipal-param="{{ association.getMunicipalBalanceCents() }}"
+                                    title="Gérer le solde">
+                                <i class="fa-solid fa-coins text-xs" aria-hidden="true"></i>
+                                <span data-credit-modal-balance>{{ association.getBalanceEuros() }} €</span>
+                            </button>
+                        </td>
+                        <td class="font-mono text-sm text-gold font-bold">
+                            {{ (association.getMunicipalBalanceCents() / 100)|number_format(2, ',', '') }} €
+                        </td>
+                        <td>
+                            <div class="flex justify-center gap-2">
+                                {% include 'components/_button.html.twig' with {
+                                    label: 'Conso. trimestre',
+                                    variant: 'primary',
+                                    size: 'sm',
+                                    icon: 'fa-solid fa-chart-column',
+                                    href: path('admin.association.consumption', {id: association.id}),
+                                } only %}
+                                <form method="post" action="{{ path('admin.association.delete', {id: association.id}) }}"
+                                      onsubmit="return confirm('Supprimer cette association ?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('association_delete_' ~ association.id) }}">
+                                    {% include 'components/_button.html.twig' with {
+                                        label: 'Supprimer',
+                                        variant: 'danger',
+                                        size: 'sm',
+                                        type: 'submit',
+                                        icon: 'fa-solid fa-trash',
+                                    } only %}
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-text-muted py-6">
+                            Aucune association pour l'instant.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% include 'admin/_credit_modal.html.twig' with { has_municipal: true } only %}
+    </div>
 {% endblock %}

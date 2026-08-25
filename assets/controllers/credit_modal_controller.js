@@ -25,6 +25,8 @@ export default class extends Controller {
     static targets = [
         'modalRoot', 'balancePersonal', 'balanceMunicipal', 'municipalRow',
         'amount', 'colorMode', 'paperSize', 'copies', 'estimatedCost',
+        // Optionnelles : encarts soldes affichés hors modale (fiche association).
+        'pageBalancePersonal', 'pageBalanceMunicipal',
     ];
 
     static values = {
@@ -84,6 +86,7 @@ export default class extends Controller {
 
         await this._post(`${this.basePathValue}${this.currentId}/credits`, { mode: 'add', cents }, (data) => {
             this._updateRowBalance(data.credits);
+            this._updatePageBalances(data.credits);
             this.close();
         });
     }
@@ -102,6 +105,7 @@ export default class extends Controller {
         }, (data) => {
             const personal = data.personalCredits ?? data.credits;
             this._updateRowBalance(personal, data.municipalCredits);
+            this._updatePageBalances(personal, data.municipalCredits);
             this.balancePersonalTarget.textContent = (personal / 100).toFixed(2);
             if (this.hasMunicipalValue && undefined !== data.municipalCredits && this.hasBalanceMunicipalTarget) {
                 this.balanceMunicipalTarget.textContent = (data.municipalCredits / 100).toFixed(2);
@@ -141,6 +145,15 @@ export default class extends Controller {
         }
         if (undefined !== municipalCents) {
             btn.dataset.creditModalMunicipalParam = municipalCents;
+        }
+    }
+
+    _updatePageBalances(personalCents, municipalCents) {
+        if (this.hasPageBalancePersonalTarget) {
+            this.pageBalancePersonalTarget.textContent = (personalCents / 100).toFixed(2) + ' €';
+        }
+        if (undefined !== municipalCents && this.hasPageBalanceMunicipalTarget) {
+            this.pageBalanceMunicipalTarget.textContent = (municipalCents / 100).toFixed(2) + ' €';
         }
     }
 }
