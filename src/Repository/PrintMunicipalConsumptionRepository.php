@@ -93,13 +93,15 @@ class PrintMunicipalConsumptionRepository extends ServiceEntityRepository
     }
 
     /**
+     * Déléguée à PrintTransactionLineRepository -- les deux dépôts sont
+     * fusionnés dans les contrôleurs pour les mêmes (year, quarter), les
+     * bornes doivent donc rester identiques. Cf. sa docblock pour la
+     * définition du trimestre scolaire (décision du 2026-08-26).
+     *
      * @return array{0: \DateTimeImmutable, 1: \DateTimeImmutable} Bornes [début, fin[ du trimestre
      */
     public static function quarterBounds(int $year, int $quarter): array
     {
-        $startMonth = ($quarter - 1) * 3 + 1;
-        $start = new \DateTimeImmutable(sprintf('%04d-%02d-01', $year, $startMonth));
-
-        return [$start, $start->modify('+3 months')];
+        return PrintTransactionLineRepository::quarterBounds($year, $quarter);
     }
 }

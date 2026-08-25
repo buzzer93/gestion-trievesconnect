@@ -62,6 +62,34 @@ final class AssociationControllerTest extends WebTestCase
         self::assertStringContainsString('0,10', $crawler->filter('body')->text());
     }
 
+    /**
+     * Trimestre scolaire (décision du 2026-08-26) : sans year/quarter en
+     * query, la page doit se placer sur le trimestre scolaire "aujourd'hui"
+     * (le test tourne un 26/08 -> T3 mai-août) et proposer la bonne
+     * navigation précédent/suivant, y compris le changement d'année autour
+     * de T1 (septembre-décembre).
+     */
+    public function testConsumptionPageDefaultsToCurrentSchoolTermAndLinksNeighbours(): void
+    {
+        $client = static::createClient();
+        $client->loginUser($this->buildUser(self::ADMIN_EMAIL));
+        $association = $this->buildAssociation('0611110015', personalCents: 0, municipalCents: 0);
+
+        $crawler = $client->request('GET', '/admin/association/'.$association->getId().'/consumption');
+        $now = new \DateTimeImmutable();
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Mai - Août '.$now->format('Y'), $crawler->filter('body')->text());
+        self::assertStringContainsString(
+            'quarter=2',
+            $crawler->selectLink('Janv.-Avr. '.$now->format('Y'))->link()->getUri(),
+        );
+        self::assertStringContainsString(
+            'quarter=1',
+            $crawler->selectLink('Sept.-Déc. '.$now->format('Y'))->link()->getUri(),
+        );
+    }
+
     public function testShowPageRendersHistoryAfterPrintCharge(): void
     {
         $client = static::createClient();

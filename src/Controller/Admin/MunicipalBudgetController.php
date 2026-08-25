@@ -57,7 +57,9 @@ class MunicipalBudgetController extends AbstractController
 
         $now = new \DateTimeImmutable();
         $year = (int) $request->query->get('year', $now->format('Y'));
-        $quarter = max(1, min(4, (int) $request->query->get('quarter', (string) (intdiv(((int) $now->format('n')) - 1, 3) + 1))));
+        $quarter = max(1, min(3, (int) $request->query->get('quarter', (string) PrintTransactionLineRepository::currentQuarter($now))));
+        [$prevYear, $prevQuarter] = PrintTransactionLineRepository::previousQuarter($year, $quarter);
+        [$nextYear, $nextQuarter] = PrintTransactionLineRepository::nextQuarter($year, $quarter);
 
         // Une entrée par association, y compris celles sans consommation
         // ce trimestre (0 €), pour un récap complet plutôt qu'une liste
@@ -93,6 +95,10 @@ class MunicipalBudgetController extends AbstractController
             'settings' => $settings,
             'year' => $year,
             'quarter' => $quarter,
+            'prevYear' => $prevYear,
+            'prevQuarter' => $prevQuarter,
+            'nextYear' => $nextYear,
+            'nextQuarter' => $nextQuarter,
             'byAssociation' => $byAssociation,
             'totalCents' => $totalCents,
         ]);

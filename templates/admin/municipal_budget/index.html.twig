@@ -1,11 +1,6 @@
 {% extends 'base.html.twig' %}
 {% import 'admin/_quarter_label.html.twig' as quarter_label %}
 
-{% set prevQuarter = quarter == 1 ? 4 : quarter - 1 %}
-{% set prevYear = quarter == 1 ? year - 1 : year %}
-{% set nextQuarter = quarter == 4 ? 1 : quarter + 1 %}
-{% set nextYear = quarter == 4 ? year + 1 : year %}
-
 {% block title %}Budget mairie · Trieves Connect Manager{% endblock %}
 
 {% block body %}

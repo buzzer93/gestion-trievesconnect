@@ -44,6 +44,22 @@ final class MunicipalBudgetControllerTest extends WebTestCase
     }
 
     /**
+     * Cf. AssociationControllerTest::testConsumptionPageDefaultsToCurrentSchoolTermAndLinksNeighbours()
+     * -- même vérification sur la page budget mairie.
+     */
+    public function testIndexDefaultsToCurrentSchoolTerm(): void
+    {
+        $client = static::createClient();
+        $client->loginUser($this->buildUser(self::ADMIN_EMAIL));
+
+        $crawler = $client->request('GET', '/admin/municipal-budget/');
+        $now = new \DateTimeImmutable();
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Mai - Août '.$now->format('Y'), $crawler->filter('body')->text());
+    }
+
+    /**
      * Le bouton "Recharger maintenant" remet le solde mairie de TOUTES les
      * associations au forfait configuré, sans jamais reporter le reliquat
      * -- déclenchement manuel uniquement (décision du 2026-08-25, cf.

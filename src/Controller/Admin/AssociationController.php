@@ -164,7 +164,9 @@ class AssociationController extends AbstractController
     ): Response {
         $now = new \DateTimeImmutable();
         $year = (int) $request->query->get('year', $now->format('Y'));
-        $quarter = max(1, min(4, (int) $request->query->get('quarter', (string) (intdiv(((int) $now->format('n')) - 1, 3) + 1))));
+        $quarter = max(1, min(3, (int) $request->query->get('quarter', (string) PrintTransactionLineRepository::currentQuarter($now))));
+        [$prevYear, $prevQuarter] = PrintTransactionLineRepository::previousQuarter($year, $quarter);
+        [$nextYear, $nextQuarter] = PrintTransactionLineRepository::nextQuarter($year, $quarter);
 
         $byType = [];
         $totalCents = 0;
@@ -215,6 +217,10 @@ class AssociationController extends AbstractController
             'association' => $association,
             'year' => $year,
             'quarter' => $quarter,
+            'prevYear' => $prevYear,
+            'prevQuarter' => $prevQuarter,
+            'nextYear' => $nextYear,
+            'nextQuarter' => $nextQuarter,
             'byType' => $byType,
             'totalCents' => $totalCents,
             'entries' => $entries,
