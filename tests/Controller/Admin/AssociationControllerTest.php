@@ -18,6 +18,31 @@ final class AssociationControllerTest extends WebTestCase
 {
     private const ADMIN_EMAIL = 'contact@trievesconnect.fr';
 
+    public function testIndexRendersCreditModalWithoutError(): void
+    {
+        $client = static::createClient();
+        $client->loginUser($this->buildUser(self::ADMIN_EMAIL));
+
+        $client->request('GET', '/admin/association/');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('[data-controller="credit-modal"]');
+    }
+
+    public function testShowRendersCreditModalAndBalanceCards(): void
+    {
+        $client = static::createClient();
+        $client->loginUser($this->buildUser(self::ADMIN_EMAIL));
+        $association = $this->buildAssociation('0611110005', personalCents: 100, municipalCents: 200);
+
+        $client->request('GET', '/admin/association/'.$association->getId());
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('[data-controller="credit-modal"]');
+        self::assertSelectorExists('[data-credit-modal-target="pageBalancePersonal"]');
+        self::assertSelectorExists('[data-credit-modal-target="pageBalanceMunicipal"]');
+    }
+
     public function testCreditsAddsToPersonalBalanceOnly(): void
     {
         $client = static::createClient();
