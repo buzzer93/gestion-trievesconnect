@@ -43,6 +43,31 @@ final class AssociationControllerTest extends WebTestCase
         self::assertSelectorExists('[data-credit-modal-target="pageBalanceMunicipal"]');
     }
 
+    public function testMunicipalCreditsAddsToMunicipalBalanceOnly(): void
+    {
+        $client = static::createClient();
+        $client->loginUser($this->buildUser(self::ADMIN_EMAIL));
+        $association = $this->buildAssociation('0611110006', personalCents: 100, municipalCents: 200);
+
+        $client->request(
+            'POST',
+            '/admin/association/'.$association->getId().'/municipal-credits',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: json_encode(['mode' => 'add', 'cents' => 50]),
+        );
+
+        self::assertResponseIsSuccessful();
+        $data = json_decode((string) $client->getResponse()->getContent(), true);
+        self::assertSame(250, $data['municipalCredits']);
+
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->clear();
+        $refreshed = $entityManager->getRepository(Association::class)->find($association->getId());
+        self::assertSame(250, $refreshed->getMunicipalBalanceCents());
+        // Le solde personnel ne doit jamais bouger via cette route.
+        self::assertSame(100, $refreshed->getBalanceCents());
+    }
+
     public function testCreditsAddsToPersonalBalanceOnly(): void
     {
         $client = static::createClient();

@@ -50,11 +50,21 @@
                                     data-credit-modal-municipal-param="{{ association.getMunicipalBalanceCents() }}"
                                     title="Gérer le solde">
                                 <i class="fa-solid fa-coins text-xs" aria-hidden="true"></i>
-                                <span data-credit-modal-balance>{{ association.getBalanceEuros() }} €</span>
+                                <span data-credit-modal-balance="personal">{{ association.getBalanceEuros() }} €</span>
                             </button>
                         </td>
-                        <td class="font-mono text-sm text-gold font-bold">
-                            {{ (association.getMunicipalBalanceCents() / 100)|number_format(2, ',', '') }} €
+                        <td>
+                            <button type="button"
+                                    class="credit-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-xs font-bold uppercase tracking-wide bg-transparent border-2 border-gold text-gold hover:bg-gold hover:text-bg transition-colors duration-150"
+                                    data-action="click->credit-modal#open"
+                                    data-id="{{ association.id }}"
+                                    data-credit-modal-id-param="{{ association.id }}"
+                                    data-credit-modal-personal-param="{{ association.getBalanceCents() }}"
+                                    data-credit-modal-municipal-param="{{ association.getMunicipalBalanceCents() }}"
+                                    title="Gérer le solde mairie">
+                                <i class="fa-solid fa-landmark text-xs" aria-hidden="true"></i>
+                                <span data-credit-modal-balance="municipal">{{ (association.getMunicipalBalanceCents() / 100)|number_format(2, ',', '') }} €</span>
+                            </button>
                         </td>
                         <td>
                             <div class="flex justify-center gap-2">

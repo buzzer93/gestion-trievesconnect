@@ -25,6 +25,7 @@ export default class extends Controller {
     static targets = [
         'modalRoot', 'balancePersonal', 'balanceMunicipal', 'municipalRow',
         'amount', 'colorMode', 'paperSize', 'copies', 'estimatedCost',
+        'municipalCreditSection', 'municipalAmount',
         // Optionnelles : encarts soldes affichés hors modale (fiche association).
         'pageBalancePersonal', 'pageBalanceMunicipal',
     ];
@@ -91,6 +92,22 @@ export default class extends Controller {
         });
     }
 
+    async addMunicipalCredit() {
+        const euros = parseFloat(this.municipalAmountTarget.value.replace(',', '.'));
+        if (isNaN(euros) || euros <= 0) {
+            return;
+        }
+        const cents = Math.round(euros * 100);
+
+        await this._post(`${this.basePathValue}${this.currentId}/municipal-credits`, { mode: 'add', cents }, (data) => {
+            this.balanceMunicipalTarget.textContent = (data.municipalCredits / 100).toFixed(2);
+            this._updateRowBalance(undefined, data.municipalCredits);
+            this._updatePageBalances(undefined, data.municipalCredits);
+            window.showFlash?.('success', 'Crédit mairie ajouté.');
+            this.close();
+        });
+    }
+
     async chargePrint() {
         const cents = this._computeEstimate();
         if (cents <= 0) {
@@ -133,23 +150,32 @@ export default class extends Controller {
         }
     }
 
+    // Deux boutons peuvent partager le même data-id sur une même ligne
+    // (solde personnel + solde mairie) : on les met tous les deux à jour,
+    // et seulement pour le solde réellement fourni (undefined = inchangé).
     _updateRowBalance(personalCents, municipalCents) {
-        const btn = document.querySelector(`.credit-btn[data-id="${this.currentId}"]`);
-        if (!btn) {
-            return;
-        }
-        btn.dataset.creditModalPersonalParam = personalCents;
-        const span = btn.querySelector('[data-credit-modal-balance]');
-        if (span) {
-            span.textContent = (personalCents / 100).toFixed(2) + ' €';
-        }
-        if (undefined !== municipalCents) {
-            btn.dataset.creditModalMunicipalParam = municipalCents;
-        }
+        const buttons = document.querySelectorAll(`.credit-btn[data-id="${this.currentId}"]`);
+
+        buttons.forEach((btn) => {
+            if (undefined !== personalCents) {
+                btn.dataset.creditModalPersonalParam = personalCents;
+                const span = btn.querySelector('[data-credit-modal-balance="personal"]');
+                if (span) {
+                    span.textContent = (personalCents / 100).toFixed(2) + ' €';
+                }
+            }
+            if (undefined !== municipalCents) {
+                btn.dataset.creditModalMunicipalParam = municipalCents;
+                const span = btn.querySelector('[data-credit-modal-balance="municipal"]');
+                if (span) {
+                    span.textContent = (municipalCents / 100).toFixed(2) + ' €';
+                }
+            }
+        });
     }
 
     _updatePageBalances(personalCents, municipalCents) {
-        if (this.hasPageBalancePersonalTarget) {
+        if (undefined !== personalCents && this.hasPageBalancePersonalTarget) {
             this.pageBalancePersonalTarget.textContent = (personalCents / 100).toFixed(2) + ' €';
         }
         if (undefined !== municipalCents && this.hasPageBalanceMunicipalTarget) {

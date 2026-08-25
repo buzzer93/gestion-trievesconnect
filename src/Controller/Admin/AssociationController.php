@@ -177,6 +177,33 @@ class AssociationController extends AbstractController
     }
 
     /**
+     * Ajustement manuel du crédit mairie depuis la modale back-office --
+     * même contrat que credits() mais sur le solde mairie. Cas d'usage :
+     * correction ponctuelle (ex: rallonge accordée par la mairie en cours
+     * d'année), en dehors du renouvellement annuel automatique (cf.
+     * RenewMunicipalCreditsCommand) et du débit par impression.
+     */
+    #[Route('/{id}/municipal-credits', name: '.municipal_credits', methods: ['POST'], requirements: ['id' => Requirement::DIGITS])]
+    public function municipalCredits(Association $association, Request $request, EntityManagerInterface $em): JsonResponse
+    {
+        $payload = json_decode($request->getContent(), true) ?? [];
+        $mode = $payload['mode'] ?? null; // 'add' ou 'remove'
+        $cents = (int) ($payload['cents'] ?? 0);
+        if ($cents <= 0 || !in_array($mode, ['add', 'remove'], true)) {
+            return new JsonResponse(['error' => 'Requête invalide'], 400);
+        }
+
+        if ('add' === $mode) {
+            $association->addMunicipalBalanceCents($cents);
+        } else {
+            $association->removeMunicipalBalanceCents($cents);
+        }
+        $em->flush();
+
+        return new JsonResponse(['success' => true, 'municipalCredits' => $association->getMunicipalBalanceCents()]);
+    }
+
+    /**
      * Débit manuel pour impression depuis la modale back-office. Réutilise
      * AssociationRepository::debitForPrintJob() -- pas de débit direct du
      * solde personnel ici -- pour respecter la priorité au crédit mairie et
