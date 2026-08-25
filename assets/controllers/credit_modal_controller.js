@@ -12,24 +12,23 @@ import { Controller } from '@hotwired/stimulus';
  * (PrintCostCalculator), pour que l'estimation affichée corresponde
  * toujours au montant réellement débité.
  *
- * Deux façons d'ouvrir la modale :
- * - depuis une ligne de tableau (délégation via data-action sur le bouton,
- *   avec les data-*-param portant l'id et les soldes courants) ;
- * - pour une association déjà connue de la page (fiche détail), les mêmes
- *   data-*-param sont posés directement sur le bouton unique.
+ * Le controller englobe à la fois le(s) bouton(s) déclencheurs et la modale
+ * (data-controller="modal", séparé, sur la modale elle-même -- ciblée via
+ * modalRootTarget) : les boutons vivent dans un tableau, hors de la modale,
+ * donc ils doivent partager le même élément data-controller="credit-modal"
+ * ancêtre pour que leurs data-action résolvent.
  *
  * hasMunicipalValue distingue client (un seul solde) et association (solde
  * personnel + solde mairie, débité en priorité côté serveur).
  */
 export default class extends Controller {
     static targets = [
-        'balancePersonal', 'balanceMunicipal', 'municipalRow',
+        'modalRoot', 'balancePersonal', 'balanceMunicipal', 'municipalRow',
         'amount', 'colorMode', 'paperSize', 'copies', 'estimatedCost',
     ];
 
     static values = {
-        chargeUrlTemplate: String, // ex: '/admin/customer/__id__/print-charge'
-        creditUrlTemplate: String, // ex: '/admin/customer/__id__/credits'
+        basePath: String, // ex: '/admin/customer/' -- on complète avec '{id}/credits' etc.
         rates: Array,
         hasMunicipal: Boolean,
     };
@@ -53,11 +52,11 @@ export default class extends Controller {
         this.amountTarget.value = '1.00';
         this._computeEstimate();
 
-        this.element.dispatchEvent(new CustomEvent('modal:open'));
+        this.modalRootTarget.dispatchEvent(new CustomEvent('modal:open'));
     }
 
     close() {
-        this.element.dispatchEvent(new CustomEvent('modal:close'));
+        this.modalRootTarget.dispatchEvent(new CustomEvent('modal:close'));
     }
 
     _computeEstimate() {
@@ -83,7 +82,7 @@ export default class extends Controller {
         }
         const cents = Math.round(euros * 100);
 
-        await this._post(this._url(this.creditUrlTemplateValue), { mode: 'add', cents }, (data) => {
+        await this._post(`${this.basePathValue}${this.currentId}/credits`, { mode: 'add', cents }, (data) => {
             this._updateRowBalance(data.credits);
             this.close();
         });
@@ -96,7 +95,7 @@ export default class extends Controller {
             return;
         }
 
-        await this._post(this._url(this.chargeUrlTemplateValue), {
+        await this._post(`${this.basePathValue}${this.currentId}/print-charge`, {
             colorMode: this.colorModeTarget.value,
             paperSize: this.paperSizeTarget.value,
             copies: Math.max(1, parseInt(this.copiesTarget.value, 10) || 1),
@@ -110,10 +109,6 @@ export default class extends Controller {
             window.showFlash?.('success', 'Débit appliqué.');
             this.close();
         });
-    }
-
-    _url(template) {
-        return template.replace('__id__', this.currentId);
     }
 
     async _post(url, body, onSuccess) {

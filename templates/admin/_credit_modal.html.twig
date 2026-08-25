@@ -1,0 +1,142 @@
+{#
+  admin/_credit_modal.html.twig — Modale "gérer le solde d'impression"
+
+  Partagée entre clients et associations. Doit être incluse à l'intérieur
+  d'un élément data-controller="credit-modal" (cf. credit_modal_controller.js)
+  qui englobe aussi le(s) bouton(s) déclencheurs (.credit-btn) -- ce sont ces
+  boutons qui posent les data-credit-modal-*-param (id, soldes courants).
+
+  Params :
+    has_municipal  bool  affiche la ligne "solde mairie" (association)
+#}
+
+<div id="creditModal"
+     data-controller="modal"
+     data-credit-modal-target="modalRoot"
+     class="hidden fixed inset-0 z-50 items-center justify-center p-4"
+     aria-labelledby="creditModalTitle">
+    <div data-modal-target="backdrop"
+         data-action="click->modal#hideOnBackdrop"
+         class="absolute inset-0 bg-black/70"></div>
+
+    <div data-modal-target="dialog"
+         role="dialog" aria-modal="true"
+         class="relative w-full max-w-2xl bg-surface-300 border border-border rounded-md shadow-elevated max-h-[90vh] overflow-y-auto">
+
+        <div class="flex items-center justify-between px-5 py-3 border-b-2 border-accent">
+            <h5 class="font-display font-bold uppercase tracking-wide text-base m-0" id="creditModalTitle">Gérer le solde d'impression</h5>
+            <button type="button"
+                    data-action="modal#hide"
+                    class="text-text-muted hover:text-text-primary transition-colors w-8 h-8 inline-flex items-center justify-center"
+                    aria-label="Fermer">
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
+        </div>
+
+        <div class="p-5">
+            <div class="flex flex-col gap-6">
+
+                <div class="grid grid-cols-1 {{ has_municipal|default(false) ? 'sm:grid-cols-2' : '' }} gap-3">
+                    <div class="flex items-center justify-between bg-surface-200 border border-border rounded-sm px-4 py-3">
+                        <span class="text-xs font-bold uppercase tracking-wide text-text-soft">Solde personnel</span>
+                        <span class="font-mono font-bold text-lg text-gold">
+                            <span data-credit-modal-target="balancePersonal">0.00</span> €
+                        </span>
+                    </div>
+                    <div data-credit-modal-target="municipalRow"
+                         class="{{ has_municipal|default(false) ? '' : 'hidden' }} flex items-center justify-between bg-surface-200 border border-border rounded-sm px-4 py-3">
+                        <span class="text-xs font-bold uppercase tracking-wide text-text-soft">Solde mairie</span>
+                        <span class="font-mono font-bold text-lg text-gold">
+                            <span data-credit-modal-target="balanceMunicipal">0.00</span> €
+                        </span>
+                    </div>
+                </div>
+
+                <section>
+                    <h6 class="m-0 mb-3 font-display font-bold text-xs uppercase tracking-wide text-text-soft">
+                        <i class="fa-solid fa-circle-plus text-accent mr-1.5" aria-hidden="true"></i>
+                        Ajouter au solde personnel
+                    </h6>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <div class="flex grow rounded-sm overflow-hidden border border-border">
+                            <span class="inline-flex items-center px-3 bg-surface-400 text-text-soft text-sm font-mono">€</span>
+                            <input type="number" min="0.01" step="0.01" value="1.00"
+                                   data-credit-modal-target="amount"
+                                   class="block w-full bg-surface-200 text-text-primary border-0 px-3 py-2 text-sm focus:outline-none focus:bg-surface-100">
+                        </div>
+                        <button type="button"
+                                data-action="credit-modal#addCredit"
+                                class="inline-flex items-center justify-center gap-2 bg-transparent text-accent border-2 border-accent font-display font-bold uppercase tracking-wide text-sm px-4 py-2 rounded-md hover:bg-accent hover:text-bg transition-colors">
+                            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                            <span>Ajouter</span>
+                        </button>
+                    </div>
+                </section>
+
+                <hr class="border-border m-0">
+
+                <section>
+                    <h6 class="m-0 mb-3 font-display font-bold text-xs uppercase tracking-wide text-text-soft">
+                        <i class="fa-solid fa-print text-warning mr-1.5" aria-hidden="true"></i>
+                        Débiter pour impression
+                    </h6>
+
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">Mode couleur</label>
+                            <select data-credit-modal-target="colorMode"
+                                    data-action="change->credit-modal#recomputeEstimate"
+                                    class="block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-accent">
+                                <option value="MONOCHROME">Monochrome</option>
+                                <option value="COLOR">Couleur</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">Format</label>
+                            <select data-credit-modal-target="paperSize"
+                                    data-action="change->credit-modal#recomputeEstimate"
+                                    class="block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-accent">
+                                <option value="A4">A4</option>
+                                <option value="A3">A3</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-3 mb-3">
+                        <div class="flex grow rounded-sm overflow-hidden border border-border">
+                            <span class="inline-flex items-center px-3 bg-surface-400 text-text-soft text-xs font-bold uppercase tracking-wide">Quantité</span>
+                            <input type="number" min="1" step="1" value="1"
+                                   data-credit-modal-target="copies"
+                                   data-action="change->credit-modal#recomputeEstimate input->credit-modal#recomputeEstimate"
+                                   class="block w-full bg-surface-200 text-text-primary border-0 px-3 py-2 text-sm focus:outline-none focus:bg-surface-100">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between bg-surface-200 border border-border rounded-sm px-4 py-3 mb-4">
+                        <span class="text-xs font-bold uppercase tracking-wide text-text-soft">Coût estimé</span>
+                        <span class="font-mono font-bold text-base text-warning">
+                            <strong data-credit-modal-target="estimatedCost">0.00</strong> €
+                        </span>
+                    </div>
+
+                    <div class="flex justify-end">
+                        <button type="button"
+                                data-action="credit-modal#chargePrint"
+                                class="inline-flex items-center justify-center gap-2 bg-transparent text-warning border-2 border-warning font-display font-bold uppercase tracking-wide text-sm px-4 py-2 rounded-md hover:bg-warning hover:text-bg transition-colors">
+                            <i class="fa-solid fa-minus" aria-hidden="true"></i>
+                            <span>Débiter</span>
+                        </button>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <div class="flex justify-between px-5 py-3 border-t border-border bg-surface-200">
+            <button type="button"
+                    data-action="modal#hide"
+                    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-sm text-xs font-bold uppercase tracking-wide text-text-soft hover:text-text-primary transition-colors">
+                Fermer
+            </button>
+        </div>
+    </div>
+</div>
