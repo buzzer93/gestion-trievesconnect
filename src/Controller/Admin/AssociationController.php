@@ -163,8 +163,8 @@ class AssociationController extends AbstractController
         PrintTransactionLineRepository $lineRepository,
     ): Response {
         $now = new \DateTimeImmutable();
-        $year = (int) $request->query->get('year', $now->format('Y'));
-        $quarter = max(1, min(3, (int) $request->query->get('quarter', (string) PrintTransactionLineRepository::currentQuarter($now))));
+        $year = (int) $request->query->get('year', (string) PrintTransactionLineRepository::currentSchoolYearStart($now));
+        $quarter = max(1, min(4, (int) $request->query->get('quarter', (string) PrintTransactionLineRepository::currentQuarter($now))));
         [$prevYear, $prevQuarter] = PrintTransactionLineRepository::previousQuarter($year, $quarter);
         [$nextYear, $nextQuarter] = PrintTransactionLineRepository::nextQuarter($year, $quarter);
 

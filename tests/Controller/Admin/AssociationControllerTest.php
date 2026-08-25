@@ -63,11 +63,14 @@ final class AssociationControllerTest extends WebTestCase
     }
 
     /**
-     * Trimestre scolaire (décision du 2026-08-26) : sans year/quarter en
-     * query, la page doit se placer sur le trimestre scolaire "aujourd'hui"
-     * (le test tourne un 26/08 -> T3 mai-août) et proposer la bonne
-     * navigation précédent/suivant, y compris le changement d'année autour
-     * de T1 (septembre-décembre).
+     * Trimestre scolaire calé sur la rentrée (décision du 2026-08-26,
+     * précisée le même jour : 4 trimestres de 3 mois comme avant, mais
+     * décalés pour commencer en septembre). Sans year/quarter en query, la
+     * page doit se placer sur le trimestre scolaire "aujourd'hui" (le test
+     * tourne un 26/08, dans T4 juin-août de l'année scolaire commencée
+     * l'année civile précédente) et proposer la bonne navigation
+     * précédent/suivant, y compris le changement d'année scolaire autour
+     * de T4 -> T1.
      */
     public function testConsumptionPageDefaultsToCurrentSchoolTermAndLinksNeighbours(): void
     {
@@ -77,16 +80,17 @@ final class AssociationControllerTest extends WebTestCase
 
         $crawler = $client->request('GET', '/admin/association/'.$association->getId().'/consumption');
         $now = new \DateTimeImmutable();
+        $endOfSchoolYear = (int) $now->format('n') >= 9 ? (int) $now->format('Y') + 1 : (int) $now->format('Y');
 
         self::assertResponseIsSuccessful();
-        self::assertStringContainsString('Mai - Août '.$now->format('Y'), $crawler->filter('body')->text());
+        self::assertStringContainsString('Juin - Août '.$endOfSchoolYear, $crawler->filter('body')->text());
         self::assertStringContainsString(
-            'quarter=2',
-            $crawler->selectLink('Janv.-Avr. '.$now->format('Y'))->link()->getUri(),
+            'quarter=3',
+            $crawler->selectLink('Mars-Mai '.$endOfSchoolYear)->link()->getUri(),
         );
         self::assertStringContainsString(
             'quarter=1',
-            $crawler->selectLink('Sept.-Déc. '.$now->format('Y'))->link()->getUri(),
+            $crawler->selectLink('Sept.-Nov. '.$endOfSchoolYear)->link()->getUri(),
         );
     }
 

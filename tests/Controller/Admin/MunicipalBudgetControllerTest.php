@@ -54,9 +54,10 @@ final class MunicipalBudgetControllerTest extends WebTestCase
 
         $crawler = $client->request('GET', '/admin/municipal-budget/');
         $now = new \DateTimeImmutable();
+        $endOfSchoolYear = (int) $now->format('n') >= 9 ? (int) $now->format('Y') + 1 : (int) $now->format('Y');
 
         self::assertResponseIsSuccessful();
-        self::assertStringContainsString('Mai - Août '.$now->format('Y'), $crawler->filter('body')->text());
+        self::assertStringContainsString('Juin - Août '.$endOfSchoolYear, $crawler->filter('body')->text());
     }
 
     /**

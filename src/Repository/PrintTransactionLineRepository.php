@@ -97,73 +97,63 @@ class PrintTransactionLineRepository extends ServiceEntityRepository
     }
 
     /**
-     * Trimestre SCOLAIRE (pas calendaire), décision du 2026-08-26 : T1 =
-     * septembre-décembre, T2 = janvier-avril, T3 = mai-août. Mois fixes
-     * chaque année (pas les dates officielles Éducation Nationale, qui
-     * bougent) -- chaque trimestre reste contenu dans une seule année
-     * civile, aucun ne chevauche un 31/12.
+     * Trimestre SCOLAIRE (pas calendaire), décision du 2026-08-26 : 4
+     * trimestres de 3 mois comme avant, mais calés sur la rentrée plutôt
+     * que sur le 1er janvier :
+     *   T1 = Septembre-Novembre, T2 = Décembre-Février,
+     *   T3 = Mars-Mai, T4 = Juin-Août.
+     * $year désigne l'année de DÉBUT de l'année scolaire (ex. year=2026
+     * pour l'année scolaire 2026-2027) -- pas l'année civile de chaque
+     * trimestre, puisque T2 chevauche le 31/12 (décembre de $year,
+     * janvier et février de $year+1). Mois fixes chaque année, pas les
+     * dates officielles Éducation Nationale.
      *
      * @return array{0: \DateTimeImmutable, 1: \DateTimeImmutable} Bornes [début, fin[ du trimestre
      */
     public static function quarterBounds(int $year, int $quarter): array
     {
-        $startMonth = match ($quarter) {
-            1 => 9,
-            2 => 1,
-            3 => 5,
-            default => 1,
-        };
-        $start = new \DateTimeImmutable(sprintf('%04d-%02d-01', $year, $startMonth));
+        $start = (new \DateTimeImmutable(sprintf('%04d-09-01', $year)))
+            ->modify(sprintf('+%d months', ($quarter - 1) * 3));
 
-        return [$start, $start->modify('+4 months')];
+        return [$start, $start->modify('+3 months')];
     }
 
     /**
-     * Trimestre scolaire contenant la date donnée (typiquement "aujourd'hui"),
-     * pour la valeur par défaut affichée sur les pages consommation/budget.
+     * Trimestre scolaire contenant la date donnée (typiquement "aujourd'hui").
      */
     public static function currentQuarter(\DateTimeImmutable $now): int
     {
-        $month = (int) $now->format('n');
+        $monthsSinceSeptember = ((int) $now->format('n') - 9 + 12) % 12;
 
-        return match (true) {
-            $month >= 9 => 1,
-            $month >= 5 => 3,
-            default => 2,
-        };
+        return intdiv($monthsSinceSeptember, 3) + 1;
     }
 
     /**
-     * Trimestre scolaire précédent. Le T1 (sept-déc) est chronologiquement
-     * LE DERNIER de l'année civile mais porté par le numéro "1" -- donc
-     * seul le passage T2 -> T1 change d'année (recule d'un an), les deux
-     * autres restent sur l'année en cours.
-     *
+     * Année de début de l'année scolaire contenant la date donnée : l'année
+     * civile en cours à partir de septembre, l'année civile précédente de
+     * janvier à août.
+     */
+    public static function currentSchoolYearStart(\DateTimeImmutable $now): int
+    {
+        $month = (int) $now->format('n');
+        $year = (int) $now->format('Y');
+
+        return $month >= 9 ? $year : $year - 1;
+    }
+
+    /**
      * @return array{0: int, 1: int} [année, trimestre]
      */
     public static function previousQuarter(int $year, int $quarter): array
     {
-        return match ($quarter) {
-            1 => [$year, 3],
-            2 => [$year - 1, 1],
-            3 => [$year, 2],
-            default => [$year, 1],
-        };
+        return 1 === $quarter ? [$year - 1, 4] : [$year, $quarter - 1];
     }
 
     /**
-     * Trimestre scolaire suivant -- symétrique de previousQuarter() :
-     * seul le passage T1 -> T2 avance d'un an.
-     *
      * @return array{0: int, 1: int} [année, trimestre]
      */
     public static function nextQuarter(int $year, int $quarter): array
     {
-        return match ($quarter) {
-            1 => [$year + 1, 2],
-            2 => [$year, 3],
-            3 => [$year, 1],
-            default => [$year, 1],
-        };
+        return 4 === $quarter ? [$year + 1, 1] : [$year, $quarter + 1];
     }
 }

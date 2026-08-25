@@ -1,33 +1,47 @@
 {#
   admin/_quarter_label.html.twig — Libellé d'un trimestre scolaire avec les mois inclus
 
-  Trimestre SCOLAIRE (pas calendaire), décision du 2026-08-26 :
-    T1 = Septembre - Décembre
-    T2 = Janvier - Avril
-    T3 = Mai - Août
-  Mois fixes chaque année (pas les dates officielles Éducation Nationale).
-  Cf. PrintTransactionLineRepository::quarterBounds() pour la même logique côté requêtes.
+  Trimestre SCOLAIRE (pas calendaire), décision du 2026-08-26 : 4 trimestres
+  de 3 mois calés sur la rentrée (pas le 1er janvier) :
+    T1 = Septembre - Novembre
+    T2 = Décembre - Février   (chevauche le 31/12 : décembre de `year`, janvier/février de `year + 1`)
+    T3 = Mars - Mai           (de `year + 1`)
+    T4 = Juin - Août          (de `year + 1`)
+  `year` désigne l'année de DÉBUT de l'année scolaire (year=2026 = année
+  scolaire 2026-2027). Mois fixes chaque année. Cf.
+  PrintTransactionLineRepository::quarterBounds() pour la même logique
+  côté requêtes.
 
   Usage :
     {% import 'admin/_quarter_label.html.twig' as quarter_label %}
-    {{ quarter_label.full(quarter, year) }}     {# "Septembre - Décembre 2026" #}
-    {{ quarter_label.short(quarter, year) }}    {# "Sept.-Déc. 2026" #}
+    {{ quarter_label.full(quarter, year) }}     {# "Décembre 2026 - Février 2027" #}
+    {{ quarter_label.short(quarter, year) }}    {# "Déc. 2026-Févr. 2027" #}
 #}
 
 {% macro full(quarter, year) %}
-    {%- set months = {
-        1: ['Septembre', 'Décembre'],
-        2: ['Janvier', 'Avril'],
-        3: ['Mai', 'Août'],
-    } -%}
-    {{- months[quarter][0] }} - {{ months[quarter][1] }} {{ year -}}
+    {%- set q = {
+        1: {m1: 'Septembre', m2: 'Novembre', y1: 0, y2: 0},
+        2: {m1: 'Décembre', m2: 'Février', y1: 0, y2: 1},
+        3: {m1: 'Mars', m2: 'Mai', y1: 1, y2: 1},
+        4: {m1: 'Juin', m2: 'Août', y1: 1, y2: 1},
+    }[quarter] -%}
+    {%- if q.y1 == q.y2 -%}
+        {{- q.m1 }} - {{ q.m2 }} {{ year + q.y1 -}}
+    {%- else -%}
+        {{- q.m1 }} {{ year + q.y1 }} - {{ q.m2 }} {{ year + q.y2 -}}
+    {%- endif -%}
 {% endmacro %}
 
 {% macro short(quarter, year) %}
-    {%- set months = {
-        1: ['Sept.', 'Déc.'],
-        2: ['Janv.', 'Avr.'],
-        3: ['Mai', 'Août'],
-    } -%}
-    {{- months[quarter][0] }}-{{ months[quarter][1] }} {{ year -}}
+    {%- set q = {
+        1: {m1: 'Sept.', m2: 'Nov.', y1: 0, y2: 0},
+        2: {m1: 'Déc.', m2: 'Févr.', y1: 0, y2: 1},
+        3: {m1: 'Mars', m2: 'Mai', y1: 1, y2: 1},
+        4: {m1: 'Juin', m2: 'Août', y1: 1, y2: 1},
+    }[quarter] -%}
+    {%- if q.y1 == q.y2 -%}
+        {{- q.m1 }}-{{ q.m2 }} {{ year + q.y1 -}}
+    {%- else -%}
+        {{- q.m1 }} {{ year + q.y1 }}-{{ q.m2 }} {{ year + q.y2 -}}
+    {%- endif -%}
 {% endmacro %}
