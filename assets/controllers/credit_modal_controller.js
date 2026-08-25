@@ -121,17 +121,20 @@ export default class extends Controller {
         });
     }
 
-    async addMunicipalCredit() {
+    // mode fourni par le bouton cliqué (data-credit-modal-mode-param="add"
+    // ou "remove") -- même endpoint, même logique, un seul handler.
+    async adjustMunicipalCredit(event) {
+        const mode = event.params.mode;
         const euros = parseFloat(this.municipalAmountTarget.value.replace(',', '.'));
         if (isNaN(euros) || euros <= 0) {
             return;
         }
         const cents = Math.round(euros * 100);
 
-        await this._post(`${this.basePathValue}${this.currentId}/municipal-credits`, { mode: 'add', cents }, (data) => {
+        await this._post(`${this.basePathValue}${this.currentId}/municipal-credits`, { mode, cents }, (data) => {
             this._updateRowBalance(undefined, data.municipalCredits);
             this._updatePageBalances(undefined, data.municipalCredits);
-            window.showFlash?.('success', 'Crédit mairie ajouté.');
+            window.showFlash?.('success', 'add' === mode ? 'Crédit mairie ajouté.' : 'Crédit mairie débité.');
             this.close();
         });
     }

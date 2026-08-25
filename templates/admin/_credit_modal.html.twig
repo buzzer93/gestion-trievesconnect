@@ -76,7 +76,7 @@
                     <section data-credit-modal-target="municipalCreditSection" class="hidden">
                         <h6 class="m-0 mb-3 font-display font-bold text-xs uppercase tracking-wide text-text-soft">
                             <i class="fa-solid fa-landmark text-gold mr-1.5" aria-hidden="true"></i>
-                            Ajouter au solde mairie
+                            Ajuster le solde mairie
                         </h6>
                         <div class="flex flex-col sm:flex-row gap-2">
                             <div class="flex grow rounded-sm overflow-hidden border border-border">
@@ -86,10 +86,18 @@
                                        class="block w-full bg-surface-200 text-text-primary border-0 px-3 py-2 text-sm focus:outline-none focus:bg-surface-100">
                             </div>
                             <button type="button"
-                                    data-action="credit-modal#addMunicipalCredit"
+                                    data-action="credit-modal#adjustMunicipalCredit"
+                                    data-credit-modal-mode-param="add"
                                     class="inline-flex items-center justify-center gap-2 bg-transparent text-gold border-2 border-gold font-display font-bold uppercase tracking-wide text-sm px-4 py-2 rounded-md hover:bg-gold hover:text-bg transition-colors">
                                 <i class="fa-solid fa-plus" aria-hidden="true"></i>
                                 <span>Ajouter</span>
+                            </button>
+                            <button type="button"
+                                    data-action="credit-modal#adjustMunicipalCredit"
+                                    data-credit-modal-mode-param="remove"
+                                    class="inline-flex items-center justify-center gap-2 bg-transparent text-error border-2 border-error font-display font-bold uppercase tracking-wide text-sm px-4 py-2 rounded-md hover:bg-error hover:text-text-primary transition-colors">
+                                <i class="fa-solid fa-minus" aria-hidden="true"></i>
+                                <span>Débiter</span>
                             </button>
                         </div>
                     </section>

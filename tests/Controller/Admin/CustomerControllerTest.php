@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Controller\Admin;
 
+use App\Entity\Association;
 use App\Entity\Customer;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
@@ -34,6 +35,34 @@ final class CustomerControllerTest extends WebTestCase
      * (PrintCostCalculator) plutôt qu'une grille dupliquée côté JS -- même
      * source que le débit associatif.
      */
+    /**
+     * Customer et Association partagent la même table (Single Table
+     * Inheritance) -- une requête sans filtre sur la liste "Clients"
+     * remonterait aussi les associations (cf. correction du 2026-08-25).
+     */
+    public function testIndexExcludesAssociations(): void
+    {
+        $client = static::createClient();
+        $client->loginUser($this->buildUser(self::ADMIN_EMAIL));
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+
+        $existing = $entityManager->getRepository(Association::class)->findOneBy(['phoneNumber' => '0622229999']);
+        if (!$existing) {
+            $existing = new Association();
+            $existing->setName('Association ne doit pas apparaître ici')->setPhoneNumber('0622229999');
+            $entityManager->persist($existing);
+            $entityManager->flush();
+        }
+
+        $crawler = $client->request('GET', '/admin/customer/');
+
+        self::assertResponseIsSuccessful();
+        self::assertStringNotContainsString(
+            'Association ne doit pas apparaître ici',
+            $crawler->filter('#customerTable')->text(),
+        );
+    }
+
     public function testPrintChargeUsesConfiguredRate(): void
     {
         $client = static::createClient();

@@ -40,10 +40,17 @@ class CustomerRepository extends ServiceEntityRepository
     
     /**
      * @return Customer[] Returns an array of Customer objects
+     *
+     * Exclut explicitement les associations : Customer et Association
+     * partagent la même table (Single Table Inheritance, cf. Customer::class),
+     * donc une requête sans filtre sur la classe de base renvoie aussi les
+     * associations -- ce qui les faisait apparaître en double dans la liste
+     * "Clients" en plus de la liste "Associations".
      */
     public function findAll(): array
     {
         return $this->createQueryBuilder('c')
+            ->andWhere('c NOT INSTANCE OF App\Entity\Association')
             ->orderBy('c.id', 'ASC')
             ->getQuery()
             ->getResult()
