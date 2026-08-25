@@ -35,6 +35,7 @@ export default class extends Controller {
         'amount', 'colorMode', 'paperSize', 'copies', 'estimatedCost',
         'personalCreditSection', 'printChargeSection',
         'municipalCreditSection', 'municipalAmount',
+        'municipalPrintChargeSection', 'municipalColorMode', 'municipalPaperSize', 'municipalCopies', 'municipalEstimatedCost',
         // Optionnelles : encarts soldes affichés hors modale (fiche association).
         'pageBalancePersonal', 'pageBalanceMunicipal',
     ];
@@ -66,6 +67,9 @@ export default class extends Controller {
             this.municipalAmountTarget.value = '1.00';
         }
         this._computeEstimate();
+        if (this.hasMunicipalEstimatedCostTarget) {
+            this._computeMunicipalEstimate();
+        }
 
         this.modalRootTarget.dispatchEvent(new CustomEvent('modal:open'));
     }
@@ -88,6 +92,9 @@ export default class extends Controller {
         if (this.hasMunicipalCreditSectionTarget) {
             this.municipalCreditSectionTarget.classList.toggle('hidden', !isMunicipal);
         }
+        if (this.hasMunicipalPrintChargeSectionTarget) {
+            this.municipalPrintChargeSectionTarget.classList.toggle('hidden', !isMunicipal);
+        }
     }
 
     _computeEstimate() {
@@ -106,6 +113,22 @@ export default class extends Controller {
         this._computeEstimate();
     }
 
+    _computeMunicipalEstimate() {
+        const colorMode = this.municipalColorModeTarget.value;
+        const paperSize = this.municipalPaperSizeTarget.value;
+        const copies = Math.max(1, parseInt(this.municipalCopiesTarget.value, 10) || 1);
+
+        const rate = this.ratesValue.find(r => r.colorMode === colorMode && r.paperSize === paperSize);
+        const cents = rate ? rate.priceCents * copies : 0;
+        this.municipalEstimatedCostTarget.textContent = (cents / 100).toFixed(2);
+
+        return cents;
+    }
+
+    recomputeMunicipalEstimate() {
+        this._computeMunicipalEstimate();
+    }
+
     async addCredit() {
         const euros = parseFloat(this.amountTarget.value.replace(',', '.'));
         if (isNaN(euros) || euros <= 0) {
@@ -121,20 +144,17 @@ export default class extends Controller {
         });
     }
 
-    // mode fourni par le bouton cliqué (data-credit-modal-mode-param="add"
-    // ou "remove") -- même endpoint, même logique, un seul handler.
-    async adjustMunicipalCredit(event) {
-        const mode = event.params.mode;
+    async addMunicipalCredit() {
         const euros = parseFloat(this.municipalAmountTarget.value.replace(',', '.'));
         if (isNaN(euros) || euros <= 0) {
             return;
         }
         const cents = Math.round(euros * 100);
 
-        await this._post(`${this.basePathValue}${this.currentId}/municipal-credits`, { mode, cents }, (data) => {
+        await this._post(`${this.basePathValue}${this.currentId}/municipal-credits`, { mode: 'add', cents }, (data) => {
             this._updateRowBalance(undefined, data.municipalCredits);
             this._updatePageBalances(undefined, data.municipalCredits);
-            window.showFlash?.('success', 'add' === mode ? 'Crédit mairie ajouté.' : 'Crédit mairie débité.');
+            window.showFlash?.('success', 'Crédit mairie ajouté.');
             this.close();
         });
     }
@@ -157,6 +177,28 @@ export default class extends Controller {
             // n'est visible que côté "personnel".
             this._updateRowBalance(personal, data.municipalCredits);
             this._updatePageBalances(personal, data.municipalCredits);
+            window.showFlash?.('success', 'Débit appliqué.');
+            this.close();
+        });
+    }
+
+    // Débit exclusivement sur le crédit mairie (cf. AssociationRepository::
+    // debitMunicipalOnly côté serveur) -- pas de bascule sur le personnel,
+    // contrairement à chargePrint().
+    async chargeMunicipalPrint() {
+        const cents = this._computeMunicipalEstimate();
+        if (cents <= 0) {
+            window.showFlash?.('error', 'Tarif non configuré pour cette combinaison.');
+            return;
+        }
+
+        await this._post(`${this.basePathValue}${this.currentId}/municipal-print-charge`, {
+            colorMode: this.municipalColorModeTarget.value,
+            paperSize: this.municipalPaperSizeTarget.value,
+            copies: Math.max(1, parseInt(this.municipalCopiesTarget.value, 10) || 1),
+        }, (data) => {
+            this._updateRowBalance(undefined, data.municipalCredits);
+            this._updatePageBalances(undefined, data.municipalCredits);
             window.showFlash?.('success', 'Débit appliqué.');
             this.close();
         });

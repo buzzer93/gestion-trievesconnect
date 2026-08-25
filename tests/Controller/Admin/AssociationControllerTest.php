@@ -168,6 +168,61 @@ final class AssociationControllerTest extends WebTestCase
         self::assertSame('Tarif non configuré', $data['error']);
     }
 
+    /**
+     * Débit "mairie seule" : ne doit jamais toucher au solde personnel,
+     * même s'il aurait pu couvrir le reliquat (contrairement à
+     * printCharge()) -- cf. AssociationRepository::debitMunicipalOnly().
+     */
+    public function testMunicipalPrintChargeDebitsMunicipalBalanceOnly(): void
+    {
+        $client = static::createClient();
+        $client->loginUser($this->buildUser(self::ADMIN_EMAIL));
+        // Tarif seedé : COLOR/A3 = 100 centimes (cf. Version20260808130000).
+        $association = $this->buildAssociation('0611110007', personalCents: 5000, municipalCents: 100);
+
+        $client->request(
+            'POST',
+            '/admin/association/'.$association->getId().'/municipal-print-charge',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: json_encode(['colorMode' => 'COLOR', 'paperSize' => 'A3', 'copies' => 1]),
+        );
+
+        self::assertResponseIsSuccessful();
+        $data = json_decode((string) $client->getResponse()->getContent(), true);
+        self::assertSame(0, $data['municipalCredits']);
+
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->clear();
+        $refreshed = $entityManager->getRepository(Association::class)->find($association->getId());
+        self::assertSame(0, $refreshed->getMunicipalBalanceCents());
+        // Le solde personnel ne doit jamais être sollicité par cette route.
+        self::assertSame(5000, $refreshed->getBalanceCents());
+    }
+
+    public function testMunicipalPrintChargeRefusedWhenMunicipalBalanceInsufficientEvenIfPersonalCovers(): void
+    {
+        $client = static::createClient();
+        $client->loginUser($this->buildUser(self::ADMIN_EMAIL));
+        $association = $this->buildAssociation('0611110008', personalCents: 5000, municipalCents: 5);
+
+        $client->request(
+            'POST',
+            '/admin/association/'.$association->getId().'/municipal-print-charge',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: json_encode(['colorMode' => 'MONOCHROME', 'paperSize' => 'A4', 'copies' => 1]),
+        );
+
+        self::assertResponseStatusCodeSame(400);
+        $data = json_decode((string) $client->getResponse()->getContent(), true);
+        self::assertSame('Solde mairie insuffisant', $data['error']);
+
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->clear();
+        $refreshed = $entityManager->getRepository(Association::class)->find($association->getId());
+        self::assertSame(5, $refreshed->getMunicipalBalanceCents());
+        self::assertSame(5000, $refreshed->getBalanceCents());
+    }
+
     private function buildAssociation(string $phoneNumber, int $personalCents, int $municipalCents): Association
     {
         $entityManager = static::getContainer()->get(EntityManagerInterface::class);

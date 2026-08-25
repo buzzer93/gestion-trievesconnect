@@ -245,6 +245,47 @@ class AssociationController extends AbstractController
         ]);
     }
 
+    /**
+     * Débit pour impression depuis la vue "Solde mairie" de la modale
+     * back-office : contrairement à printCharge(), ne touche que le crédit
+     * mairie (cf. AssociationRepository::debitMunicipalOnly) -- un solde
+     * mairie insuffisant est refusé tel quel, sans bascule sur le
+     * personnel. L'admin gère volontairement le crédit mairie isolément
+     * depuis cet écran.
+     */
+    #[Route('/{id}/municipal-print-charge', name: '.municipal_print_charge', methods: ['POST'], requirements: ['id' => Requirement::DIGITS])]
+    public function municipalPrintCharge(Association $association, Request $request, AssociationRepository $repository, PrintCostCalculator $costCalculator): JsonResponse
+    {
+        $payload = json_decode($request->getContent(), true) ?? [];
+        $colorMode = strtoupper((string) ($payload['colorMode'] ?? ''));
+        $paperSize = strtoupper((string) ($payload['paperSize'] ?? ''));
+        $copies = max(1, (int) ($payload['copies'] ?? 1));
+
+        $cents = $costCalculator->computeCostCents($colorMode, $paperSize, $copies);
+        if (null === $cents) {
+            return new JsonResponse(['error' => 'Tarif non configuré'], 400);
+        }
+
+        if ($association->getMunicipalBalanceCents() < $cents) {
+            return new JsonResponse(['error' => 'Solde mairie insuffisant'], 400);
+        }
+
+        $printJob = new PrintJobPayload(
+            jobId: random_int(1, PHP_INT_MAX),
+            printerName: 'Back-office',
+            documentName: 'Débit manuel mairie (admin)',
+            copies: $copies,
+            paperSize: $paperSize,
+            colorMode: $colorMode,
+        );
+        $repository->debitMunicipalOnly($association, $cents, $printJob);
+
+        return new JsonResponse([
+            'success' => true,
+            'municipalCredits' => $association->getMunicipalBalanceCents(),
+        ]);
+    }
+
     private function applyBalancesFromForm(\Symfony\Component\Form\FormInterface $form, Association $association): void
     {
         $balanceEuros = $form->get('balanceEuros')->getData();

@@ -76,7 +76,7 @@
                     <section data-credit-modal-target="municipalCreditSection" class="hidden">
                         <h6 class="m-0 mb-3 font-display font-bold text-xs uppercase tracking-wide text-text-soft">
                             <i class="fa-solid fa-landmark text-gold mr-1.5" aria-hidden="true"></i>
-                            Ajuster le solde mairie
+                            Ajouter au solde mairie
                         </h6>
                         <div class="flex flex-col sm:flex-row gap-2">
                             <div class="flex grow rounded-sm overflow-hidden border border-border">
@@ -86,21 +86,76 @@
                                        class="block w-full bg-surface-200 text-text-primary border-0 px-3 py-2 text-sm focus:outline-none focus:bg-surface-100">
                             </div>
                             <button type="button"
-                                    data-action="credit-modal#adjustMunicipalCredit"
-                                    data-credit-modal-mode-param="add"
+                                    data-action="credit-modal#addMunicipalCredit"
                                     class="inline-flex items-center justify-center gap-2 bg-transparent text-gold border-2 border-gold font-display font-bold uppercase tracking-wide text-sm px-4 py-2 rounded-md hover:bg-gold hover:text-bg transition-colors">
                                 <i class="fa-solid fa-plus" aria-hidden="true"></i>
                                 <span>Ajouter</span>
                             </button>
-                            <button type="button"
-                                    data-action="credit-modal#adjustMunicipalCredit"
-                                    data-credit-modal-mode-param="remove"
-                                    class="inline-flex items-center justify-center gap-2 bg-transparent text-error border-2 border-error font-display font-bold uppercase tracking-wide text-sm px-4 py-2 rounded-md hover:bg-error hover:text-text-primary transition-colors">
-                                <i class="fa-solid fa-minus" aria-hidden="true"></i>
-                                <span>Débiter</span>
-                            </button>
                         </div>
                     </section>
+
+                    <div data-credit-modal-target="municipalPrintChargeSection" class="hidden">
+                        <hr class="border-border m-0 mb-6">
+
+                        <section>
+                            <h6 class="m-0 mb-3 font-display font-bold text-xs uppercase tracking-wide text-text-soft">
+                                <i class="fa-solid fa-print text-warning mr-1.5" aria-hidden="true"></i>
+                                Débiter pour impression (crédit mairie)
+                            </h6>
+
+                            <div class="grid grid-cols-2 gap-3 mb-3">
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">Mode couleur</label>
+                                    <select data-credit-modal-target="municipalColorMode"
+                                            data-action="change->credit-modal#recomputeMunicipalEstimate"
+                                            class="block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-accent">
+                                        <option value="MONOCHROME">Monochrome</option>
+                                        <option value="COLOR">Couleur</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">Format</label>
+                                    <select data-credit-modal-target="municipalPaperSize"
+                                            data-action="change->credit-modal#recomputeMunicipalEstimate"
+                                            class="block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-accent">
+                                        <option value="A4">A4</option>
+                                        <option value="A3">A3</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col sm:flex-row gap-3 mb-3">
+                                <div class="flex grow rounded-sm overflow-hidden border border-border">
+                                    <span class="inline-flex items-center px-3 bg-surface-400 text-text-soft text-xs font-bold uppercase tracking-wide">Quantité</span>
+                                    <input type="number" min="1" step="1" value="1"
+                                           data-credit-modal-target="municipalCopies"
+                                           data-action="change->credit-modal#recomputeMunicipalEstimate input->credit-modal#recomputeMunicipalEstimate"
+                                           class="block w-full bg-surface-200 text-text-primary border-0 px-3 py-2 text-sm focus:outline-none focus:bg-surface-100">
+                                </div>
+                            </div>
+
+                            <p class="text-xs text-text-muted mb-3">
+                                <i class="fa-solid fa-circle-info mr-1" aria-hidden="true"></i>
+                                Débite uniquement le crédit mairie -- refusé si celui-ci ne couvre pas le montant (pas de bascule sur le solde personnel ici).
+                            </p>
+
+                            <div class="flex items-center justify-between bg-surface-200 border border-border rounded-sm px-4 py-3 mb-4">
+                                <span class="text-xs font-bold uppercase tracking-wide text-text-soft">Coût estimé</span>
+                                <span class="font-mono font-bold text-base text-warning">
+                                    <strong data-credit-modal-target="municipalEstimatedCost">0.00</strong> €
+                                </span>
+                            </div>
+
+                            <div class="flex justify-end">
+                                <button type="button"
+                                        data-action="credit-modal#chargeMunicipalPrint"
+                                        class="inline-flex items-center justify-center gap-2 bg-transparent text-warning border-2 border-warning font-display font-bold uppercase tracking-wide text-sm px-4 py-2 rounded-md hover:bg-warning hover:text-bg transition-colors">
+                                    <i class="fa-solid fa-minus" aria-hidden="true"></i>
+                                    <span>Débiter</span>
+                                </button>
+                            </div>
+                        </section>
+                    </div>
                 {% endif %}
 
                 <div data-credit-modal-target="printChargeSection">

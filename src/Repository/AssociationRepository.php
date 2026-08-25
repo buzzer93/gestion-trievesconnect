@@ -89,4 +89,30 @@ class AssociationRepository extends ServiceEntityRepository
 
         $em->flush();
     }
+
+    /**
+     * Débit exclusivement sur le crédit mairie -- pas de bascule sur le
+     * solde personnel, contrairement à debitForPrintJob(). Utilisé par la
+     * vue "Solde mairie" de la modale back-office, où l'admin gère
+     * volontairement le crédit mairie isolément : un solde mairie
+     * insuffisant doit être visible tel quel (refusé côté contrôleur),
+     * pas silencieusement complété par le personnel.
+     */
+    public function debitMunicipalOnly(Association $association, int $costCents, PrintJobPayload $printJob): void
+    {
+        $association->removeMunicipalBalanceCents($costCents);
+
+        $em = $this->getEntityManager();
+        $em->persist(new PrintMunicipalConsumption(
+            association: $association,
+            printJobId: $printJob->jobId,
+            pageCount: $printJob->pageCount,
+            copies: $printJob->copies,
+            colorMode: $printJob->colorMode,
+            paperSize: $printJob->paperSize,
+            amountSpentCents: $costCents,
+            fundingSource: PrintMunicipalConsumption::SOURCE_MUNICIPAL,
+        ));
+        $em->flush();
+    }
 }
