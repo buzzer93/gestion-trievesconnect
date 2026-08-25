@@ -14,16 +14,6 @@
             association: association,
         } only %}
             {% block actions %}
-                <button type="button"
-                        class="credit-btn inline-flex items-center gap-2 bg-transparent text-gold border-2 border-gold font-display font-bold uppercase tracking-wide text-sm px-3 py-1.5 rounded-md hover:bg-gold hover:text-bg transition-colors"
-                        data-action="click->credit-modal#open"
-                        data-id="{{ association.id }}"
-                        data-credit-modal-id-param="{{ association.id }}"
-                        data-credit-modal-personal-param="{{ association.getBalanceCents() }}"
-                        data-credit-modal-municipal-param="{{ association.getMunicipalBalanceCents() }}">
-                    <i class="fa-solid fa-coins" aria-hidden="true"></i>
-                    <span>Gérer le solde</span>
-                </button>
                 {% include 'components/_button.html.twig' with {
                     label: 'Modifier',
                     variant: 'primary',
@@ -49,16 +39,32 @@
         {% endembed %}
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 max-w-xl">
-            <div class="bg-surface-200 border border-border rounded-sm px-4 py-3">
+            <button type="button"
+                    class="credit-btn text-left bg-surface-200 border border-border rounded-sm px-4 py-3 hover:border-accent transition-colors cursor-pointer"
+                    data-action="click->credit-modal#open"
+                    data-id="{{ association.id }}"
+                    data-credit-modal-id-param="{{ association.id }}"
+                    data-credit-modal-personal-param="{{ association.getBalanceCents() }}"
+                    data-credit-modal-municipal-param="{{ association.getMunicipalBalanceCents() }}"
+                    data-credit-modal-focus-param="personal"
+                    title="Gérer le solde personnel">
                 <span class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1">Solde personnel</span>
-                <span class="font-mono font-bold text-lg text-text-primary" data-credit-modal-target="pageBalancePersonal">{{ association.getBalanceEuros() }} €</span>
-            </div>
-            <div class="bg-surface-200 border border-border rounded-sm px-4 py-3">
+                <span class="font-mono font-bold text-lg text-text-primary" data-credit-modal-target="pageBalancePersonal" data-credit-modal-balance="personal">{{ association.getBalanceEuros() }} €</span>
+            </button>
+            <button type="button"
+                    class="credit-btn text-left bg-surface-200 border border-border rounded-sm px-4 py-3 hover:border-gold transition-colors cursor-pointer"
+                    data-action="click->credit-modal#open"
+                    data-id="{{ association.id }}"
+                    data-credit-modal-id-param="{{ association.id }}"
+                    data-credit-modal-personal-param="{{ association.getBalanceCents() }}"
+                    data-credit-modal-municipal-param="{{ association.getMunicipalBalanceCents() }}"
+                    data-credit-modal-focus-param="municipal"
+                    title="Gérer le solde mairie">
                 <span class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1">Solde mairie</span>
-                <span class="font-mono font-bold text-lg text-gold" data-credit-modal-target="pageBalanceMunicipal">
+                <span class="font-mono font-bold text-lg text-gold" data-credit-modal-target="pageBalanceMunicipal" data-credit-modal-balance="municipal">
                     {{ (association.getMunicipalBalanceCents() / 100)|number_format(2, ',', '') }} €
                 </span>
-            </div>
+            </button>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-14">

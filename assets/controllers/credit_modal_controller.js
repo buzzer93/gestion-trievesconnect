@@ -5,8 +5,19 @@ import { Controller } from '@hotwired/stimulus';
  * associations (cf. templates/admin/customer/index.html.twig et
  * templates/admin/association/{index,show}.html.twig).
  *
- * Pilote l'ajout de crédit personnel et le débit d'impression, avec un
- * calcul d'estimation client basé sur les tarifs configurés en admin
+ * Scopée par "focus" (personnel ou mairie), passé par le bouton déclencheur
+ * via data-credit-modal-focus-param : cliquer sur "Solde personnel" ne
+ * montre que la gestion du solde personnel (+ le débit impression, qui
+ * reste une action liée au comptoir/personnel), cliquer sur "Solde mairie"
+ * ne montre que l'ajout au crédit mairie. Évite d'afficher les deux soldes
+ * comme actionnables en même temps, source de confusion (retour du
+ * 2026-08-25) -- même si le débit d'impression touche réellement les deux
+ * soldes côté serveur (mairie en priorité, cf. PrintCostCalculator /
+ * AssociationRepository::debitForPrintJob), ça reste un détail
+ * d'implémentation que l'admin n'a pas besoin de piloter depuis l'écran
+ * "gérer le crédit mairie".
+ *
+ * Calcule l'estimation du débit à partir des tarifs configurés en admin
  * (page "Tarifs d'impression"), passés via ratesValue — pas de grille de
  * prix codée en dur ici : source unique avec le calcul serveur
  * (PrintCostCalculator), pour que l'estimation affichée corresponde
@@ -17,14 +28,12 @@ import { Controller } from '@hotwired/stimulus';
  * modalRootTarget) : les boutons vivent dans un tableau, hors de la modale,
  * donc ils doivent partager le même élément data-controller="credit-modal"
  * ancêtre pour que leurs data-action résolvent.
- *
- * hasMunicipalValue distingue client (un seul solde) et association (solde
- * personnel + solde mairie, débité en priorité côté serveur).
  */
 export default class extends Controller {
     static targets = [
-        'modalRoot', 'balancePersonal', 'balanceMunicipal', 'municipalRow',
+        'modalRoot', 'title', 'balanceLabel', 'balanceValue',
         'amount', 'colorMode', 'paperSize', 'copies', 'estimatedCost',
+        'personalCreditSection', 'printChargeSection',
         'municipalCreditSection', 'municipalAmount',
         // Optionnelles : encarts soldes affichés hors modale (fiche association).
         'pageBalancePersonal', 'pageBalanceMunicipal',
@@ -38,21 +47,24 @@ export default class extends Controller {
 
     connect() {
         this.currentId = null;
+        this.currentFocus = 'personal';
+        this.currentPersonalCents = 0;
+        this.currentMunicipalCents = 0;
     }
 
     open(event) {
-        const { id, personal, municipal } = event.params;
+        const { id, personal, municipal, focus } = event.params;
         this.currentId = id;
+        this.currentFocus = focus || 'personal';
+        this.currentPersonalCents = personal ?? 0;
+        this.currentMunicipalCents = municipal ?? 0;
 
-        this.balancePersonalTarget.textContent = (personal / 100).toFixed(2);
-        if (this.hasMunicipalValue && this.hasBalanceMunicipalTarget) {
-            this.balanceMunicipalTarget.textContent = (municipal / 100).toFixed(2);
-        }
-        if (this.hasMunicipalRowTarget) {
-            this.municipalRowTarget.classList.toggle('hidden', !this.hasMunicipalValue);
-        }
+        this._applyFocus();
 
         this.amountTarget.value = '1.00';
+        if (this.hasMunicipalAmountTarget) {
+            this.municipalAmountTarget.value = '1.00';
+        }
         this._computeEstimate();
 
         this.modalRootTarget.dispatchEvent(new CustomEvent('modal:open'));
@@ -60,6 +72,22 @@ export default class extends Controller {
 
     close() {
         this.modalRootTarget.dispatchEvent(new CustomEvent('modal:close'));
+    }
+
+    // Affiche uniquement les sections pertinentes pour le solde ciblé --
+    // cf. le PHPDoc en tête de fichier pour le pourquoi.
+    _applyFocus() {
+        const isMunicipal = this.currentFocus === 'municipal';
+
+        this.titleTarget.textContent = isMunicipal ? 'Gérer le crédit mairie' : 'Gérer le solde personnel';
+        this.balanceLabelTarget.textContent = isMunicipal ? 'Solde mairie' : 'Solde personnel';
+        this.balanceValueTarget.textContent = ((isMunicipal ? this.currentMunicipalCents : this.currentPersonalCents) / 100).toFixed(2);
+
+        this.personalCreditSectionTarget.classList.toggle('hidden', isMunicipal);
+        this.printChargeSectionTarget.classList.toggle('hidden', isMunicipal);
+        if (this.hasMunicipalCreditSectionTarget) {
+            this.municipalCreditSectionTarget.classList.toggle('hidden', !isMunicipal);
+        }
     }
 
     _computeEstimate() {
@@ -86,8 +114,9 @@ export default class extends Controller {
         const cents = Math.round(euros * 100);
 
         await this._post(`${this.basePathValue}${this.currentId}/credits`, { mode: 'add', cents }, (data) => {
-            this._updateRowBalance(data.credits);
-            this._updatePageBalances(data.credits);
+            this._updateRowBalance(data.credits, undefined);
+            this._updatePageBalances(data.credits, undefined);
+            window.showFlash?.('success', 'Crédit ajouté.');
             this.close();
         });
     }
@@ -100,7 +129,6 @@ export default class extends Controller {
         const cents = Math.round(euros * 100);
 
         await this._post(`${this.basePathValue}${this.currentId}/municipal-credits`, { mode: 'add', cents }, (data) => {
-            this.balanceMunicipalTarget.textContent = (data.municipalCredits / 100).toFixed(2);
             this._updateRowBalance(undefined, data.municipalCredits);
             this._updatePageBalances(undefined, data.municipalCredits);
             window.showFlash?.('success', 'Crédit mairie ajouté.');
@@ -121,12 +149,11 @@ export default class extends Controller {
             copies: Math.max(1, parseInt(this.copiesTarget.value, 10) || 1),
         }, (data) => {
             const personal = data.personalCredits ?? data.credits;
+            // Le débit touche potentiellement les deux soldes (priorité
+            // mairie), donc on répercute les deux -- même si cette section
+            // n'est visible que côté "personnel".
             this._updateRowBalance(personal, data.municipalCredits);
             this._updatePageBalances(personal, data.municipalCredits);
-            this.balancePersonalTarget.textContent = (personal / 100).toFixed(2);
-            if (this.hasMunicipalValue && undefined !== data.municipalCredits && this.hasBalanceMunicipalTarget) {
-                this.balanceMunicipalTarget.textContent = (data.municipalCredits / 100).toFixed(2);
-            }
             window.showFlash?.('success', 'Débit appliqué.');
             this.close();
         });
