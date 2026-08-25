@@ -8,6 +8,7 @@ use App\Repository\AssociationRepository;
 use App\Repository\MunicipalBudgetSettingsRepository;
 use App\Repository\PrintMunicipalConsumptionRepository;
 use App\Repository\PrintTransactionLineRepository;
+use App\Service\MunicipalCreditsRenewalService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -95,5 +96,26 @@ class MunicipalBudgetController extends AbstractController
             'byAssociation' => $byAssociation,
             'totalCents' => $totalCents,
         ]);
+    }
+
+    /**
+     * Recharge manuellement le crédit mairie de toutes les associations au
+     * montant configuré ci-dessus -- décision du 2026-08-25 : déclenchement
+     * volontaire par l'admin, pas de cron automatique au 1er janvier (cf.
+     * MunicipalCreditsRenewalService). Remet le solde au forfait, sans
+     * reporter le reliquat non consommé (comportement inchangé).
+     */
+    #[Route('/renew', name: '.renew', methods: ['POST'])]
+    public function renew(Request $request, MunicipalCreditsRenewalService $renewalService): Response
+    {
+        if (!$this->isCsrfTokenValid('municipal_budget_renew', (string) $request->request->get('_token'))) {
+            throw $this->createAccessDeniedException('Jeton CSRF invalide');
+        }
+
+        $count = $renewalService->renewAll();
+
+        $this->addFlash('success', sprintf('Crédit mairie rechargé pour %d association(s).', $count));
+
+        return $this->redirectToRoute('admin.municipal_budget.index');
     }
 }

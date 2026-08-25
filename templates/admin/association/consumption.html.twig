@@ -1,4 +1,5 @@
 {% extends 'base.html.twig' %}
+{% import 'admin/_quarter_label.html.twig' as quarter_label %}
 
 {% set prevQuarter = quarter == 1 ? 4 : quarter - 1 %}
 {% set prevYear = quarter == 1 ? year - 1 : year %}
@@ -10,7 +11,7 @@
 {% block body %}
     {% embed 'components/_page_header.html.twig' with {
         title: association.name,
-        subtitle: 'Consommation du crédit mairie, trimestre ' ~ quarter ~ ' ' ~ year ~ '.',
+        subtitle: 'Consommation du crédit mairie, ' ~ quarter_label.full(quarter, year) ~ '.',
         association: association,
     } only %}
         {% block actions %}
@@ -25,17 +26,17 @@
 
     <div class="flex items-center justify-between mb-5 max-w-xl">
         {% include 'components/_button.html.twig' with {
-            label: 'Trimestre ' ~ prevQuarter ~ ' ' ~ prevYear,
+            label: quarter_label.short(prevQuarter, prevYear),
             variant: 'ghost',
             size: 'sm',
             icon: 'fa-solid fa-chevron-left',
             href: path('admin.association.consumption', {id: association.id, year: prevYear, quarter: prevQuarter}),
         } only %}
         <span class="font-display font-bold uppercase tracking-wide text-text-primary">
-            T{{ quarter }} {{ year }}
+            {{ quarter_label.full(quarter, year) }}
         </span>
         {% include 'components/_button.html.twig' with {
-            label: 'Trimestre ' ~ nextQuarter ~ ' ' ~ nextYear,
+            label: quarter_label.short(nextQuarter, nextYear),
             variant: 'ghost',
             size: 'sm',
             icon: 'fa-solid fa-chevron-right',

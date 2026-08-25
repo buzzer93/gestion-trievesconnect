@@ -1,0 +1,28 @@
+{#
+  admin/_quarter_label.html.twig — Libellé d'un trimestre avec les mois inclus
+
+  Usage :
+    {% import 'admin/_quarter_label.html.twig' as quarter_label %}
+    {{ quarter_label.full(quarter, year) }}     {# "Janvier - Mars 2026" #}
+    {{ quarter_label.short(quarter, year) }}    {# "Janv.-Mars 2026" #}
+#}
+
+{% macro full(quarter, year) %}
+    {%- set months = {
+        1: ['Janvier', 'Mars'],
+        2: ['Avril', 'Juin'],
+        3: ['Juillet', 'Septembre'],
+        4: ['Octobre', 'Décembre'],
+    } -%}
+    {{- months[quarter][0] }} - {{ months[quarter][1] }} {{ year -}}
+{% endmacro %}
+
+{% macro short(quarter, year) %}
+    {%- set months = {
+        1: ['Janv.', 'Mars'],
+        2: ['Avr.', 'Juin'],
+        3: ['Juil.', 'Sept.'],
+        4: ['Oct.', 'Déc.'],
+    } -%}
+    {{- months[quarter][0] }}-{{ months[quarter][1] }} {{ year -}}
+{% endmacro %}

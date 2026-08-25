@@ -17,20 +17,34 @@
         {% endblock %}
     {% endembed %}
 
-    <div data-controller="credit-modal"
+    <div data-controller="credit-modal table-filter"
          data-credit-modal-base-path-value="{{ path('admin.customer.index') }}"
          data-credit-modal-rates-value="{{ rates|map(r => {colorMode: r.colorMode, paperSize: r.paperSize, priceCents: r.priceCents})|json_encode }}"
          data-credit-modal-has-municipal-value="false">
 
-        <div class="mb-5 max-w-xl">
-            <label for="scanPhoneInput" class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">
-                <i class="fa-solid fa-barcode mr-1.5" aria-hidden="true"></i>
-                Scanner un numéro de téléphone
-            </label>
-            <input id="scanPhoneInput" type="text"
-                   placeholder="Scanner ou saisir un numéro puis Entrée"
-                   autocomplete="off"
-                   class="block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm font-mono placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent transition-colors duration-150">
+        <div class="flex flex-col sm:flex-row gap-4 mb-5">
+            <div class="max-w-xl grow">
+                <label for="tableSearchInput" class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">
+                    <i class="fa-solid fa-magnifying-glass mr-1.5" aria-hidden="true"></i>
+                    Rechercher (nom ou téléphone)
+                </label>
+                <input id="tableSearchInput" type="text"
+                       data-table-filter-target="input"
+                       data-action="input->table-filter#filter"
+                       placeholder="Nom ou numéro de téléphone..."
+                       autocomplete="off"
+                       class="block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent transition-colors duration-150">
+            </div>
+            <div class="max-w-xl grow">
+                <label for="scanPhoneInput" class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">
+                    <i class="fa-solid fa-barcode mr-1.5" aria-hidden="true"></i>
+                    Scanner un numéro de téléphone
+                </label>
+                <input id="scanPhoneInput" type="text"
+                       placeholder="Scanner ou saisir un numéro puis Entrée"
+                       autocomplete="off"
+                       class="block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm font-mono placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent transition-colors duration-150">
+            </div>
         </div>
 
         <table class="data-table" id="customerTable">
@@ -46,6 +60,7 @@
             <tbody>
                 {% for customer in customers %}
                     <tr data-controller="row-link"
+                        data-table-filter-target="row"
                         data-row-link-url-value="{{ path('admin.customer.edit', {id: customer.id}) }}">
                         <td>
                             <a class="data_name" href="{{ path('admin.customer.edit', {id: customer.id}) }}">{{ customer.name }}</a>
@@ -89,6 +104,11 @@
                         </td>
                     </tr>
                 {% endfor %}
+                <tr data-table-filter-target="empty" class="hidden">
+                    <td colspan="5" class="text-center text-text-muted py-6">
+                        Aucun résultat pour cette recherche.
+                    </td>
+                </tr>
             </tbody>
         </table>
 

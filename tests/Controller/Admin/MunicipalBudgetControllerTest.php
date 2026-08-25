@@ -6,6 +6,7 @@ namespace App\Tests\Controller\Admin;
 
 use App\Entity\Association;
 use App\Entity\User;
+use App\Repository\MunicipalBudgetSettingsRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -40,6 +41,37 @@ final class MunicipalBudgetControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('Association Test', $crawler->filter('body')->text());
+    }
+
+    /**
+     * Le bouton "Recharger maintenant" remet le solde mairie de TOUTES les
+     * associations au forfait configuré, sans jamais reporter le reliquat
+     * -- déclenchement manuel uniquement (décision du 2026-08-25, cf.
+     * MunicipalCreditsRenewalService).
+     */
+    public function testRenewButtonResetsAllAssociationsToConfiguredAllowance(): void
+    {
+        $client = static::createClient();
+        $client->loginUser($this->buildUser(self::ADMIN_EMAIL));
+        $associationA = $this->buildAssociation('0611110013', personalCents: 0, municipalCents: 999);
+        $associationB = $this->buildAssociation('0611110014', personalCents: 0, municipalCents: 5);
+
+        $crawler = $client->request('GET', '/admin/municipal-budget/');
+        $client->submitForm('Recharger maintenant toutes les associations');
+
+        self::assertResponseRedirects('/admin/municipal-budget/');
+
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->clear();
+        $settings = static::getContainer()->get(MunicipalBudgetSettingsRepository::class)->getSettings();
+        $allowanceCents = $settings->getAnnualAllowanceCents();
+
+        $refreshedA = $entityManager->getRepository(Association::class)->find($associationA->getId());
+        $refreshedB = $entityManager->getRepository(Association::class)->find($associationB->getId());
+        self::assertSame($allowanceCents, $refreshedA->getMunicipalBalanceCents());
+        self::assertSame($allowanceCents, $refreshedB->getMunicipalBalanceCents());
+        // Le solde personnel n'est jamais touché par le renouvellement.
+        self::assertSame(0, $refreshedA->getBalanceCents());
     }
 
     private function buildAssociation(string $phoneNumber, int $personalCents, int $municipalCents): Association

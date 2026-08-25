@@ -26,7 +26,7 @@ final class CustomerControllerTest extends WebTestCase
         $client->request('GET', '/admin/customer/');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorExists('[data-controller="credit-modal"]');
+        self::assertSelectorExists('[data-controller~="credit-modal"]');
     }
 
     /**

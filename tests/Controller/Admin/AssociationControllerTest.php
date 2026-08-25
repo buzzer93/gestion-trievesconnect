@@ -33,7 +33,7 @@ final class AssociationControllerTest extends WebTestCase
         $client->request('GET', '/admin/association/');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorExists('[data-controller="credit-modal"]');
+        self::assertSelectorExists('[data-controller~="credit-modal"]');
     }
 
     /**
@@ -91,7 +91,7 @@ final class AssociationControllerTest extends WebTestCase
         $client->request('GET', '/admin/association/'.$association->getId());
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorExists('[data-controller="credit-modal"]');
+        self::assertSelectorExists('[data-controller~="credit-modal"]');
         self::assertSelectorExists('[data-credit-modal-target="pageBalancePersonal"]');
         self::assertSelectorExists('[data-credit-modal-target="pageBalanceMunicipal"]');
     }

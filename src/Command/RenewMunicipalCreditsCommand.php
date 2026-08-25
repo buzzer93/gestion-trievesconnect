@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace App\Command;
 
-use App\Repository\AssociationRepository;
-use App\Repository\MunicipalBudgetSettingsRepository;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Service\MunicipalCreditsRenewalService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -14,26 +12,25 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Renouvellement annuel du forfait mairie (montant configurable, cf. page
- * admin "Budget mairie" / MunicipalBudgetSettings, 500 pages à 0,10 € par
- * défaut) pour toutes les associations. Remet le solde mairie au montant
- * du forfait, sans jamais reporter le reliquat non consommé -- décision
- * prise avec l'utilisateur : le forfait fonctionne en "usage ou perte",
- * pas de cumul d'une année sur l'autre.
+ * Renouvellement du forfait mairie (montant configurable, cf. page admin
+ * "Budget mairie" / MunicipalBudgetSettings) pour toutes les associations.
  *
- * À planifier en cron le 1er janvier :
- *     0 0 1 1 * php bin/console printgate:renew-municipal-credits
+ * Déclenchement volontairement manuel (décision du 2026-08-25) : ni cette
+ * commande ni le bouton "Recharger maintenant" de la page admin ne sont
+ * automatiques -- c'est l'admin qui choisit quand renouveler, typiquement
+ * une fois par an en janvier, mais rien ne l'impose. Cette commande reste
+ * disponible pour un usage scripté si besoin, mais n'est pas planifiée en
+ * cron. La logique elle-même vit dans MunicipalCreditsRenewalService,
+ * partagée avec le bouton admin -- pas de duplication.
  */
 #[AsCommand(
     name: 'printgate:renew-municipal-credits',
-    description: 'Renouvelle le forfait mairie annuel de toutes les associations',
+    description: 'Renouvelle le forfait mairie de toutes les associations (déclenchement manuel)',
 )]
 class RenewMunicipalCreditsCommand extends Command
 {
     public function __construct(
-        private readonly AssociationRepository $associationRepository,
-        private readonly MunicipalBudgetSettingsRepository $budgetSettingsRepository,
-        private readonly EntityManagerInterface $entityManager,
+        private readonly MunicipalCreditsRenewalService $renewalService,
     ) {
         parent::__construct();
     }
@@ -41,22 +38,9 @@ class RenewMunicipalCreditsCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $now = new \DateTimeImmutable();
-        $allowanceCents = $this->budgetSettingsRepository->getSettings()->getAnnualAllowanceCents();
+        $count = $this->renewalService->renewAll();
 
-        $associations = $this->associationRepository->findAll();
-
-        foreach ($associations as $association) {
-            $association->renewMunicipalCredits($now, $allowanceCents);
-        }
-
-        $this->entityManager->flush();
-
-        $io->success(sprintf(
-            '%d association(s) renouvelée(s) avec %s € de forfait mairie.',
-            count($associations),
-            number_format($allowanceCents / 100, 2, ',', ''),
-        ));
+        $io->success(sprintf('%d association(s) renouvelée(s).', $count));
 
         return Command::SUCCESS;
     }

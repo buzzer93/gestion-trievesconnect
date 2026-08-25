@@ -1,4 +1,5 @@
 {% extends 'base.html.twig' %}
+{% import 'admin/_quarter_label.html.twig' as quarter_label %}
 
 {% set prevQuarter = quarter == 1 ? 4 : quarter - 1 %}
 {% set prevYear = quarter == 1 ? year - 1 : year %}
@@ -10,7 +11,7 @@
 {% block body %}
     {% include 'components/_page_header.html.twig' with {
         title: 'Budget mairie',
-        subtitle: 'Forfait annuel accordé à chaque association, renouvelé le 1er janvier.',
+        subtitle: 'Forfait annuel accordé à chaque association -- rechargé manuellement, pas de renouvellement automatique.',
     } only %}
 
     {% embed 'components/_card.html.twig' with { padding: 'lg', settings: settings } only %}
@@ -32,6 +33,18 @@
                     </button>
                 </div>
             </form>
+
+            <form method="post" action="{{ path('admin.municipal_budget.renew') }}" class="mt-4 pt-4 border-t border-border"
+                  onsubmit="return confirm('Recharger le crédit mairie de TOUTES les associations à ' + document.getElementById('annual_allowance_euros').value + ' € ? Le solde mairie actuel de chaque association sera remplacé (le reliquat non consommé est perdu, pas cumulé).');">
+                <input type="hidden" name="_token" value="{{ csrf_token('municipal_budget_renew') }}">
+                <button type="submit" class="inline-flex items-center justify-center gap-2 bg-transparent text-gold border-2 border-gold font-display font-bold uppercase tracking-wide text-sm px-4 py-2 rounded-md hover:bg-gold hover:text-bg transition-colors">
+                    <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>
+                    Recharger maintenant toutes les associations
+                </button>
+                <p class="text-xs text-text-muted mt-2">
+                    Déclenchement manuel uniquement -- aucun renouvellement automatique n'a lieu au 1er janvier. Enregistrez d'abord le montant ci-dessus si vous le changez.
+                </p>
+            </form>
         {% endblock %}
     {% endembed %}
 
@@ -41,17 +54,17 @@
 
     <div class="flex items-center justify-between mb-5 max-w-xl">
         {% include 'components/_button.html.twig' with {
-            label: 'Trimestre ' ~ prevQuarter ~ ' ' ~ prevYear,
+            label: quarter_label.short(prevQuarter, prevYear),
             variant: 'ghost',
             size: 'sm',
             icon: 'fa-solid fa-chevron-left',
             href: path('admin.municipal_budget.index', {year: prevYear, quarter: prevQuarter}),
         } only %}
         <span class="font-display font-bold uppercase tracking-wide text-text-primary">
-            T{{ quarter }} {{ year }}
+            {{ quarter_label.full(quarter, year) }}
         </span>
         {% include 'components/_button.html.twig' with {
-            label: 'Trimestre ' ~ nextQuarter ~ ' ' ~ nextYear,
+            label: quarter_label.short(nextQuarter, nextYear),
             variant: 'ghost',
             size: 'sm',
             icon: 'fa-solid fa-chevron-right',
