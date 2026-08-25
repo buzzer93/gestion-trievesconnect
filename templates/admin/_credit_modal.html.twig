@@ -6,11 +6,17 @@
   qui englobe aussi le(s) bouton(s) déclencheurs (.credit-btn) -- ce sont ces
   boutons qui posent les data-credit-modal-*-param (id, soldes courants) et
   data-credit-modal-focus-param ("personal" ou "municipal") qui détermine
-  quelles sections la modale affiche : cliquer sur "Solde personnel" ne
-  montre que la gestion du solde personnel (+ débit impression), cliquer
-  sur "Solde mairie" ne montre que la gestion du crédit mairie -- pour
-  éviter la confusion d'avoir les deux soldes actionnables en même temps
-  (cf. retour utilisateur du 2026-08-25).
+  quelle section "Ajouter" la modale affiche : cliquer sur "Solde
+  personnel" ne montre que l'ajout au solde personnel, cliquer sur "Solde
+  mairie" ne montre que l'ajout au crédit mairie -- pour éviter la
+  confusion d'avoir les deux comme actionnables en même temps (cf. retour
+  utilisateur du 2026-08-25).
+
+  "Débiter pour impression" est en revanche TOUJOURS visible, quel que
+  soit le focus : depuis la décision du 2026-08-25, le choix de la source
+  (mairie ou personnel) n'est plus une question posée à l'admin -- il est
+  entièrement déterminé par PrintPolicyEvaluator (éligibilité + priorité),
+  exactement comme pour PrintGate. Pas de section "débit mairie" séparée.
 
   Params :
     has_municipal  bool  autorise l'affichage de la section solde mairie
@@ -93,135 +99,70 @@
                             </button>
                         </div>
                     </section>
-
-                    <div data-credit-modal-target="municipalPrintChargeSection" class="hidden">
-                        <hr class="border-border m-0 mb-6">
-
-                        <section>
-                            <h6 class="m-0 mb-3 font-display font-bold text-xs uppercase tracking-wide text-text-soft">
-                                <i class="fa-solid fa-print text-warning mr-1.5" aria-hidden="true"></i>
-                                Débiter pour impression (crédit mairie)
-                            </h6>
-
-                            <div class="grid grid-cols-2 gap-3 mb-3">
-                                <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">Mode couleur</label>
-                                    <select data-credit-modal-target="municipalColorMode"
-                                            data-action="change->credit-modal#recomputeMunicipalEstimate"
-                                            class="block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-accent">
-                                        <option value="MONOCHROME">Monochrome</option>
-                                        <option value="COLOR">Couleur</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">Format</label>
-                                    <select data-credit-modal-target="municipalPaperSize"
-                                            data-action="change->credit-modal#recomputeMunicipalEstimate"
-                                            class="block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-accent">
-                                        <option value="A4">A4</option>
-                                        <option value="A3">A3</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="flex flex-col sm:flex-row gap-3 mb-3">
-                                <div class="flex grow rounded-sm overflow-hidden border border-border">
-                                    <span class="inline-flex items-center px-3 bg-surface-400 text-text-soft text-xs font-bold uppercase tracking-wide">Quantité</span>
-                                    <input type="number" min="1" step="1" value="1"
-                                           data-credit-modal-target="municipalCopies"
-                                           data-action="change->credit-modal#recomputeMunicipalEstimate input->credit-modal#recomputeMunicipalEstimate"
-                                           class="block w-full bg-surface-200 text-text-primary border-0 px-3 py-2 text-sm focus:outline-none focus:bg-surface-100">
-                                </div>
-                            </div>
-
-                            <p class="text-xs text-text-muted mb-3">
-                                <i class="fa-solid fa-circle-info mr-1" aria-hidden="true"></i>
-                                Débite uniquement le crédit mairie -- refusé si celui-ci ne couvre pas le montant (pas de bascule sur le solde personnel ici).
-                            </p>
-
-                            <div class="flex items-center justify-between bg-surface-200 border border-border rounded-sm px-4 py-3 mb-4">
-                                <span class="text-xs font-bold uppercase tracking-wide text-text-soft">Coût estimé</span>
-                                <span class="font-mono font-bold text-base text-warning">
-                                    <strong data-credit-modal-target="municipalEstimatedCost">0.00</strong> €
-                                </span>
-                            </div>
-
-                            <div class="flex justify-end">
-                                <button type="button"
-                                        data-action="credit-modal#chargeMunicipalPrint"
-                                        class="inline-flex items-center justify-center gap-2 bg-transparent text-warning border-2 border-warning font-display font-bold uppercase tracking-wide text-sm px-4 py-2 rounded-md hover:bg-warning hover:text-bg transition-colors">
-                                    <i class="fa-solid fa-minus" aria-hidden="true"></i>
-                                    <span>Débiter</span>
-                                </button>
-                            </div>
-                        </section>
-                    </div>
                 {% endif %}
 
-                <div data-credit-modal-target="printChargeSection">
-                    <hr class="border-border m-0 mb-6">
+                <hr class="border-border m-0">
 
-                    <section>
-                        <h6 class="m-0 mb-3 font-display font-bold text-xs uppercase tracking-wide text-text-soft">
-                            <i class="fa-solid fa-print text-warning mr-1.5" aria-hidden="true"></i>
-                            Débiter pour impression
-                        </h6>
+                <section>
+                    <h6 class="m-0 mb-3 font-display font-bold text-xs uppercase tracking-wide text-text-soft">
+                        <i class="fa-solid fa-print text-warning mr-1.5" aria-hidden="true"></i>
+                        Débiter pour impression
+                    </h6>
 
-                        <div class="grid grid-cols-2 gap-3 mb-3">
-                            <div>
-                                <label class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">Mode couleur</label>
-                                <select data-credit-modal-target="colorMode"
-                                        data-action="change->credit-modal#recomputeEstimate"
-                                        class="block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-accent">
-                                    <option value="MONOCHROME">Monochrome</option>
-                                    <option value="COLOR">Couleur</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">Format</label>
-                                <select data-credit-modal-target="paperSize"
-                                        data-action="change->credit-modal#recomputeEstimate"
-                                        class="block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-accent">
-                                    <option value="A4">A4</option>
-                                    <option value="A3">A3</option>
-                                </select>
-                            </div>
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">Mode couleur</label>
+                            <select data-credit-modal-target="colorMode"
+                                    data-action="change->credit-modal#recomputeEstimate"
+                                    class="block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-accent">
+                                <option value="MONOCHROME">Monochrome</option>
+                                <option value="COLOR">Couleur</option>
+                            </select>
                         </div>
-
-                        <div class="flex flex-col sm:flex-row gap-3 mb-3">
-                            <div class="flex grow rounded-sm overflow-hidden border border-border">
-                                <span class="inline-flex items-center px-3 bg-surface-400 text-text-soft text-xs font-bold uppercase tracking-wide">Quantité</span>
-                                <input type="number" min="1" step="1" value="1"
-                                       data-credit-modal-target="copies"
-                                       data-action="change->credit-modal#recomputeEstimate input->credit-modal#recomputeEstimate"
-                                       class="block w-full bg-surface-200 text-text-primary border-0 px-3 py-2 text-sm focus:outline-none focus:bg-surface-100">
-                            </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">Format</label>
+                            <select data-credit-modal-target="paperSize"
+                                    data-action="change->credit-modal#recomputeEstimate"
+                                    class="block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-accent">
+                                <option value="A4">A4</option>
+                                <option value="A3">A3</option>
+                            </select>
                         </div>
+                    </div>
 
-                        {% if has_municipal|default(false) %}
-                            <p class="text-xs text-text-muted mb-3">
-                                <i class="fa-solid fa-circle-info mr-1" aria-hidden="true"></i>
-                                Le crédit mairie est débité en priorité ; le solde personnel ne couvre que le reliquat.
-                            </p>
-                        {% endif %}
-
-                        <div class="flex items-center justify-between bg-surface-200 border border-border rounded-sm px-4 py-3 mb-4">
-                            <span class="text-xs font-bold uppercase tracking-wide text-text-soft">Coût estimé</span>
-                            <span class="font-mono font-bold text-base text-warning">
-                                <strong data-credit-modal-target="estimatedCost">0.00</strong> €
-                            </span>
+                    <div class="flex flex-col sm:flex-row gap-3 mb-3">
+                        <div class="flex grow rounded-sm overflow-hidden border border-border">
+                            <span class="inline-flex items-center px-3 bg-surface-400 text-text-soft text-xs font-bold uppercase tracking-wide">Quantité</span>
+                            <input type="number" min="1" step="1" value="1"
+                                   data-credit-modal-target="copies"
+                                   data-action="change->credit-modal#recomputeEstimate input->credit-modal#recomputeEstimate"
+                                   class="block w-full bg-surface-200 text-text-primary border-0 px-3 py-2 text-sm focus:outline-none focus:bg-surface-100">
                         </div>
+                    </div>
 
-                        <div class="flex justify-end">
-                            <button type="button"
-                                    data-action="credit-modal#chargePrint"
-                                    class="inline-flex items-center justify-center gap-2 bg-transparent text-warning border-2 border-warning font-display font-bold uppercase tracking-wide text-sm px-4 py-2 rounded-md hover:bg-warning hover:text-bg transition-colors">
-                                <i class="fa-solid fa-minus" aria-hidden="true"></i>
-                                <span>Débiter</span>
-                            </button>
-                        </div>
-                    </section>
-                </div>
+                    {% if has_municipal|default(false) %}
+                        <p class="text-xs text-text-muted mb-3">
+                            <i class="fa-solid fa-circle-info mr-1" aria-hidden="true"></i>
+                            La source est déterminée automatiquement : crédit mairie en priorité si l'impression y est éligible, solde personnel sinon ou en complément. Le montant estimé ci-dessous est calculé au tarif association (majorant) -- le montant réellement débité peut être inférieur si la mairie finance tout ou partie.
+                        </p>
+                    {% endif %}
+
+                    <div class="flex items-center justify-between bg-surface-200 border border-border rounded-sm px-4 py-3 mb-4">
+                        <span class="text-xs font-bold uppercase tracking-wide text-text-soft">Coût estimé</span>
+                        <span class="font-mono font-bold text-base text-warning">
+                            <strong data-credit-modal-target="estimatedCost">0.00</strong> €
+                        </span>
+                    </div>
+
+                    <div class="flex justify-end">
+                        <button type="button"
+                                data-action="credit-modal#chargePrint"
+                                class="inline-flex items-center justify-center gap-2 bg-transparent text-warning border-2 border-warning font-display font-bold uppercase tracking-wide text-sm px-4 py-2 rounded-md hover:bg-warning hover:text-bg transition-colors">
+                            <i class="fa-solid fa-minus" aria-hidden="true"></i>
+                            <span>Débiter</span>
+                        </button>
+                    </div>
+                </section>
             </div>
         </div>
 

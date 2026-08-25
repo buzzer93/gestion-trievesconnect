@@ -7,6 +7,7 @@ namespace App\Controller\Admin;
 use App\Repository\AssociationRepository;
 use App\Repository\MunicipalBudgetSettingsRepository;
 use App\Repository\PrintMunicipalConsumptionRepository;
+use App\Repository\PrintTransactionLineRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -32,6 +33,7 @@ class MunicipalBudgetController extends AbstractController
         MunicipalBudgetSettingsRepository $settingsRepository,
         AssociationRepository $associationRepository,
         PrintMunicipalConsumptionRepository $consumptionRepository,
+        PrintTransactionLineRepository $lineRepository,
         EntityManagerInterface $em,
     ): Response {
         $settings = $settingsRepository->getSettings();
@@ -68,10 +70,22 @@ class MunicipalBudgetController extends AbstractController
         }
 
         $totalCents = 0;
+
+        // Fusionne l'ancien journal (trimestres déjà facturés avant le
+        // 2026-08-25) et le nouveau (seul alimenté désormais) -- cf.
+        // PHPDoc de Version20260825170000.
         foreach ($consumptionRepository->findMunicipalForQuarterAllAssociations($year, $quarter) as $entry) {
             $id = $entry->getAssociation()->getId();
             $byAssociation[$id]['amountCents'] += $entry->getAmountSpentCents();
             $totalCents += $entry->getAmountSpentCents();
+        }
+
+        foreach ($lineRepository->findMunicipalForQuarterAllAssociations($year, $quarter) as $line) {
+            $id = $line->getTransaction()->getCustomer()->getId();
+            if (isset($byAssociation[$id])) {
+                $byAssociation[$id]['amountCents'] += $line->getAmountCents();
+            }
+            $totalCents += $line->getAmountCents();
         }
 
         return $this->render('admin/municipal_budget/index.html.twig', [

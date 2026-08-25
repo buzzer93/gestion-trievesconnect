@@ -30,7 +30,7 @@ final class PrintAuthorizationControllerTest extends WebTestCase
         $client = static::createClient();
         $secretKey = $this->registerTestDevice();
         $this->registerTestCustomer();
-        $body = $this->samplePayload();
+        $body = $this->samplePayload(jobId: 101);
 
         $client->request('POST', '/api/printgate/authorize', server: [
             'CONTENT_TYPE' => 'application/json',
@@ -41,8 +41,11 @@ final class PrintAuthorizationControllerTest extends WebTestCase
         $payload = json_decode($client->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
         // PrintPolicyEvaluator autorise si un Customer avec ce numéro de
         // téléphone existe et a assez de crédits -- cf. registerTestCustomer().
-        self::assertTrue($payload['authorizedImpression']);
+        self::assertTrue($payload['authorized']);
         self::assertNull($payload['reason'] ?? null);
+        self::assertSame(50, $payload['amountChargedCents']);
+        self::assertSame('CUSTOMER', $payload['fundingSource']);
+        self::assertNotEmpty($payload['transactionReference']);
     }
 
     public function testAccessWithoutJwtIsRejected(): void
@@ -112,7 +115,7 @@ final class PrintAuthorizationControllerTest extends WebTestCase
         $client = static::createClient();
         $secretKey = $this->registerTestDevice();
         $this->registerTestCustomer();
-        $body = $this->samplePayload();
+        $body = $this->samplePayload(jobId: 102);
         $jwt = $this->signJwt($secretKey, $body);
 
         $client->request('POST', '/api/printgate/authorize', server: [
@@ -129,14 +132,56 @@ final class PrintAuthorizationControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(409);
     }
 
-    private function samplePayload(): string
+    /**
+     * Idempotence métier, DISTINCTE de l'anti-rejeu JWT ci-dessus : ici
+     * deux JWT différents (jti différents, donc l'anti-rejeu ne les
+     * distingue pas comme des doublons), mais le même jobId -- le
+     * scénario réel d'un agent PrintGate qui re-signe une nouvelle requête
+     * après un timeout réseau, pour la même impression. La deuxième
+     * requête ne doit jamais redébiter : même référence de transaction et
+     * même montant renvoyés.
+     */
+    public function testSameJobIdWithDifferentJwtIsIdempotent(): void
+    {
+        $client = static::createClient();
+        $secretKey = $this->registerTestDevice();
+        $this->registerTestCustomer();
+        $body = $this->samplePayload(jobId: 103);
+
+        $client->request('POST', '/api/printgate/authorize', server: [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_AUTHORIZATION' => 'Bearer '.$this->signJwt($secretKey, $body),
+        ], content: $body);
+        self::assertResponseIsSuccessful();
+        $first = json_decode($client->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
+
+        // Nouveau JWT (jti différent), même corps donc même jobId.
+        $client->request('POST', '/api/printgate/authorize', server: [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_AUTHORIZATION' => 'Bearer '.$this->signJwt($secretKey, $body),
+        ], content: $body);
+        self::assertResponseIsSuccessful();
+        $second = json_decode($client->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
+
+        self::assertSame($first['transactionReference'], $second['transactionReference']);
+        self::assertSame($first['amountChargedCents'], $second['amountChargedCents']);
+    }
+
+    /**
+     * jobId paramétrable : le poste de test est désormais réutilisé entre
+     * méthodes de test (cf. registerTestDevice()), et l'idempotence
+     * PrintGate est justement indexée sur (poste, jobId) -- deux tests
+     * différents utilisant le même jobId partageraient sinon la même
+     * transaction déjà enregistrée par l'un d'eux.
+     */
+    private function samplePayload(int $jobId = 42): string
     {
         return json_encode([
             'identifier' => self::CUSTOMER_PHONE_NUMBER,
             'computerId' => self::COMPUTER_ID,
             'hostname' => 'poste-ci',
             'printJob' => [
-                'jobId' => 42,
+                'jobId' => $jobId,
                 'printerName' => 'Imprimante-WiFi',
                 'documentName' => 'document.pdf',
                 'pageCount' => 4,
@@ -149,9 +194,16 @@ final class PrintAuthorizationControllerTest extends WebTestCase
     }
 
     /**
-     * Enregistre (ou réenregistre) un PrintGateDevice de test et retourne
-     * sa clé privée Ed25519 brute (format sodium), pour signer des JWT
-     * dans les tests.
+     * Enregistre (ou réutilise) un PrintGateDevice de test et retourne sa
+     * clé privée Ed25519 brute (format sodium), pour signer des JWT dans
+     * les tests.
+     *
+     * Réutilise l'appareil existant (même id) plutôt que de le supprimer
+     * et le recréer : depuis l'ajout de PrintTransaction (référence
+     * nullable vers ce poste), un poste ayant déjà des transactions ne
+     * peut plus être supprimé aussi simplement -- réutiliser l'id évite le
+     * problème et reflète mieux la réalité (le poste n'est pas recréé à
+     * chaque requête PrintGate).
      */
     private function registerTestDevice(): string
     {
@@ -162,17 +214,15 @@ final class PrintAuthorizationControllerTest extends WebTestCase
         /** @var EntityManagerInterface $entityManager */
         $entityManager = static::getContainer()->get(EntityManagerInterface::class);
 
-        $existing = $entityManager->getRepository(PrintGateDevice::class)
+        $device = $entityManager->getRepository(PrintGateDevice::class)
             ->findOneBy(['computerId' => self::COMPUTER_ID]);
 
-        if (null !== $existing) {
-            $entityManager->remove($existing);
-            $entityManager->flush();
+        if (null === $device) {
+            $device = new PrintGateDevice(self::COMPUTER_ID, 'poste-ci');
+            $entityManager->persist($device);
         }
 
-        $device = new PrintGateDevice(self::COMPUTER_ID, 'poste-ci');
         $device->setPublicKey($this->rawEd25519PublicKeyToPem($publicKeyRaw));
-        $entityManager->persist($device);
         $entityManager->flush();
 
         return $secretKey;

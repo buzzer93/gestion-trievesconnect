@@ -3,10 +3,14 @@
 namespace App\Controller\Admin;
 
 use App\Entity\Customer;
+use App\Entity\PrintPriceRate;
+use App\Entity\User;
 use App\Form\CustomerType;
 use App\Repository\CustomerRepository;
 use App\Repository\PrintPriceRateRepository;
-use App\Service\PrintGate\PrintCostCalculator;
+use App\Service\PrintGate\PrintChargeContext;
+use App\Service\PrintGate\PrintPolicyEvaluator;
+use App\Service\PrintGate\PrintRefusalMessageFormatter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -26,7 +30,7 @@ class CustomerController extends AbstractController
         $customers = $cr->findAll();
         return $this->render('admin/customer/index.html.twig', [
             'customers' => $customers,
-            'rates' => $rateRepository->findAll(),
+            'rates' => $rateRepository->findAllByScope(PrintPriceRate::SCOPE_CLIENT),
         ]);
     }
 
@@ -129,23 +133,40 @@ class CustomerController extends AbstractController
         ]);
     }
 
+    /**
+     * Débit pour impression -- solde toujours le solde personnel pour un
+     * client classique (pas de choix à faire, contrairement à une
+     * association). Passe par PrintPolicyEvaluator, service unique
+     * partagé avec le flux PrintGate automatique et le débit associatif :
+     * pas de logique de tarification dupliquée ici (cf. règles projet).
+     */
     #[Route('/{id}/print-charge', name: '.print_charge', methods: ['POST'], requirements: ['id' => Requirement::DIGITS])]
-    public function printCharge(Customer $customer, Request $request, EntityManagerInterface $em, PrintCostCalculator $costCalculator): JsonResponse
+    public function printCharge(Customer $customer, Request $request, PrintPolicyEvaluator $policyEvaluator): JsonResponse
     {
         $payload = json_decode($request->getContent(), true) ?? [];
-        $colorMode = strtoupper((string)($payload['colorMode'] ?? ''));
-        $paperSize = strtoupper((string)($payload['paperSize'] ?? ''));
-        $copies = max(1, (int)($payload['copies'] ?? 1));
+        $colorMode = strtoupper((string) ($payload['colorMode'] ?? ''));
+        $paperSize = strtoupper((string) ($payload['paperSize'] ?? ''));
+        $copies = max(1, (int) ($payload['copies'] ?? 1));
 
-        $cents = $costCalculator->computeCostCents($colorMode, $paperSize, $copies);
-        if (null === $cents) {
-            return new JsonResponse(['error' => 'Tarif non configuré'], 400);
+        $user = $this->getUser();
+
+        $decision = $policyEvaluator->evaluate(new PrintChargeContext(
+            beneficiary: $customer,
+            colorMode: $colorMode,
+            paperSize: $paperSize,
+            copies: $copies,
+            createdBy: $user instanceof User ? $user : null,
+            motif: 'Débit manuel (admin)',
+        ));
+
+        if (!$decision->authorized) {
+            return new JsonResponse(['error' => PrintRefusalMessageFormatter::format($decision)], 400);
         }
-        if ($customer->getBalanceCents() < $cents) {
-            return new JsonResponse(['error' => 'Solde insuffisant'], 400);
-        }
-        $customer->removeBalanceCents($cents);
-        $em->flush();
-        return new JsonResponse(['success' => true, 'credits' => $customer->getBalanceCents()]);
+
+        return new JsonResponse([
+            'success' => true,
+            'credits' => $customer->getBalanceCents(),
+            'fundingSource' => $decision->fundingSource,
+        ]);
     }
 }

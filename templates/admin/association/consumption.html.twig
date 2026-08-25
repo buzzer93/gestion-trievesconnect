@@ -104,11 +104,11 @@
             {% for entry in entries %}
                 <tr>
                     <td class="text-text-soft">{{ entry.createdAt|date('d/m/Y H:i') }}</td>
-                    <td class="font-mono text-sm text-text-soft">#{{ entry.printJobId }}</td>
+                    <td class="font-mono text-sm text-text-soft">{{ entry.jobId ? '#' ~ entry.jobId : '--' }}</td>
                     <td class="text-text-soft">{{ entry.colorMode ?? 'MONOCHROME' }} / {{ entry.paperSize ?? 'A4' }}</td>
                     <td class="font-mono text-sm text-text-soft">{{ entry.copies }}</td>
                     <td class="font-mono text-sm text-text-soft">{{ entry.pageCount }}</td>
-                    <td class="font-mono text-sm text-text-soft">{{ (entry.amountSpentCents / 100)|number_format(2, ',', '') }} €</td>
+                    <td class="font-mono text-sm text-text-soft">{{ (entry.amountCents / 100)|number_format(2, ',', '') }} €</td>
                 </tr>
             {% else %}
                 <tr>

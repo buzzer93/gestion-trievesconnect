@@ -5,21 +5,17 @@
 {% block body %}
     {% include 'components/_page_header.html.twig' with {
         title: 'Tarifs d\'impression',
-        subtitle: 'Prix par copie selon le mode couleur et le format de papier.',
+        subtitle: 'Trois grilles distinctes : clients, associations, financement mairie.',
     } only %}
 
-    {% embed 'components/_card.html.twig' with { padding: 'lg', rates: rates } only %}
-        {% block body %}
-            <form method="post" action="{{ path('admin.print_pricing.index') }}">
-                <input type="hidden" name="_token" value="{{ csrf_token('print_pricing_edit') }}">
+    <form method="post" action="{{ path('admin.print_pricing.index') }}" class="flex flex-col gap-8">
+        <input type="hidden" name="_token" value="{{ csrf_token('print_pricing_edit') }}">
 
+        {% embed 'components/_card.html.twig' with { padding: 'lg', title: 'Clients', rates: clientRates } only %}
+            {% block body %}
                 <table class="data-table">
                     <thead>
-                        <tr>
-                            <th>Mode couleur</th>
-                            <th>Format</th>
-                            <th>Prix par copie (€)</th>
-                        </tr>
+                        <tr><th>Mode couleur</th><th>Format</th><th>Prix par copie (€)</th></tr>
                     </thead>
                     <tbody>
                         {% for rate in rates %}
@@ -33,21 +29,76 @@
                                 </td>
                             </tr>
                         {% else %}
-                            <tr>
-                                <td colspan="3" class="text-center text-text-muted py-6">
-                                    Aucun tarif configuré.
-                                </td>
-                            </tr>
+                            <tr><td colspan="3" class="text-center text-text-muted py-6">Aucun tarif configuré.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
+            {% endblock %}
+        {% endembed %}
 
-                <div class="flex items-center gap-3 mt-6 pt-4 border-t border-border">
-                    <button type="submit" class="inline-flex items-center justify-center gap-2 bg-accent text-bg font-display font-semibold text-sm px-4 py-2 rounded-md border border-accent hover:bg-accent-hover hover:border-accent-hover transition-colors duration-150 focus:outline-none focus:shadow-focus">
-                        Enregistrer
-                    </button>
-                </div>
-            </form>
-        {% endblock %}
-    {% endembed %}
+        {% embed 'components/_card.html.twig' with { padding: 'lg', title: 'Associations -- solde personnel', rates: associationRates } only %}
+            {% block body %}
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Mode couleur</th><th>Format</th><th>Prix par copie (€)</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for rate in rates %}
+                            <tr>
+                                <td>{{ rate.colorMode == 'COLOR' ? 'Couleur' : 'Monochrome' }}</td>
+                                <td>{{ rate.paperSize }}</td>
+                                <td>
+                                    <input type="number" step="0.01" min="0" name="price_{{ rate.id }}"
+                                           value="{{ (rate.priceCents / 100)|number_format(2, '.', '') }}"
+                                           class="bg-surface-200 border border-border rounded-md px-3 py-1.5 text-sm w-32">
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="3" class="text-center text-text-muted py-6">Aucun tarif configuré.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endblock %}
+        {% endembed %}
+
+        {% embed 'components/_card.html.twig' with { padding: 'lg', title: 'Associations -- financement mairie', rates: municipalRates } only %}
+            {% block body %}
+                <p class="text-xs text-text-muted mb-4">
+                    <i class="fa-solid fa-circle-info mr-1" aria-hidden="true"></i>
+                    Seules les combinaisons cochées "Activé" sont finançables par le crédit mairie. Une impression non activée ici est toujours payée par le solde personnel de l'association, quel que soit son solde mairie.
+                </p>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Mode couleur</th><th>Format</th><th>Prix par copie (€)</th><th>Activé</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for rate in rates %}
+                            <tr>
+                                <td>{{ rate.colorMode == 'COLOR' ? 'Couleur' : 'Monochrome' }}</td>
+                                <td>{{ rate.paperSize }}</td>
+                                <td>
+                                    <input type="number" step="0.01" min="0" name="price_{{ rate.id }}"
+                                           value="{{ (rate.priceCents / 100)|number_format(2, '.', '') }}"
+                                           class="bg-surface-200 border border-border rounded-md px-3 py-1.5 text-sm w-32">
+                                </td>
+                                <td>
+                                    <input type="checkbox" name="enabled_{{ rate.id }}"
+                                           {% if rate.enabled %}checked{% endif %}
+                                           class="w-4 h-4 rounded-sm bg-surface-300 border border-border text-gold focus:ring-gold focus:ring-2">
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="4" class="text-center text-text-muted py-6">Aucun tarif configuré.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endblock %}
+        {% endembed %}
+
+        <div class="flex items-center gap-3 pt-2">
+            <button type="submit" class="inline-flex items-center justify-center gap-2 bg-accent text-bg font-display font-semibold text-sm px-4 py-2 rounded-md border border-accent hover:bg-accent-hover hover:border-accent-hover transition-colors duration-150 focus:outline-none focus:shadow-focus">
+                Enregistrer
+            </button>
+        </div>
+    </form>
 {% endblock %}

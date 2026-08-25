@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Controller\Api\PrintGate;
 
 use App\DTO\PrintGate\PrintAuthorizationRequest;
+use App\Entity\PrintGateDevice;
 use App\Service\PrintGate\PrintAuthorizationManager;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Serializer\SerializerInterface;
@@ -37,10 +39,17 @@ final class PrintAuthorizationController
         format: 'json',
     )]
     public function __invoke(
+        Request $httpRequest,
         #[MapRequestPayload] PrintAuthorizationRequest $request,
         PrintAuthorizationManager $authorizationManager,
     ): JsonResponse {
-        $result = $authorizationManager->authorize($request);
+        // Résolu par PrintGateAuthorizeIntegrityListener (kernel.request,
+        // avant ce contrôleur) -- jamais null en pratique pour cette
+        // route, le listener bloque déjà toute requête sans JWT valide.
+        $device = $httpRequest->attributes->get('printGateDevice');
+        \assert(null === $device || $device instanceof PrintGateDevice);
+
+        $result = $authorizationManager->authorize($request, $device);
 
         return new JsonResponse(
             $this->serializer->serialize($result, 'json'),

@@ -7,21 +7,18 @@ import { Controller } from '@hotwired/stimulus';
  *
  * Scopée par "focus" (personnel ou mairie), passé par le bouton déclencheur
  * via data-credit-modal-focus-param : cliquer sur "Solde personnel" ne
- * montre que la gestion du solde personnel (+ le débit impression, qui
- * reste une action liée au comptoir/personnel), cliquer sur "Solde mairie"
- * ne montre que l'ajout au crédit mairie. Évite d'afficher les deux soldes
- * comme actionnables en même temps, source de confusion (retour du
- * 2026-08-25) -- même si le débit d'impression touche réellement les deux
- * soldes côté serveur (mairie en priorité, cf. PrintCostCalculator /
- * AssociationRepository::debitForPrintJob), ça reste un détail
- * d'implémentation que l'admin n'a pas besoin de piloter depuis l'écran
- * "gérer le crédit mairie".
+ * montre que l'ajout au solde personnel, cliquer sur "Solde mairie" ne
+ * montre que l'ajout au crédit mairie -- évite d'afficher les deux comme
+ * actionnables en même temps, source de confusion (retour du 2026-08-25).
  *
- * Calcule l'estimation du débit à partir des tarifs configurés en admin
- * (page "Tarifs d'impression"), passés via ratesValue — pas de grille de
- * prix codée en dur ici : source unique avec le calcul serveur
- * (PrintCostCalculator), pour que l'estimation affichée corresponde
- * toujours au montant réellement débité.
+ * "Débiter pour impression" est en revanche TOUJOURS visible, quel que
+ * soit le focus : depuis la décision du 2026-08-25, la source débitée
+ * (mairie ou personnel) n'est plus un choix laissé à l'admin -- elle est
+ * entièrement déterminée côté serveur par PrintPolicyEvaluator
+ * (éligibilité + priorité), exactement comme pour PrintGate. L'estimation
+ * affichée ici utilise le tarif ASSOCIATION (majorant) : le montant
+ * réellement débité peut être inférieur si la mairie finance tout ou
+ * partie -- le serveur reste seul juge, cf. chargePrint().
  *
  * Le controller englobe à la fois le(s) bouton(s) déclencheurs et la modale
  * (data-controller="modal", séparé, sur la modale elle-même -- ciblée via
@@ -33,9 +30,7 @@ export default class extends Controller {
     static targets = [
         'modalRoot', 'title', 'balanceLabel', 'balanceValue',
         'amount', 'colorMode', 'paperSize', 'copies', 'estimatedCost',
-        'personalCreditSection', 'printChargeSection',
-        'municipalCreditSection', 'municipalAmount',
-        'municipalPrintChargeSection', 'municipalColorMode', 'municipalPaperSize', 'municipalCopies', 'municipalEstimatedCost',
+        'personalCreditSection', 'municipalCreditSection', 'municipalAmount',
         // Optionnelles : encarts soldes affichés hors modale (fiche association).
         'pageBalancePersonal', 'pageBalanceMunicipal',
     ];
@@ -67,9 +62,6 @@ export default class extends Controller {
             this.municipalAmountTarget.value = '1.00';
         }
         this._computeEstimate();
-        if (this.hasMunicipalEstimatedCostTarget) {
-            this._computeMunicipalEstimate();
-        }
 
         this.modalRootTarget.dispatchEvent(new CustomEvent('modal:open'));
     }
@@ -78,8 +70,9 @@ export default class extends Controller {
         this.modalRootTarget.dispatchEvent(new CustomEvent('modal:close'));
     }
 
-    // Affiche uniquement les sections pertinentes pour le solde ciblé --
-    // cf. le PHPDoc en tête de fichier pour le pourquoi.
+    // N'affiche que la section "Ajouter" pertinente pour le solde ciblé --
+    // "Débiter pour impression" reste toujours visible (cf. PHPDoc de
+    // fichier).
     _applyFocus() {
         const isMunicipal = this.currentFocus === 'municipal';
 
@@ -88,12 +81,8 @@ export default class extends Controller {
         this.balanceValueTarget.textContent = ((isMunicipal ? this.currentMunicipalCents : this.currentPersonalCents) / 100).toFixed(2);
 
         this.personalCreditSectionTarget.classList.toggle('hidden', isMunicipal);
-        this.printChargeSectionTarget.classList.toggle('hidden', isMunicipal);
         if (this.hasMunicipalCreditSectionTarget) {
             this.municipalCreditSectionTarget.classList.toggle('hidden', !isMunicipal);
-        }
-        if (this.hasMunicipalPrintChargeSectionTarget) {
-            this.municipalPrintChargeSectionTarget.classList.toggle('hidden', !isMunicipal);
         }
     }
 
@@ -111,22 +100,6 @@ export default class extends Controller {
 
     recomputeEstimate() {
         this._computeEstimate();
-    }
-
-    _computeMunicipalEstimate() {
-        const colorMode = this.municipalColorModeTarget.value;
-        const paperSize = this.municipalPaperSizeTarget.value;
-        const copies = Math.max(1, parseInt(this.municipalCopiesTarget.value, 10) || 1);
-
-        const rate = this.ratesValue.find(r => r.colorMode === colorMode && r.paperSize === paperSize);
-        const cents = rate ? rate.priceCents * copies : 0;
-        this.municipalEstimatedCostTarget.textContent = (cents / 100).toFixed(2);
-
-        return cents;
-    }
-
-    recomputeMunicipalEstimate() {
-        this._computeMunicipalEstimate();
     }
 
     async addCredit() {
@@ -159,6 +132,9 @@ export default class extends Controller {
         });
     }
 
+    // Le solde débité (mairie, personnel, ou les deux) est déterminé côté
+    // serveur -- cf. PHPDoc de fichier. `fundingSource` dans la réponse
+    // sert uniquement à personnaliser le message de confirmation.
     async chargePrint() {
         const cents = this._computeEstimate();
         if (cents <= 0) {
@@ -172,36 +148,25 @@ export default class extends Controller {
             copies: Math.max(1, parseInt(this.copiesTarget.value, 10) || 1),
         }, (data) => {
             const personal = data.personalCredits ?? data.credits;
-            // Le débit touche potentiellement les deux soldes (priorité
-            // mairie), donc on répercute les deux -- même si cette section
-            // n'est visible que côté "personnel".
             this._updateRowBalance(personal, data.municipalCredits);
             this._updatePageBalances(personal, data.municipalCredits);
-            window.showFlash?.('success', 'Débit appliqué.');
+            window.showFlash?.('success', this._fundingSourceMessage(data.fundingSource));
             this.close();
         });
     }
 
-    // Débit exclusivement sur le crédit mairie (cf. AssociationRepository::
-    // debitMunicipalOnly côté serveur) -- pas de bascule sur le personnel,
-    // contrairement à chargePrint().
-    async chargeMunicipalPrint() {
-        const cents = this._computeMunicipalEstimate();
-        if (cents <= 0) {
-            window.showFlash?.('error', 'Tarif non configuré pour cette combinaison.');
-            return;
+    _fundingSourceMessage(fundingSource) {
+        switch (fundingSource) {
+            case 'MUNICIPAL':
+                return 'Débit appliqué (crédit mairie).';
+            case 'MIXED':
+                return 'Débit appliqué (mairie + personnel).';
+            case 'ASSOCIATION_PERSONAL':
+            case 'CUSTOMER':
+                return 'Débit appliqué (solde personnel).';
+            default:
+                return 'Débit appliqué.';
         }
-
-        await this._post(`${this.basePathValue}${this.currentId}/municipal-print-charge`, {
-            colorMode: this.municipalColorModeTarget.value,
-            paperSize: this.municipalPaperSizeTarget.value,
-            copies: Math.max(1, parseInt(this.municipalCopiesTarget.value, 10) || 1),
-        }, (data) => {
-            this._updateRowBalance(undefined, data.municipalCredits);
-            this._updatePageBalances(undefined, data.municipalCredits);
-            window.showFlash?.('success', 'Débit appliqué.');
-            this.close();
-        });
     }
 
     async _post(url, body, onSuccess) {

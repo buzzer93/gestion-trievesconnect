@@ -5,14 +5,21 @@ declare(strict_types=1);
 namespace App\Tests\Controller\Admin;
 
 use App\Entity\Association;
-use App\Entity\PrintMunicipalConsumption;
+use App\Entity\PrintTransaction;
 use App\Entity\User;
+use App\Repository\PrintTransactionLineRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
  * Cf. PrintGateDeviceControllerTest pour la contrainte ROLE_ADMIN
  * (email exact 'contact@trievesconnect.fr').
+ *
+ * Depuis le 2026-08-25, printCharge() ne prend plus qu'un format/couleur/
+ * copies -- le choix du solde (mairie ou personnel) n'est plus une option
+ * de l'appelant, il est déterminé par PrintPolicyEvaluator. Ces tests
+ * vérifient donc le comportement observable (quel solde bouge, quel
+ * fundingSource est renvoyé), pas un paramètre "mode" qui n'existe plus.
  */
 final class AssociationControllerTest extends WebTestCase
 {
@@ -27,6 +34,52 @@ final class AssociationControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('[data-controller="credit-modal"]');
+    }
+
+    /**
+     * consumption() a été réécrite pour fusionner l'ancien journal
+     * (PrintMunicipalConsumption) et le nouveau (PrintTransactionLine) --
+     * aucun autre test n'exerce ce rendu, cf. le bug réel trouvé sur
+     * print-pricing via ce même type de vérification manuelle.
+     */
+    public function testConsumptionPageRendersAfterMunicipalPrintCharge(): void
+    {
+        $client = static::createClient();
+        $client->loginUser($this->buildUser(self::ADMIN_EMAIL));
+        $association = $this->buildAssociation('0611110010', personalCents: 1000, municipalCents: 1000);
+
+        $client->request(
+            'POST',
+            '/admin/association/'.$association->getId().'/print-charge',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: json_encode(['colorMode' => 'MONOCHROME', 'paperSize' => 'A4', 'copies' => 1]),
+        );
+        self::assertResponseIsSuccessful();
+
+        $crawler = $client->request('GET', '/admin/association/'.$association->getId().'/consumption');
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('0,10', $crawler->filter('body')->text());
+    }
+
+    public function testShowPageRendersHistoryAfterPrintCharge(): void
+    {
+        $client = static::createClient();
+        $client->loginUser($this->buildUser(self::ADMIN_EMAIL));
+        $association = $this->buildAssociation('0611110012', personalCents: 1000, municipalCents: 1000);
+
+        $client->request(
+            'POST',
+            '/admin/association/'.$association->getId().'/print-charge',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: json_encode(['colorMode' => 'MONOCHROME', 'paperSize' => 'A4', 'copies' => 1]),
+        );
+        self::assertResponseIsSuccessful();
+
+        $crawler = $client->request('GET', '/admin/association/'.$association->getId());
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('0,10', $crawler->filter('body')->text());
     }
 
     public function testShowRendersCreditModalAndBalanceCards(): void
@@ -64,7 +117,6 @@ final class AssociationControllerTest extends WebTestCase
         $entityManager->clear();
         $refreshed = $entityManager->getRepository(Association::class)->find($association->getId());
         self::assertSame(250, $refreshed->getMunicipalBalanceCents());
-        // Le solde personnel ne doit jamais bouger via cette route.
         self::assertSame(100, $refreshed->getBalanceCents());
     }
 
@@ -94,17 +146,16 @@ final class AssociationControllerTest extends WebTestCase
     }
 
     /**
-     * Cœur de la règle métier : le crédit mairie doit être débité en
-     * priorité, la part personnelle ne couvre que le reliquat -- cf.
-     * AssociationRepository::debitForPrintJob(). Vérifie aussi que
-     * l'historique PrintMunicipalConsumption est bien alimenté par un
-     * débit manuel (comme par le flux PrintGate automatique).
+     * Cœur de la règle métier : impression éligible (A4 N&B), crédit
+     * mairie insuffisant à lui seul -> bascule par unité sur le personnel
+     * pour le reliquat, à SON tarif (cf. PrintPolicyEvaluatorTest pour le
+     * détail du calcul).
      */
     public function testPrintChargeDebitsMunicipalBalanceBeforePersonal(): void
     {
         $client = static::createClient();
         $client->loginUser($this->buildUser(self::ADMIN_EMAIL));
-        // Tarif seedé : MONOCHROME/A4 = 30 centimes (cf. Version20260808130000).
+        // Tarifs seedés : MUNICIPAL MONOCHROME/A4 = 10c, ASSOCIATION MONOCHROME/A4 = 30c.
         $association = $this->buildAssociation('0611110002', personalCents: 100, municipalCents: 20);
 
         $client->request(
@@ -116,13 +167,17 @@ final class AssociationControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $data = json_decode((string) $client->getResponse()->getContent(), true);
-        // Coût 30c : 20c pris sur le solde mairie (épuisé), 10c sur le personnel.
-        self::assertSame(0, $data['municipalCredits']);
-        self::assertSame(90, $data['personalCredits']);
+        // 1 copie, coût mairie 10c couvert intégralement par les 20c disponibles.
+        self::assertSame(10, $data['municipalCredits']);
+        self::assertSame(100, $data['personalCredits']);
+        self::assertSame(PrintTransaction::FUNDING_MUNICIPAL, $data['fundingSource']);
 
+        $lineRepository = static::getContainer()->get(PrintTransactionLineRepository::class);
         $entityManager = static::getContainer()->get(EntityManagerInterface::class);
-        $entries = $entityManager->getRepository(PrintMunicipalConsumption::class)->findBy(['association' => $association]);
-        self::assertCount(2, $entries); // une ligne mairie + une ligne personnelle
+        $entityManager->clear();
+        $refreshed = $entityManager->getRepository(Association::class)->find($association->getId());
+        $lines = $lineRepository->findAllForCustomer($refreshed);
+        self::assertCount(1, $lines);
     }
 
     public function testPrintChargeRefusedWhenBothBalancesInsufficient(): void
@@ -140,7 +195,7 @@ final class AssociationControllerTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(400);
         $data = json_decode((string) $client->getResponse()->getContent(), true);
-        self::assertSame('Solde insuffisant', $data['error']);
+        self::assertStringContainsString('Solde insuffisant', $data['error']);
 
         $entityManager = static::getContainer()->get(EntityManagerInterface::class);
         $entityManager->clear();
@@ -169,58 +224,28 @@ final class AssociationControllerTest extends WebTestCase
     }
 
     /**
-     * Débit "mairie seule" : ne doit jamais toucher au solde personnel,
-     * même s'il aurait pu couvrir le reliquat (contrairement à
-     * printCharge()) -- cf. AssociationRepository::debitMunicipalOnly().
+     * Impression couleur : jamais éligible au financement mairie (seul
+     * MONOCHROME/A4 est activé) -- 100% personnel même avec un solde
+     * mairie confortable, au tarif ASSOCIATION (pas le tarif mairie).
      */
-    public function testMunicipalPrintChargeDebitsMunicipalBalanceOnly(): void
+    public function testPrintChargeOnColorNeverTouchesMunicipalBalance(): void
     {
         $client = static::createClient();
         $client->loginUser($this->buildUser(self::ADMIN_EMAIL));
-        // Tarif seedé : COLOR/A3 = 100 centimes (cf. Version20260808130000).
-        $association = $this->buildAssociation('0611110007', personalCents: 5000, municipalCents: 100);
+        $association = $this->buildAssociation('0611110009', personalCents: 1000, municipalCents: 1000);
 
         $client->request(
             'POST',
-            '/admin/association/'.$association->getId().'/municipal-print-charge',
+            '/admin/association/'.$association->getId().'/print-charge',
             server: ['CONTENT_TYPE' => 'application/json'],
-            content: json_encode(['colorMode' => 'COLOR', 'paperSize' => 'A3', 'copies' => 1]),
+            content: json_encode(['colorMode' => 'COLOR', 'paperSize' => 'A4', 'copies' => 1]),
         );
 
         self::assertResponseIsSuccessful();
         $data = json_decode((string) $client->getResponse()->getContent(), true);
-        self::assertSame(0, $data['municipalCredits']);
-
-        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
-        $entityManager->clear();
-        $refreshed = $entityManager->getRepository(Association::class)->find($association->getId());
-        self::assertSame(0, $refreshed->getMunicipalBalanceCents());
-        // Le solde personnel ne doit jamais être sollicité par cette route.
-        self::assertSame(5000, $refreshed->getBalanceCents());
-    }
-
-    public function testMunicipalPrintChargeRefusedWhenMunicipalBalanceInsufficientEvenIfPersonalCovers(): void
-    {
-        $client = static::createClient();
-        $client->loginUser($this->buildUser(self::ADMIN_EMAIL));
-        $association = $this->buildAssociation('0611110008', personalCents: 5000, municipalCents: 5);
-
-        $client->request(
-            'POST',
-            '/admin/association/'.$association->getId().'/municipal-print-charge',
-            server: ['CONTENT_TYPE' => 'application/json'],
-            content: json_encode(['colorMode' => 'MONOCHROME', 'paperSize' => 'A4', 'copies' => 1]),
-        );
-
-        self::assertResponseStatusCodeSame(400);
-        $data = json_decode((string) $client->getResponse()->getContent(), true);
-        self::assertSame('Solde mairie insuffisant', $data['error']);
-
-        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
-        $entityManager->clear();
-        $refreshed = $entityManager->getRepository(Association::class)->find($association->getId());
-        self::assertSame(5, $refreshed->getMunicipalBalanceCents());
-        self::assertSame(5000, $refreshed->getBalanceCents());
+        self::assertSame(PrintTransaction::FUNDING_ASSOCIATION_PERSONAL, $data['fundingSource']);
+        self::assertSame(1000, $data['municipalCredits']); // jamais touché
+        self::assertSame(950, $data['personalCredits']); // tarif ASSOCIATION COLOR/A4 = 50c
     }
 
     private function buildAssociation(string $phoneNumber, int $personalCents, int $municipalCents): Association

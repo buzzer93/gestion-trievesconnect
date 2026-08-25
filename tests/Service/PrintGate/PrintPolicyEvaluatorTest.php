@@ -4,291 +4,257 @@ declare(strict_types=1);
 
 namespace App\Tests\Service\PrintGate;
 
-use App\DTO\PrintGate\PrintAuthorizationRequest;
-use App\DTO\PrintGate\PrintJobPayload;
 use App\Entity\Association;
 use App\Entity\Customer;
-use App\Entity\PrintPriceRate;
-use App\Repository\AssociationRepository;
-use App\Repository\CustomerRepository;
-use App\Repository\PrintPriceRateRepository;
+use App\Entity\PrintTransaction;
+use App\Service\PrintGate\PolicyDecision;
+use App\Service\PrintGate\PrintChargeContext;
 use App\Service\PrintGate\PrintPolicyEvaluator;
-use PHPUnit\Framework\TestCase;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-final class PrintPolicyEvaluatorTest extends TestCase
+/**
+ * Tests d'intégration (base réelle, cf. .env.test) plutôt qu'unitaires à
+ * base de mocks : PrintPolicyEvaluator est `final` (donc impossible à
+ * doubler) et persiste réellement une PrintTransaction dans une
+ * transaction DB explicite -- le doubler viderait le test de tout son
+ * intérêt (l'essentiel à vérifier est justement l'effet en base).
+ *
+ * Tarifs utilisés dans ces tests (seedés par Version20260825160000, cf.
+ * son PHPDoc) : CLIENT/ASSOCIATION identiques (MONOCHROME/A4=30c,
+ * MONOCHROME/A3=60c, COLOR/A4=50c, COLOR/A3=100c), MUNICIPAL
+ * MONOCHROME/A4=10c activé, tout le reste désactivé.
+ */
+final class PrintPolicyEvaluatorTest extends KernelTestCase
 {
-    public function testUnknownIdentifierIsRefused(): void
+    private EntityManagerInterface $em;
+    private PrintPolicyEvaluator $evaluator;
+
+    protected function setUp(): void
     {
-        $customerRepository = $this->createMock(CustomerRepository::class);
-        $customerRepository->method('findOneByPhoneNumber')->willReturn(null);
-        $customerRepository->expects(self::never())->method('debitBalance');
+        self::bootKernel();
+        $this->em = static::getContainer()->get(EntityManagerInterface::class);
+        $this->evaluator = static::getContainer()->get(PrintPolicyEvaluator::class);
+    }
 
-        $associationRepository = $this->createMock(AssociationRepository::class);
-        $associationRepository->expects(self::never())->method('debitForPrintJob');
+    public function testCustomerChargedAtClientRate(): void
+    {
+        $customer = $this->buildCustomer('0699000001', balanceCents: 100);
 
-        $evaluator = new PrintPolicyEvaluator($customerRepository, $associationRepository, $this->priceRateRepository());
-        $decision = $evaluator->evaluate($this->request());
+        $decision = $this->evaluator->evaluate(new PrintChargeContext(
+            beneficiary: $customer,
+            colorMode: 'COLOR',
+            paperSize: 'A4',
+            copies: 1,
+        ));
+
+        self::assertTrue($decision->authorized);
+        self::assertSame(50, $decision->amountChargedCents);
+        self::assertSame(PrintTransaction::FUNDING_CUSTOMER, $decision->fundingSource);
+        self::assertSame(50, $customer->getBalanceCents());
+    }
+
+    public function testCustomerRefusedWhenInsufficientBalance(): void
+    {
+        $customer = $this->buildCustomer('0699000002', balanceCents: 10);
+
+        $decision = $this->evaluator->evaluate(new PrintChargeContext(
+            beneficiary: $customer,
+            colorMode: 'COLOR',
+            paperSize: 'A4',
+            copies: 1,
+        ));
 
         self::assertFalse($decision->authorized);
-        self::assertSame('Identifiant inconnu', $decision->reason);
+        self::assertSame(PolicyDecision::REASON_INSUFFICIENT_BALANCE, $decision->reasonCode);
+        self::assertSame(40, $decision->missingCents);
+        // Rien débité malgré le refus.
+        self::assertSame(10, $customer->getBalanceCents());
     }
 
-    public function testInsufficientCreditsAreRefusedWithoutDebiting(): void
+    /**
+     * A4 N&B avec un solde mairie qui couvre tout : jamais touché au
+     * personnel.
+     */
+    public function testAssociationEligiblePrintChargesMunicipalFirst(): void
     {
-        $customer = $this->customerWithBalance(29); // < 30 (MONOCHROME/A4/1 copie)
+        $association = $this->buildAssociation('0699000003', personalCents: 1000, municipalCents: 1000);
 
-        $customerRepository = $this->createMock(CustomerRepository::class);
-        $customerRepository->method('findOneByPhoneNumber')->willReturn($customer);
-        $customerRepository->expects(self::never())->method('debitBalance');
+        $decision = $this->evaluator->evaluate(new PrintChargeContext(
+            beneficiary: $association,
+            colorMode: 'MONOCHROME',
+            paperSize: 'A4',
+            copies: 5,
+        ));
 
-        $associationRepository = $this->createMock(AssociationRepository::class);
+        self::assertTrue($decision->authorized);
+        self::assertSame(50, $decision->amountChargedCents); // 5 x 10c
+        self::assertSame(PrintTransaction::FUNDING_MUNICIPAL, $decision->fundingSource);
+        self::assertSame(950, $association->getMunicipalBalanceCents());
+        self::assertSame(1000, $association->getBalanceCents());
+    }
 
-        $evaluator = new PrintPolicyEvaluator($customerRepository, $associationRepository, $this->priceRateRepository());
-        $decision = $evaluator->evaluate($this->request(colorMode: 'MONOCHROME', paperSize: 'A4'));
+    /**
+     * Scénario de l'exemple validé avec l'utilisateur (2026-08-25) :
+     * 5 copies A4 N&B, tarif mairie 10c, tarif asso 30c, solde mairie
+     * 30c -> 3 copies à tarif mairie (30c) + 2 copies à tarif asso (60c)
+     * = 90c au total. Bascule PAR UNITÉ, pas un partage proportionnel du
+     * montant.
+     */
+    public function testAssociationEligiblePrintSplitsPerUnitAtDifferentRates(): void
+    {
+        $association = $this->buildAssociation('0699000004', personalCents: 1000, municipalCents: 30);
+
+        $decision = $this->evaluator->evaluate(new PrintChargeContext(
+            beneficiary: $association,
+            colorMode: 'MONOCHROME',
+            paperSize: 'A4',
+            copies: 5,
+        ));
+
+        self::assertTrue($decision->authorized);
+        self::assertSame(90, $decision->amountChargedCents);
+        self::assertSame('MIXED', $decision->fundingSource);
+        self::assertSame(0, $association->getMunicipalBalanceCents());
+        self::assertSame(940, $association->getBalanceCents()); // 1000 - 60
+
+        // Vérifie le détail des lignes, pas seulement le total.
+        $transaction = $this->findTransactionByReference($decision->transactionReference);
+        $lines = $transaction->getLines();
+        self::assertCount(2, $lines);
+    }
+
+    public function testAssociationEligiblePrintRefusedWhenBothBalancesInsufficient(): void
+    {
+        $association = $this->buildAssociation('0699000005', personalCents: 5, municipalCents: 5);
+
+        $decision = $this->evaluator->evaluate(new PrintChargeContext(
+            beneficiary: $association,
+            colorMode: 'MONOCHROME',
+            paperSize: 'A4',
+            copies: 5,
+        ));
 
         self::assertFalse($decision->authorized);
-        self::assertSame('Crédits insuffisants', $decision->reason);
+        self::assertSame(PolicyDecision::REASON_INSUFFICIENT_BALANCE, $decision->reasonCode);
+        // Rien débité malgré le refus (pas de débit partiel de la part mairie).
+        self::assertSame(5, $association->getMunicipalBalanceCents());
+        self::assertSame(5, $association->getBalanceCents());
     }
 
-    public function testSufficientCreditsAreAuthorizedAndDebited(): void
+    /**
+     * Couleur : jamais éligible au financement mairie (seul MONOCHROME/A4
+     * est activé) -- 100% personnel, même avec un solde mairie confortable.
+     */
+    public function testAssociationColorPrintNeverTouchesMunicipalBalance(): void
     {
-        $customer = $this->customerWithBalance(30);
+        $association = $this->buildAssociation('0699000006', personalCents: 1000, municipalCents: 1000);
 
-        $customerRepository = $this->createMock(CustomerRepository::class);
-        $customerRepository->method('findOneByPhoneNumber')->willReturn($customer);
-        $customerRepository->expects(self::once())->method('debitBalance')->with($customer, 30);
-
-        $associationRepository = $this->createMock(AssociationRepository::class);
-
-        $evaluator = new PrintPolicyEvaluator($customerRepository, $associationRepository, $this->priceRateRepository());
-        $decision = $evaluator->evaluate($this->request(colorMode: 'MONOCHROME', paperSize: 'A4'));
+        $decision = $this->evaluator->evaluate(new PrintChargeContext(
+            beneficiary: $association,
+            colorMode: 'COLOR',
+            paperSize: 'A4',
+            copies: 1,
+        ));
 
         self::assertTrue($decision->authorized);
-        self::assertNull($decision->reason);
+        self::assertSame(50, $decision->amountChargedCents); // tarif ASSOCIATION, pas MUNICIPAL
+        self::assertSame(PrintTransaction::FUNDING_ASSOCIATION_PERSONAL, $decision->fundingSource);
+        self::assertSame(1000, $association->getMunicipalBalanceCents()); // jamais touché
+        self::assertSame(950, $association->getBalanceCents());
     }
 
     /**
-     * Grille tarifaire de test, identique à celle seedée par la migration
-     * (cf. PrintPriceRate) : MONOCHROME/A4 30c, MONOCHROME/A3 60c,
-     * COLOR/A4 50c, COLOR/A3 100c, multiplié par le nombre de copies.
-     * pageCount n'intervient volontairement pas (comme le système manuel
-     * existant).
-     *
-     * @return list<array{0: string, 1: ?string, 2: int, 3: int}>
+     * A3 N&B : format non activé pour la mairie (seul A4 l'est) -- même
+     * comportement que la couleur.
      */
-    public static function pricingCases(): array
+    public function testAssociationA3MonochromeNeverTouchesMunicipalBalance(): void
     {
-        return [
-            'monochrome A4' => ['MONOCHROME', 'A4', 1, 30],
-            'monochrome A3' => ['MONOCHROME', 'A3', 1, 60],
-            'color A4' => ['COLOR', 'A4', 1, 50],
-            'color A3' => ['COLOR', 'A3', 1, 100],
-            'color A4 x3 copies' => ['COLOR', 'A4', 3, 150],
-            'colorMode absent -> tarif monochrome' => [null, 'A4', 1, 30],
-            'paperSize absent -> tarif A4' => ['COLOR', null, 1, 50],
-        ];
-    }
+        $association = $this->buildAssociation('0699000007', personalCents: 1000, municipalCents: 1000);
 
-    /**
-     * @dataProvider pricingCases
-     */
-    public function testPricingGrid(?string $colorMode, ?string $paperSize, int $copies, int $expectedCents): void
-    {
-        $customer = $this->customerWithBalance($expectedCents);
-
-        $customerRepository = $this->createMock(CustomerRepository::class);
-        $customerRepository->method('findOneByPhoneNumber')->willReturn($customer);
-        $customerRepository->expects(self::once())->method('debitBalance')->with($customer, $expectedCents);
-
-        $associationRepository = $this->createMock(AssociationRepository::class);
-
-        $evaluator = new PrintPolicyEvaluator($customerRepository, $associationRepository, $this->priceRateRepository());
-        $decision = $evaluator->evaluate($this->request(colorMode: $colorMode, paperSize: $paperSize, copies: $copies));
+        $decision = $this->evaluator->evaluate(new PrintChargeContext(
+            beneficiary: $association,
+            colorMode: 'MONOCHROME',
+            paperSize: 'A3',
+            copies: 1,
+        ));
 
         self::assertTrue($decision->authorized);
+        self::assertSame(PrintTransaction::FUNDING_ASSOCIATION_PERSONAL, $decision->fundingSource);
+        self::assertSame(1000, $association->getMunicipalBalanceCents());
     }
 
-    /**
-     * pageCount ne doit jamais influencer le tarif (cf. PHPDoc de
-     * PrintPolicyEvaluator::computeCostCents) : un document de 100000
-     * pages coûte le même prix qu'un document d'une page, à copies
-     * égales.
-     */
-    public function testPageCountDoesNotAffectPrice(): void
+    public function testAssociationIneligiblePrintRefusedWhenPersonalInsufficientEvenWithMunicipalBalance(): void
     {
-        $customer = $this->customerWithBalance(30);
+        $association = $this->buildAssociation('0699000008', personalCents: 10, municipalCents: 10000);
 
-        $customerRepository = $this->createMock(CustomerRepository::class);
-        $customerRepository->method('findOneByPhoneNumber')->willReturn($customer);
-        $customerRepository->expects(self::once())->method('debitBalance')->with($customer, 30);
-
-        $associationRepository = $this->createMock(AssociationRepository::class);
-
-        $evaluator = new PrintPolicyEvaluator($customerRepository, $associationRepository, $this->priceRateRepository());
-        $decision = $evaluator->evaluate($this->request(pageCount: 100000, colorMode: 'MONOCHROME', paperSize: 'A4'));
-
-        self::assertTrue($decision->authorized);
-    }
-
-    /**
-     * Aucun PrintPriceRate configuré pour la combinaison demandée -> refus
-     * fail-closed ("Tarif non configuré"), jamais un tarif à 0 ou par
-     * défaut. Aucun débit ne doit avoir lieu.
-     */
-    public function testUnconfiguredRateIsRefusedWithoutDebiting(): void
-    {
-        $customer = $this->customerWithBalance(1000);
-
-        $customerRepository = $this->createMock(CustomerRepository::class);
-        $customerRepository->method('findOneByPhoneNumber')->willReturn($customer);
-        $customerRepository->expects(self::never())->method('debitBalance');
-
-        $associationRepository = $this->createMock(AssociationRepository::class);
-        $associationRepository->expects(self::never())->method('debitForPrintJob');
-
-        $priceRateRepository = $this->createMock(PrintPriceRateRepository::class);
-        $priceRateRepository->method('findOneByTypeAndFormat')->willReturn(null);
-
-        $evaluator = new PrintPolicyEvaluator($customerRepository, $associationRepository, $priceRateRepository);
-        $decision = $evaluator->evaluate($this->request(colorMode: 'MONOCHROME', paperSize: 'A4'));
+        $decision = $this->evaluator->evaluate(new PrintChargeContext(
+            beneficiary: $association,
+            colorMode: 'COLOR',
+            paperSize: 'A4',
+            copies: 1,
+        ));
 
         self::assertFalse($decision->authorized);
-        self::assertSame('Tarif non configuré', $decision->reason);
+        self::assertSame(PolicyDecision::REASON_INSUFFICIENT_BALANCE, $decision->reasonCode);
+        self::assertSame(10000, $association->getMunicipalBalanceCents()); // jamais sollicité
     }
 
-    /**
-     * Une association avec assez de crédit mairie pour couvrir tout le
-     * job ne doit jamais toucher à son solde personnel -- c'est
-     * CustomerRepository::debitBalance() (le chemin "client normal") qui
-     * ne doit jamais être appelé ici, seul AssociationRepository::debitForPrintJob()
-     * doit l'être.
-     */
-    public function testAssociationDebitsMunicipalCreditFirst(): void
+    public function testRefusedWhenRateNotConfigured(): void
     {
-        $association = $this->associationWithBalances(personalCents: 0, municipalCents: 5000);
+        $customer = $this->buildCustomer('0699000009', balanceCents: 100000);
 
-        $customerRepository = $this->createMock(CustomerRepository::class);
-        $customerRepository->method('findOneByPhoneNumber')->willReturn($association);
-        $customerRepository->expects(self::never())->method('debitBalance');
-
-        $associationRepository = $this->createMock(AssociationRepository::class);
-        $associationRepository->expects(self::once())
-            ->method('debitForPrintJob')
-            ->with($association, 30, self::isInstanceOf(PrintJobPayload::class));
-
-        $evaluator = new PrintPolicyEvaluator($customerRepository, $associationRepository, $this->priceRateRepository());
-        $decision = $evaluator->evaluate($this->request(colorMode: 'MONOCHROME', paperSize: 'A4'));
-
-        self::assertTrue($decision->authorized);
-    }
-
-    /**
-     * Crédit mairie insuffisant pour couvrir tout le job, mais le solde
-     * personnel complète : doit être autorisé (le partage se fait dans
-     * AssociationRepository::debitForPrintJob(), pas testé ici en détail
-     * -- cf. son test dédié si besoin d'aller plus loin).
-     */
-    public function testAssociationFallsBackToPersonalCreditWhenMunicipalCreditInsufficient(): void
-    {
-        $association = $this->associationWithBalances(personalCents: 100, municipalCents: 10);
-
-        $customerRepository = $this->createMock(CustomerRepository::class);
-        $customerRepository->method('findOneByPhoneNumber')->willReturn($association);
-
-        $associationRepository = $this->createMock(AssociationRepository::class);
-        $associationRepository->expects(self::once())->method('debitForPrintJob')->with($association, 30, self::isInstanceOf(PrintJobPayload::class));
-
-        $evaluator = new PrintPolicyEvaluator($customerRepository, $associationRepository, $this->priceRateRepository());
-        $decision = $evaluator->evaluate($this->request(colorMode: 'MONOCHROME', paperSize: 'A4'));
-
-        self::assertTrue($decision->authorized);
-    }
-
-    /**
-     * Ni le crédit mairie ni le crédit personnel, combinés, ne couvrent
-     * le job -> refus, aucun débit.
-     */
-    public function testAssociationRefusedWhenCombinedCreditsInsufficient(): void
-    {
-        $association = $this->associationWithBalances(personalCents: 10, municipalCents: 5);
-
-        $customerRepository = $this->createMock(CustomerRepository::class);
-        $customerRepository->method('findOneByPhoneNumber')->willReturn($association);
-
-        $associationRepository = $this->createMock(AssociationRepository::class);
-        $associationRepository->expects(self::never())->method('debitForPrintJob');
-
-        $evaluator = new PrintPolicyEvaluator($customerRepository, $associationRepository, $this->priceRateRepository());
-        $decision = $evaluator->evaluate($this->request(colorMode: 'MONOCHROME', paperSize: 'A4'));
+        $decision = $this->evaluator->evaluate(new PrintChargeContext(
+            beneficiary: $customer,
+            colorMode: 'SEPIA',
+            paperSize: 'A5',
+            copies: 1,
+        ));
 
         self::assertFalse($decision->authorized);
-        self::assertSame('Crédits insuffisants', $decision->reason);
+        self::assertSame(PolicyDecision::REASON_RATE_NOT_CONFIGURED, $decision->reasonCode);
     }
 
-    private function customerWithBalance(int $cents): Customer
+    private function buildCustomer(string $phoneNumber, int $balanceCents): Customer
     {
+        $existing = $this->em->getRepository(Customer::class)->findOneBy(['phoneNumber' => $phoneNumber]);
+        if (null !== $existing) {
+            $this->em->remove($existing);
+            $this->em->flush();
+        }
+
         $customer = new Customer();
-        $customer->setBalanceCents($cents);
+        $customer->setName('Client Test PrintPolicyEvaluator')->setPhoneNumber($phoneNumber)->setBalanceCents($balanceCents);
+        $this->em->persist($customer);
+        $this->em->flush();
 
         return $customer;
     }
 
-    private function associationWithBalances(int $personalCents, int $municipalCents): Association
+    private function buildAssociation(string $phoneNumber, int $personalCents, int $municipalCents): Association
     {
+        $existing = $this->em->getRepository(Association::class)->findOneBy(['phoneNumber' => $phoneNumber]);
+        if (null !== $existing) {
+            $this->em->remove($existing);
+            $this->em->flush();
+        }
+
         $association = new Association();
-        $association->setBalanceCents($personalCents);
-        $association->setMunicipalBalanceCents($municipalCents);
+        $association->setName('Association Test PrintPolicyEvaluator')
+            ->setPhoneNumber($phoneNumber)
+            ->setBalanceCents($personalCents)
+            ->setMunicipalBalanceCents($municipalCents);
+        $this->em->persist($association);
+        $this->em->flush();
 
         return $association;
     }
 
-    /**
-     * Grille tarifaire de test (identique aux valeurs seedées par la
-     * migration), retournée par un mock de PrintPriceRateRepository plutôt
-     * qu'une constante en dur dans PrintPolicyEvaluator (cf. tarifs
-     * désormais configurables depuis l'admin).
-     */
-    private function priceRateRepository(): PrintPriceRateRepository
+    private function findTransactionByReference(string $reference): PrintTransaction
     {
-        $grid = [
-            'MONOCHROME' => ['A4' => 30, 'A3' => 60],
-            'COLOR' => ['A4' => 50, 'A3' => 100],
-        ];
+        $transaction = $this->em->getRepository(PrintTransaction::class)->findOneBy(['reference' => $reference]);
+        self::assertNotNull($transaction);
 
-        $repository = $this->createMock(PrintPriceRateRepository::class);
-        $repository->method('findOneByTypeAndFormat')
-            ->willReturnCallback(static function (string $colorMode, string $paperSize) use ($grid): ?PrintPriceRate {
-                if (!isset($grid[$colorMode][$paperSize])) {
-                    return null;
-                }
-
-                return new PrintPriceRate($colorMode, $paperSize, $grid[$colorMode][$paperSize]);
-            })
-        ;
-
-        return $repository;
-    }
-
-    private function request(
-        int $pageCount = 4,
-        ?string $colorMode = 'COLOR',
-        ?string $paperSize = 'A4',
-        int $copies = 1,
-    ): PrintAuthorizationRequest {
-        return new PrintAuthorizationRequest(
-            identifier: '0600000000',
-            computerId: 'POSTE-LINUX-01',
-            hostname: 'poste-linux-01',
-            printJob: new PrintJobPayload(
-                jobId: 42,
-                printerName: 'Imprimante-WiFi',
-                documentName: 'document.pdf',
-                pageCount: $pageCount,
-                copies: $copies,
-                paperSize: $paperSize,
-                colorMode: $colorMode,
-                duplexMode: 'ONE_SIDED',
-            ),
-        );
+        return $transaction;
     }
 }

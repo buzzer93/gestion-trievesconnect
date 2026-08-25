@@ -9,22 +9,20 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 /**
+ * ARCHIVE HISTORIQUE, plus jamais écrite depuis le 2026-08-25 (cf. PHPDoc
+ * de la migration Version20260825170000) -- remplacée par PrintTransaction
+ * / PrintTransactionLine, qui couvrent aussi les clients classiques et
+ * portent la clé d'idempotence PrintGate. Conservée en lecture seule
+ * (facturation mairie déjà émise sur les trimestres passés,
+ * MunicipalBudgetController et AssociationController la lisent encore en
+ * complément du nouveau journal).
+ *
  * Une ligne par impression payée (en tout ou partie) par une Association,
  * qu'elle soit financée par le crédit mairie ou par le crédit personnel de
  * l'association (cf. $fundingSource) -- une impression qui bascule d'un
- * crédit à l'autre en cours de job produit deux lignes distinctes (cf.
- * AssociationRepository::debitForPrintJob()). Sert de justificatif détaillé
- * pour la facturation trimestrielle mairie (lignes MUNICIPAL uniquement) et
- * pour l'historique complet affiché sur la fiche association (les deux
- * sources, séparées) : les totaux sont calculés par requête sur cette
- * table (pas de compteur agrégé séparé, une seule source de vérité). Ne
+ * crédit à l'autre en cours de job produit deux lignes distinctes. Ne
  * représente jamais le contenu du document, comme PrintJobPayload dont elle
  * reprend les champs pertinents.
- *
- * Conserve son nom historique "PrintMunicipalConsumption" bien qu'elle
- * couvre désormais aussi les impressions payées sur crédit personnel :
- * c'est la même notion de justificatif d'impression pour une association,
- * seule la source de financement change.
  */
 #[ORM\Entity(repositoryClass: PrintMunicipalConsumptionRepository::class)]
 class PrintMunicipalConsumption

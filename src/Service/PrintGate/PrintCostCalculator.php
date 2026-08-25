@@ -7,12 +7,17 @@ namespace App\Service\PrintGate;
 use App\Repository\PrintPriceRateRepository;
 
 /**
- * Calcule le coût d'une impression à partir de la grille tarifaire
- * configurée en admin (page "Tarifs d'impression"). Source unique utilisée
- * aussi bien par le flux PrintGate automatique (cf. PrintPolicyEvaluator)
- * que par les débits manuels depuis le back-office (CustomerController,
- * AssociationController) -- évite d'avoir une deuxième grille de prix
- * codée en dur côté JS, désynchronisée de celle-ci.
+ * Résout le tarif unitaire (prix par copie) applicable pour une
+ * combinaison couleur/format, dans une grille donnée (CLIENT, ASSOCIATION
+ * ou MUNICIPAL -- cf. PrintPriceRate::SCOPE_*). Source unique utilisée par
+ * PrintPolicyEvaluator (flux PrintGate automatique et débits manuels
+ * back-office confondus) -- pas de grille de prix codée en dur côté JS,
+ * désynchronisée de celle-ci.
+ *
+ * Renvoie un prix unitaire (pas un total pré-multiplié par les copies) :
+ * PrintPolicyEvaluator a besoin du prix à l'unité pour répartir une
+ * impression entre plusieurs sources de financement à des tarifs
+ * différents (bascule par unité, cf. sa PHPDoc).
  */
 final class PrintCostCalculator
 {
@@ -22,17 +27,16 @@ final class PrintCostCalculator
     }
 
     /**
-     * Retourne null si aucun tarif n'est configuré pour cette combinaison
-     * -- fail-closed, pour ne jamais débiter à un tarif arbitraire ou nul.
+     * Retourne null si aucun tarif activé n'est configuré pour cette
+     * combinaison dans cette grille -- fail-closed, pour ne jamais débiter
+     * à un tarif arbitraire ou nul. Pour scope=MUNICIPAL, null signifie
+     * aussi bien "pas de tarif" que "non éligible au financement mairie" :
+     * les deux se traduisent par la même absence de ligne activée.
      */
-    public function computeCostCents(string $colorMode, string $paperSize, int $copies): ?int
+    public function unitPriceCents(string $scope, string $colorMode, string $paperSize): ?int
     {
-        $rate = $this->priceRateRepository->findOneByTypeAndFormat($colorMode, $paperSize);
+        $rate = $this->priceRateRepository->findOneEnabledByScopeAndFormat($scope, $colorMode, $paperSize);
 
-        if (null === $rate) {
-            return null;
-        }
-
-        return $rate->getPriceCents() * max(1, $copies);
+        return $rate?->getPriceCents();
     }
 }

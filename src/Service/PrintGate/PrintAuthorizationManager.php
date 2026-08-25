@@ -6,34 +6,51 @@ namespace App\Service\PrintGate;
 
 use App\DTO\PrintGate\PrintAuthorizationRequest;
 use App\DTO\PrintGate\PrintAuthorizationResponse;
+use App\Entity\PrintGateDevice;
+use App\Repository\CustomerRepository;
 
 /**
- * Étape 6 : délègue désormais la décision à PrintPolicyEvaluator, au lieu
- * de la décision fixe de l'étape 4 (paramètre printgate.default_authorization
- * -- devenu obsolet, à retirer de config/services.yaml).
+ * Traduit la requête HTTP PrintGate (identifiant brut, poste déjà résolu
+ * par PrintGateAuthorizeIntegrityListener) en PrintChargeContext, délègue
+ * la décision à PrintPolicyEvaluator, traduit le résultat en réponse HTTP.
  *
- * Ne reçoit volontairement PAS le PrintGateDevice résolu par le listener
- * JWT (disponible dans $request->attributes->get('printGateDevice') côté
- * HttpFoundation) : aucune règle V1 n'en a besoin. Si une règle V2 en a
- * besoin un jour (ex. quota par poste), ajouter le paramètre à ce moment
- * -- pas avant (cf. règles projet : éviter les abstractions/paramètres
- * anticipés sans besoin réel).
+ * La résolution "identifiant -> bénéficiaire" reste ici (pas dans
+ * PrintPolicyEvaluator) : c'est une préoccupation propre au flux PrintGate
+ * (l'identifiant est un numéro de téléphone brut envoyé par l'agent) --
+ * un débit manuel admin part déjà d'une Association/Customer résolue via
+ * la route, sans identifiant à parser.
  */
 final class PrintAuthorizationManager
 {
     public function __construct(
+        private readonly CustomerRepository $customerRepository,
         private readonly PrintPolicyEvaluator $policyEvaluator,
     ) {
     }
 
-    public function authorize(PrintAuthorizationRequest $request): PrintAuthorizationResponse
+    public function authorize(PrintAuthorizationRequest $request, ?PrintGateDevice $device): PrintAuthorizationResponse
     {
-        $decision = $this->policyEvaluator->evaluate($request);
+        $beneficiary = $this->customerRepository->findOneByPhoneNumber($request->identifier);
 
-        if (!$decision->authorized) {
-            return PrintAuthorizationResponse::refused($decision->reason ?? 'Requête refusée');
+        if (null === $beneficiary) {
+            return PrintAuthorizationResponse::refused(PolicyDecision::REASON_UNKNOWN_IDENTIFIER);
         }
 
-        return PrintAuthorizationResponse::authorized();
+        $printJob = $request->printJob;
+
+        $context = new PrintChargeContext(
+            beneficiary: $beneficiary,
+            colorMode: strtoupper((string) ($printJob->colorMode ?? '')),
+            paperSize: strtoupper((string) ($printJob->paperSize ?? '')),
+            copies: $printJob->copies,
+            pageCount: $printJob->pageCount,
+            duplexMode: $printJob->duplexMode,
+            device: $device,
+            jobId: $printJob->jobId,
+        );
+
+        $decision = $this->policyEvaluator->evaluate($context);
+
+        return PrintAuthorizationResponse::fromDecision($decision);
     }
 }

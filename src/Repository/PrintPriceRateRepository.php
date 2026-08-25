@@ -24,6 +24,22 @@ class PrintPriceRateRepository extends ServiceEntityRepository
     public function findAll(): array
     {
         return $this->createQueryBuilder('r')
+            ->orderBy('r.scope', 'ASC')
+            ->addOrderBy('r.colorMode', 'ASC')
+            ->addOrderBy('r.paperSize', 'ASC')
+            ->getQuery()
+            ->getResult()
+        ;
+    }
+
+    /**
+     * @return PrintPriceRate[]
+     */
+    public function findAllByScope(string $scope): array
+    {
+        return $this->createQueryBuilder('r')
+            ->andWhere('r.scope = :scope')
+            ->setParameter('scope', $scope)
             ->orderBy('r.colorMode', 'ASC')
             ->addOrderBy('r.paperSize', 'ASC')
             ->getQuery()
@@ -31,8 +47,18 @@ class PrintPriceRateRepository extends ServiceEntityRepository
         ;
     }
 
-    public function findOneByTypeAndFormat(string $colorMode, string $paperSize): ?PrintPriceRate
+    /**
+     * Ne renvoie une ligne que si elle existe ET est activée -- pour
+     * scope=MUNICIPAL, c'est ce qui fait office de règle d'éligibilité
+     * (cf. PrintPriceRate::$enabled).
+     */
+    public function findOneEnabledByScopeAndFormat(string $scope, string $colorMode, string $paperSize): ?PrintPriceRate
     {
-        return $this->findOneBy(['colorMode' => $colorMode, 'paperSize' => $paperSize]);
+        return $this->findOneBy([
+            'scope' => $scope,
+            'colorMode' => $colorMode,
+            'paperSize' => $paperSize,
+            'enabled' => true,
+        ]);
     }
 }

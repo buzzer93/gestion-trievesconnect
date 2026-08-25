@@ -30,12 +30,6 @@ final class CustomerControllerTest extends WebTestCase
     }
 
     /**
-     * printCharge() a changé de contrat ({colorMode, paperSize, copies} au
-     * lieu de {cents} brut) pour utiliser les tarifs configurés
-     * (PrintCostCalculator) plutôt qu'une grille dupliquée côté JS -- même
-     * source que le débit associatif.
-     */
-    /**
      * Customer et Association partagent la même table (Single Table
      * Inheritance) -- une requête sans filtre sur la liste "Clients"
      * remonterait aussi les associations (cf. correction du 2026-08-25).
@@ -97,7 +91,7 @@ final class CustomerControllerTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(400);
         $data = json_decode((string) $client->getResponse()->getContent(), true);
-        self::assertSame('Solde insuffisant', $data['error']);
+        self::assertStringContainsString('Solde insuffisant', $data['error']);
     }
 
     private function buildCustomer(string $phoneNumber, int $balanceCents): Customer
