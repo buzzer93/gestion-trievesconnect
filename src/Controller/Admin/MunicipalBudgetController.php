@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
-use App\Repository\AssociationRepository;
 use App\Repository\MunicipalBudgetSettingsRepository;
-use App\Repository\PrintMunicipalConsumptionRepository;
 use App\Repository\PrintTransactionLineRepository;
+use App\Service\MunicipalBudgetSummaryProvider;
 use App\Service\MunicipalCreditsRenewalService;
+use App\Service\MunicipalInvoicePdfGenerator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -32,9 +33,7 @@ class MunicipalBudgetController extends AbstractController
     public function index(
         Request $request,
         MunicipalBudgetSettingsRepository $settingsRepository,
-        AssociationRepository $associationRepository,
-        PrintMunicipalConsumptionRepository $consumptionRepository,
-        PrintTransactionLineRepository $lineRepository,
+        MunicipalBudgetSummaryProvider $summaryProvider,
         EntityManagerInterface $em,
     ): Response {
         $settings = $settingsRepository->getSettings();
@@ -55,41 +54,11 @@ class MunicipalBudgetController extends AbstractController
             return $this->redirectToRoute('admin.municipal_budget.index');
         }
 
-        $now = new \DateTimeImmutable();
-        $year = (int) $request->query->get('year', (string) PrintTransactionLineRepository::currentSchoolYearStart($now));
-        $quarter = max(1, min(4, (int) $request->query->get('quarter', (string) PrintTransactionLineRepository::currentQuarter($now))));
+        [$year, $quarter] = $this->resolveYearAndQuarter($request);
         [$prevYear, $prevQuarter] = PrintTransactionLineRepository::previousQuarter($year, $quarter);
         [$nextYear, $nextQuarter] = PrintTransactionLineRepository::nextQuarter($year, $quarter);
 
-        // Une entrée par association, y compris celles sans consommation
-        // ce trimestre (0 €), pour un récap complet plutôt qu'une liste
-        // tronquée aux seules associations actives.
-        $byAssociation = [];
-        foreach ($associationRepository->findAll() as $association) {
-            $byAssociation[$association->getId()] = [
-                'association' => $association,
-                'amountCents' => 0,
-            ];
-        }
-
-        $totalCents = 0;
-
-        // Fusionne l'ancien journal (trimestres déjà facturés avant le
-        // 2026-08-25) et le nouveau (seul alimenté désormais) -- cf.
-        // PHPDoc de Version20260825170000.
-        foreach ($consumptionRepository->findMunicipalForQuarterAllAssociations($year, $quarter) as $entry) {
-            $id = $entry->getAssociation()->getId();
-            $byAssociation[$id]['amountCents'] += $entry->getAmountSpentCents();
-            $totalCents += $entry->getAmountSpentCents();
-        }
-
-        foreach ($lineRepository->findMunicipalForQuarterAllAssociations($year, $quarter) as $line) {
-            $id = $line->getTransaction()->getCustomer()->getId();
-            if (isset($byAssociation[$id])) {
-                $byAssociation[$id]['amountCents'] += $line->getAmountCents();
-            }
-            $totalCents += $line->getAmountCents();
-        }
+        $summary = $summaryProvider->forQuarter($year, $quarter);
 
         return $this->render('admin/municipal_budget/index.html.twig', [
             'settings' => $settings,
@@ -99,9 +68,48 @@ class MunicipalBudgetController extends AbstractController
             'prevQuarter' => $prevQuarter,
             'nextYear' => $nextYear,
             'nextQuarter' => $nextQuarter,
-            'byAssociation' => $byAssociation,
-            'totalCents' => $totalCents,
+            'byAssociation' => $summary['byAssociation'],
+            'totalCents' => $summary['totalCents'],
         ]);
+    }
+
+    /**
+     * Facture PDF trimestrielle à envoyer à la mairie -- même récap que
+     * la page ci-dessus (par association + total), sur le même
+     * trimestre sélectionné (query params year/quarter).
+     */
+    #[Route('/export-pdf', name: '.export_pdf', methods: ['GET'])]
+    public function exportPdf(
+        Request $request,
+        MunicipalBudgetSummaryProvider $summaryProvider,
+        MunicipalInvoicePdfGenerator $pdfGenerator,
+    ): Response {
+        [$year, $quarter] = $this->resolveYearAndQuarter($request);
+
+        $summary = $summaryProvider->forQuarter($year, $quarter);
+        $pdf = $pdfGenerator->generate($summary['byAssociation'], $summary['totalCents'], $year, $quarter);
+
+        $response = new Response($pdf->output());
+        $response->headers->set('Content-Type', 'application/pdf');
+        $response->headers->set(
+            'Content-Disposition',
+            HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_ATTACHMENT, sprintf('facture-mairie-%d-T%d.pdf', $year, $quarter))
+        );
+        $response->headers->set('Cache-Control', 'no-store, no-cache');
+
+        return $response;
+    }
+
+    /**
+     * @return array{0: int, 1: int} [year, quarter]
+     */
+    private function resolveYearAndQuarter(Request $request): array
+    {
+        $now = new \DateTimeImmutable();
+        $year = (int) $request->query->get('year', (string) PrintTransactionLineRepository::currentSchoolYearStart($now));
+        $quarter = max(1, min(4, (int) $request->query->get('quarter', (string) PrintTransactionLineRepository::currentQuarter($now))));
+
+        return [$year, $quarter];
     }
 
     /**

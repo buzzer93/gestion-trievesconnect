@@ -43,9 +43,19 @@
         {% endblock %}
     {% endembed %}
 
-    <h6 class="font-display font-bold text-xs uppercase tracking-wide text-text-soft mt-8 mb-3">
-        Consommation du crédit mairie par association
-    </h6>
+    <div class="flex items-center justify-between mt-8 mb-3">
+        <h6 class="font-display font-bold text-xs uppercase tracking-wide text-text-soft">
+            Consommation du crédit mairie par association
+        </h6>
+        {% include 'components/_button.html.twig' with {
+            label: 'Exporter en PDF',
+            variant: 'accent',
+            size: 'sm',
+            icon: 'fa-solid fa-file-pdf',
+            href: path('admin.municipal_budget.export_pdf', {year: year, quarter: quarter}),
+            title: 'Facture trimestrielle détaillée à envoyer à la mairie',
+        } only %}
+    </div>
 
     <div class="flex items-center justify-between mb-5 max-w-xl">
         {% include 'components/_button.html.twig' with {

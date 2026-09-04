@@ -1,0 +1,109 @@
+{% import 'admin/_quarter_label.html.twig' as quarter_label %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Facture mairie {{ quarter_label.full(quarter, year) }}</title>
+    <style>
+        @page { margin: 28mm 20mm; }
+        body {
+            font-family: 'DejaVu Sans', sans-serif;
+            color: #1a1a1a;
+            font-size: 11pt;
+        }
+        header {
+            border-bottom: 3px solid #1a1a1a;
+            padding-bottom: 14px;
+            margin-bottom: 24px;
+        }
+        h1 {
+            font-size: 18pt;
+            margin: 0 0 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .subtitle {
+            font-size: 12pt;
+            color: #444;
+            margin: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+        thead th {
+            text-align: left;
+            font-size: 9pt;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #555;
+            border-bottom: 2px solid #1a1a1a;
+            padding: 6px 8px;
+        }
+        thead th.amount, tfoot td.amount, tbody td.amount {
+            text-align: right;
+        }
+        tbody td {
+            padding: 6px 8px;
+            border-bottom: 1px solid #ddd;
+        }
+        tbody tr:nth-child(even) {
+            background-color: #f7f7f7;
+        }
+        tfoot td {
+            padding: 10px 8px 0;
+            font-weight: bold;
+            font-size: 12pt;
+            border-top: 2px solid #1a1a1a;
+        }
+        .amount {
+            font-family: 'DejaVu Sans Mono', monospace;
+        }
+        footer {
+            position: fixed;
+            bottom: -18mm;
+            left: 0;
+            right: 0;
+            font-size: 8pt;
+            color: #888;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Facture trimestrielle -- budget mairie</h1>
+        <p class="subtitle">{{ quarter_label.full(quarter, year) }}</p>
+    </header>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Association</th>
+                <th class="amount">Montant mairie consommé</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in byAssociation %}
+                {% if row.amountCents > 0 %}
+                    <tr>
+                        <td>{{ row.association.name }}</td>
+                        <td class="amount">{{ (row.amountCents / 100)|number_format(2, ',', ' ') }} €</td>
+                    </tr>
+                {% endif %}
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td>Total à facturer</td>
+                <td class="amount">{{ (totalCents / 100)|number_format(2, ',', ' ') }} €</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <footer>
+        Document généré le {{ "now"|date('d/m/Y à H:i') }}
+    </footer>
+</body>
+</html>
