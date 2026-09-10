@@ -29,6 +29,10 @@
             {{ form_start(form, { attr: { id: 'form' } }) }}
                 {{ form_errors(form) }}
 
+                <p class="text-sm text-text-soft mb-4">
+                    Code carte / PrintGate : <span class="font-mono text-gold font-bold">{{ customer.reference }}</span>
+                </p>
+
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {{ form_row(form.name) }}
                     {{ form_row(form.phoneNumber) }}
