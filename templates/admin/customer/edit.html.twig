@@ -24,7 +24,7 @@
         {% endblock %}
     {% endembed %}
 
-    {% embed 'components/_card.html.twig' with { padding: 'lg', form: form } only %}
+    {% embed 'components/_card.html.twig' with { padding: 'lg', form: form, customer: customer } only %}
         {% block body %}
             {{ form_start(form, { attr: { id: 'form' } }) }}
                 {{ form_errors(form) }}
