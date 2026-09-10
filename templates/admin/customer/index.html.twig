@@ -20,10 +20,10 @@
     <div class="mb-5 max-w-xl">
         <label for="scanPhoneInput" class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">
             <i class="fa-solid fa-barcode mr-1.5" aria-hidden="true"></i>
-            Scanner un numéro de téléphone
+            Scanner une référence client
         </label>
         <input id="scanPhoneInput" type="text"
-               placeholder="Scanner ou saisir un numéro puis Entrée"
+               placeholder="Scanner ou saisir une référence puis Entrée"
                autocomplete="off"
                class="block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm font-mono placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent transition-colors duration-150">
     </div>
@@ -32,6 +32,7 @@
         <thead>
             <tr>
                 <th>Nom</th>
+                <th>Référence</th>
                 <th>Téléphone</th>
                 <th>Email</th>
                 <th>Solde</th>
@@ -45,6 +46,7 @@
                     <td>
                         <a class="data_name" href="{{ path('admin.customer.edit', {id: customer.id}) }}">{{ customer.name }}</a>
                     </td>
+                    <td class="font-mono text-sm text-text-soft">{{ customer.reference }}</td>
                     <td class="font-mono text-sm text-text-soft">{{ customer.phoneNumber }}</td>
                     <td class="text-text-soft">{{ customer.email }}</td>
                     <td>
@@ -75,7 +77,7 @@
                 </tr>
             {% else %}
                 <tr>
-                    <td colspan="5" class="text-center text-text-muted py-6">
+                        <td colspan="6" class="text-center text-text-muted py-6">
                         Aucun client pour l'instant.
                     </td>
                 </tr>
@@ -200,7 +202,7 @@
     </div>
 
     <script>
-        // === Scan téléphone : ouvre la modale crédit pour le client correspondant ============
+        // === Scan référence client : ouvre la modale crédit pour le client correspondant =====
         (function () {
             const scanInput = document.getElementById('scanPhoneInput');
             scanInput?.addEventListener('keydown', (e) => {
@@ -210,10 +212,12 @@
                 const normalized = raw.replace(/\s+/g, '').replace(/^\+33/, '0');
                 let targetBtn = null;
                 document.querySelectorAll('#customerTable tbody tr').forEach(tr => {
-                    const phoneCell = tr.children[1];
-                    if (!phoneCell) return;
+                    const referenceCell = tr.children[1];
+                    const phoneCell = tr.children[2];
+                    if (!referenceCell || !phoneCell) return;
+                    const reference = referenceCell.textContent.replace(/\s+/g, '');
                     const phone = phoneCell.textContent.replace(/\s+/g, '').replace(/^\+33/, '0');
-                    if (phone === normalized) targetBtn = tr.querySelector('.credit-btn');
+                    if (reference === normalized || phone === normalized) targetBtn = tr.querySelector('.credit-btn');
                 });
                 if (targetBtn) {
                     targetBtn.click();

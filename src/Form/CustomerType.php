@@ -26,8 +26,16 @@ class CustomerType extends AbstractType
             ])
             ->add('phoneNumber', TextType::class, [
                 'label' => 'Téléphone',
-                'constraints' => [new NotBlank(message: 'Le numéro de téléphone est obligatoire.'), new Length(min: 6, minMessage: 'Téléphone trop court')],
+                'required' => false,
+                'constraints' => [new Length(min: 6, minMessage: 'Téléphone trop court')],
+                'empty_data' => null,
                 'attr' => ['placeholder' => '+33...']
+            ])
+            ->add('reference', TextType::class, [
+                'label' => 'Référence',
+                'disabled' => true,
+                'required' => false,
+                'help' => 'Code unique utilisé pour le code-barres.',
             ])
             ->add('email', EmailType::class, [
                 'label' => 'Email',

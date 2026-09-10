@@ -19,9 +19,8 @@ class Customer
     #[Assert\NotBlank(message: "Le nom est obligatoire.")]
     private ?string $name = null;
 
-    #[ORM\Column(length: 255)]
-    #[Assert\NotBlank(message: "Le numéro de téléphone est obligatoire.")]
-    private string $phoneNumber;
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $phoneNumber = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $address = null;
@@ -34,6 +33,9 @@ class Customer
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $email = null;
+
+    #[ORM\Column(length: 64, unique: true, nullable: true)]
+    private ?string $reference = null;
 
     #[ORM\Column]
     private int $credits = 0;
@@ -60,9 +62,9 @@ class Customer
         return $this->phoneNumber;
     }
 
-    public function setPhoneNumber(string $phoneNumber): static
+    public function setPhoneNumber(?string $phoneNumber): static
     {
-        $this->phoneNumber = $phoneNumber;
+        $this->phoneNumber = $phoneNumber !== null && trim($phoneNumber) !== '' ? trim($phoneNumber) : null;
 
         return $this;
     }
@@ -111,6 +113,29 @@ class Customer
     public function setEmail(string $email): static
     {
         $this->email = $email;
+
+        return $this;
+    }
+
+    public function getReference(): ?string
+    {
+        return $this->reference;
+    }
+
+    public function generateReference(): static
+    {
+        if ($this->id === null) {
+            throw new \LogicException('La référence ne peut être générée qu’après la création du client.');
+        }
+
+        $this->reference = (string) (7777000000 + $this->id);
+
+        return $this;
+    }
+
+    public function setReference(string $reference): static
+    {
+        $this->reference = $reference;
 
         return $this;
     }
@@ -180,7 +205,7 @@ class Customer
 
     public function getBarCodeImage(): string
     {
-        $value = $this->phoneNumber ?? '';
+        $value = $this->reference ?? $this->phoneNumber ?? '';
         if ($value === '') {
             return '';
         }

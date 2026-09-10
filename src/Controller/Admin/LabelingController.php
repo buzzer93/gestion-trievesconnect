@@ -43,6 +43,9 @@ class LabelingController extends AbstractController
                 $data = $em->getRepository(Service::class)->findOneBy(['barCode' => $barCode]);
             }
             if (!$data) {
+                $data = $em->getRepository(Customer::class)->findOneBy(['reference' => $barCode]);
+            }
+            if (!$data) {
                 $data = $em->getRepository(Customer::class)->findOneBy(['id' => $barCode]);
             }
 
