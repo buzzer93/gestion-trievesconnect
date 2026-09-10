@@ -39,6 +39,7 @@
             <thead>
                 <tr>
                     <th>Nom</th>
+                    <th>Code</th>
                     <th>Téléphone</th>
                     <th>Solde personnel</th>
                     <th>Solde mairie</th>
@@ -53,6 +54,7 @@
                         <td>
                             <a class="data_name" href="{{ path('admin.association.show', {id: association.id}) }}">{{ association.name }}</a>
                         </td>
+                        <td class="font-mono text-sm text-gold">{{ association.reference }}</td>
                         <td class="font-mono text-sm text-text-soft">{{ association.phoneNumber }}</td>
                         <td>
                             <button type="button"
@@ -108,13 +110,13 @@
                     </tr>
                 {% else %}
                     <tr>
-                        <td colspan="5" class="text-center text-text-muted py-6">
+                        <td colspan="6" class="text-center text-text-muted py-6">
                             Aucune association pour l'instant.
                         </td>
                     </tr>
                 {% endfor %}
                 <tr data-table-filter-target="empty" class="hidden">
-                    <td colspan="5" class="text-center text-text-muted py-6">
+                    <td colspan="6" class="text-center text-text-muted py-6">
                         Aucun résultat pour cette recherche.
                     </td>
                 </tr>

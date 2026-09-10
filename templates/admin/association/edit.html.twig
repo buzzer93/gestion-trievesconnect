@@ -10,8 +10,14 @@
     } only %}
         {% block actions %}
             {% include 'components/_button.html.twig' with {
-                label: 'Conso. trimestre',
+                label: 'Imprimer carte',
                 variant: 'primary',
+                icon: 'fa-solid fa-id-card',
+                href: path('admin.customer.card_print', {id: association.id}),
+            } only %}
+            {% include 'components/_button.html.twig' with {
+                label: 'Conso. trimestre',
+                variant: 'ghost',
                 icon: 'fa-solid fa-chart-column',
                 href: path('admin.association.consumption', {id: association.id}),
             } only %}

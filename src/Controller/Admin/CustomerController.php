@@ -8,6 +8,7 @@ use App\Entity\User;
 use App\Form\CustomerType;
 use App\Repository\CustomerRepository;
 use App\Repository\PrintPriceRateRepository;
+use App\Service\CustomerReferenceGenerator;
 use App\Service\PrintGate\PrintChargeContext;
 use App\Service\PrintGate\PrintPolicyEvaluator;
 use App\Service\PrintGate\PrintRefusalMessageFormatter;
@@ -35,9 +36,10 @@ class CustomerController extends AbstractController
     }
 
     #[Route('/create', name: '.create')]
-    public function create(Request $request, EntityManagerInterface $em): Response
+    public function create(Request $request, EntityManagerInterface $em, CustomerReferenceGenerator $referenceGenerator): Response
     {
         $customer = new Customer();
+        $customer->setReference($referenceGenerator->generate());
     $form = $this->createForm(CustomerType::class, $customer);
     // Pré-remplir le champ non mappé balanceEuros
     $form->get('balanceEuros')->setData(number_format($customer->getBalanceCents() / 100, 2, '.', ''));

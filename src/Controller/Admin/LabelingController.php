@@ -2,7 +2,6 @@
 
 namespace App\Controller\Admin;
 
-use App\Entity\Customer;
 use App\Entity\Product;
 use App\Entity\Service;
 use App\Form\LabelingType;
@@ -42,9 +41,11 @@ class LabelingController extends AbstractController
             if (!$data) {
                 $data = $em->getRepository(Service::class)->findOneBy(['barCode' => $barCode]);
             }
-            if (!$data) {
-                $data = $em->getRepository(Customer::class)->findOneBy(['id' => $barCode]);
-            }
+            // Pas de fallback Customer/Association ici : ce tableau
+            // partagé (colonnes prix de vente, grand format...) n'a
+            // jamais été construit pour ces entités -- utiliser
+            // "Imprimer carte" (admin.customer.card_print) pour une
+            // carte client/association.
 
             if ($data) {
                 $dataList[] = ['entity' => $data, 'format' => 'small'];

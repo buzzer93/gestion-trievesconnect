@@ -34,6 +34,18 @@ class Customer
     #[Assert\NotBlank(message: "Le numéro de téléphone est obligatoire.")]
     private string $phoneNumber;
 
+    /**
+     * Identifiant unique du compte (code-barres carte + recherche
+     * PrintGate), généré côté serveur -- cf. CustomerReferenceGenerator.
+     * Remplace le téléphone comme clé d'identification (décision du
+     * 2026-09-10) : deux comptes peuvent légitimement partager le même
+     * téléphone (même personne gérant plusieurs associations), donc le
+     * téléphone ne peut plus servir d'identifiant unique. Jamais modifiable
+     * depuis un formulaire -- non exposé dans CustomerType/AssociationType.
+     */
+    #[ORM\Column(length: 10, unique: true)]
+    private string $reference;
+
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $address = null;
 
@@ -74,6 +86,18 @@ class Customer
     public function setPhoneNumber(string $phoneNumber): static
     {
         $this->phoneNumber = $phoneNumber;
+
+        return $this;
+    }
+
+    public function getReference(): ?string
+    {
+        return $this->reference ?? null;
+    }
+
+    public function setReference(string $reference): static
+    {
+        $this->reference = $reference;
 
         return $this;
     }
@@ -191,7 +215,7 @@ class Customer
 
     public function getBarCodeImage(): string
     {
-        $value = $this->phoneNumber ?? '';
+        $value = $this->reference ?? '';
         if ($value === '') {
             return '';
         }

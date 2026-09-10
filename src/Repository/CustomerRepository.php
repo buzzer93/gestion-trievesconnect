@@ -26,6 +26,22 @@ class CustomerRepository extends ServiceEntityRepository
     }
 
     /**
+     * Identifiant utilisé par PrintGate et le code-barres carte (cf.
+     * Customer::$reference) -- contrairement à findOneByPhoneNumber(),
+     * `reference` est contraint UNIQUE en base, donc getOneOrNullResult()
+     * ne peut plus lever NonUniqueResultException ici.
+     */
+    public function findOneByReference(string $value): ?Customer
+    {
+        return $this->createQueryBuilder('c')
+            ->andWhere('c.reference = :val')
+            ->setParameter('val', $value)
+            ->getQuery()
+            ->getOneOrNullResult()
+        ;
+    }
+
+    /**
      * Débite le solde d'un client suite à une impression PrintGate
      * autorisée. Persistance dans le repository (comme
      * PrintGateUsedTokenRepository::markAsUsed()) plutôt que dans

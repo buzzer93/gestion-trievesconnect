@@ -24,6 +24,7 @@ final class PrintAuthorizationControllerTest extends WebTestCase
     private const ISSUER = 'printgate-agent';
     private const AUDIENCE = 'gestion.trievesconnect.fr';
     private const CUSTOMER_PHONE_NUMBER = '0611223344';
+    private const CUSTOMER_REFERENCE = '7777279337';
 
     public function testNominalRequestReturnsAuthorizationDecision(): void
     {
@@ -177,7 +178,7 @@ final class PrintAuthorizationControllerTest extends WebTestCase
     private function samplePayload(int $jobId = 42): string
     {
         return json_encode([
-            'identifier' => self::CUSTOMER_PHONE_NUMBER,
+            'identifier' => self::CUSTOMER_REFERENCE,
             'computerId' => self::COMPUTER_ID,
             'hostname' => 'poste-ci',
             'printJob' => [
@@ -230,13 +231,14 @@ final class PrintAuthorizationControllerTest extends WebTestCase
 
     /**
      * Enregistre (ou réutilise) le Customer attendu par samplePayload()
-     * (identifier = numéro de téléphone, même identifiant que la carte
-     * client), avec assez de crédits pour que PrintPolicyEvaluator
-     * autorise l'impression (COLOR/A4 x1 copie = 50c, largement couvert
-     * par 10000c).
+     * (identifier = référence carte, cf. Customer::$reference -- remplace
+     * le numéro de téléphone comme identifiant PrintGate depuis le
+     * 2026-09-10, cf. PrintAuthorizationManager), avec assez de crédits
+     * pour que PrintPolicyEvaluator autorise l'impression (COLOR/A4 x1
+     * copie = 50c, largement couvert par 10000c).
      *
-     * IMPORTANT : ne supprime jamais un client existant trouvé par ce
-     * numéro -- même sur la base de test isolée, cf. incident du
+     * IMPORTANT : ne supprime jamais un client existant trouvé par cette
+     * référence -- même sur la base de test isolée, cf. incident du
      * 2026-07-06 où ce test avait écrasé un vrai client (nom, solde) sur
      * la base de dev partagée d'alors. Si un client existe déjà, on se
      * contente de remonter son solde au minimum requis.
@@ -247,7 +249,7 @@ final class PrintAuthorizationControllerTest extends WebTestCase
         $entityManager = static::getContainer()->get(EntityManagerInterface::class);
 
         $existing = $entityManager->getRepository(Customer::class)
-            ->findOneBy(['phoneNumber' => self::CUSTOMER_PHONE_NUMBER]);
+            ->findOneBy(['reference' => self::CUSTOMER_REFERENCE]);
 
         if (null !== $existing) {
             if ($existing->getBalanceCents() < $balanceCents) {
@@ -261,6 +263,7 @@ final class PrintAuthorizationControllerTest extends WebTestCase
         $customer = (new Customer())
             ->setName('J. Dupont (test PrintGate)')
             ->setPhoneNumber(self::CUSTOMER_PHONE_NUMBER)
+            ->setReference(self::CUSTOMER_REFERENCE)
             ->setBalanceCents($balanceCents);
 
         $entityManager->persist($customer);

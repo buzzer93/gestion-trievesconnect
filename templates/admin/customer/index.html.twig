@@ -51,6 +51,7 @@
             <thead>
                 <tr>
                     <th>Nom</th>
+                    <th>Code</th>
                     <th>Téléphone</th>
                     <th>Email</th>
                     <th>Solde</th>
@@ -65,6 +66,7 @@
                         <td>
                             <a class="data_name" href="{{ path('admin.customer.edit', {id: customer.id}) }}">{{ customer.name }}</a>
                         </td>
+                        <td class="font-mono text-sm text-gold">{{ customer.reference }}</td>
                         <td class="font-mono text-sm text-text-soft">{{ customer.phoneNumber }}</td>
                         <td class="text-text-soft">{{ customer.email }}</td>
                         <td>
@@ -99,13 +101,13 @@
                     </tr>
                 {% else %}
                     <tr>
-                        <td colspan="5" class="text-center text-text-muted py-6">
+                        <td colspan="6" class="text-center text-text-muted py-6">
                             Aucun client pour l'instant.
                         </td>
                     </tr>
                 {% endfor %}
                 <tr data-table-filter-target="empty" class="hidden">
-                    <td colspan="5" class="text-center text-text-muted py-6">
+                    <td colspan="6" class="text-center text-text-muted py-6">
                         Aucun résultat pour cette recherche.
                     </td>
                 </tr>
