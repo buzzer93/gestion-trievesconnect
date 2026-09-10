@@ -93,6 +93,7 @@
                                 } only %}
                                 <form method="post" action="{{ path('admin.association.delete', {id: association.id}) }}"
                                       onsubmit="return confirm('Supprimer cette association ?');">
+                                    <input type="hidden" name="_method" value="DELETE">
                                     <input type="hidden" name="_token" value="{{ csrf_token('association_delete_' ~ association.id) }}">
                                     {% include 'components/_button.html.twig' with {
                                         label: 'Supprimer',
