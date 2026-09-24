@@ -1,6 +1,6 @@
 # Gestion Trièves Connect
 
-Application Symfony 7.1 de gestion d'inventaire et d'étiquetage pour la boutique Trièves Connect, avec lecture de codes-barres, génération d'étiquettes imprimables, gestion des crédits d'impression clients, export Excel et contrôle d'accès à l'impression (module PrintGate) pour les postes Linux de la boutique.
+Application Symfony 7.4 de gestion d'inventaire et d'étiquetage pour la boutique Trièves Connect, avec lecture de codes-barres, génération d'étiquettes imprimables, gestion des crédits d'impression clients et associations (dont le crédit mairie et sa facturation trimestrielle), export Excel/PDF et contrôle d'accès à l'impression (module PrintGate) pour les postes Linux de la boutique.
 
 ---
 
@@ -11,8 +11,9 @@ Ce projet permet de :
 - Scanner les codes-barres des produits via une douchette pour enregistrer prix et quantité.
 - Générer et imprimer des étiquettes produits.
 - Réaliser un inventaire par scan des articles en stock.
-- Gérer les clients et leurs crédits d'impression.
-- Imprimer des cartes de crédits d'impression pour les clients.
+- Gérer les clients et associations, et leurs crédits d'impression.
+- Imprimer des cartes de crédits d'impression pour les clients et associations.
+- Gérer le crédit mairie des associations et exporter la facture PDF trimestrielle.
 - Exporter le catalogue complet au format Excel.
 
 ---
@@ -22,10 +23,11 @@ Ce projet permet de :
 ### Backend
 
 - **PHP 8.2+**
-- **Symfony 7.1** — Framework Bundle, Security, Form, Validator, AssetMapper, Stimulus
-- **Doctrine ORM 3** + Doctrine Migrations 3.3
+- **Symfony 7.4** — Framework Bundle, Security, Form, Validator, AssetMapper, Stimulus
+- **Doctrine ORM 3.2** + Doctrine Migrations 3.3
 - **PhpSpreadsheet** — export Excel du catalogue produits
-- **picqer/php-barcode-generator** — génération des codes-barres dans les étiquettes
+- **dompdf/dompdf** — génération de la facture PDF trimestrielle mairie
+- **picqer/php-barcode-generator** — génération des codes-barres dans les étiquettes et les cartes clients/associations
 - **firebase/php-jwt** — vérification des JWT signés (EdDSA/RS256) pour le module PrintGate
 
 ### Frontend
@@ -36,8 +38,8 @@ Ce projet permet de :
 
 ### Base de données
 
-- **SQLite** (`var/data.db`) — en local
-- **MySQL / MariaDB 10.11** — en production
+- **MySQL / MariaDB 10.11** — en développement local *et* en production (même moteur des deux côtés, pour éviter les écarts de comportement).
+- **SQLite** (`var/data_test.db`) — uniquement pour la suite de tests (`APP_ENV=test`), fichier persistant non réinitialisé entre les runs.
 
 ### Infrastructure & outils
 
@@ -71,6 +73,14 @@ Ce projet permet de :
 - Ajout ou débit de crédits depuis la fiche client.
 - Impression d'une carte de crédits d'impression au format étiquette.
 - Décompte automatique des crédits lors d'une impression.
+- **Identifiant carte** : chaque client/association reçoit à sa création une référence unique générée côté serveur (`customer.reference`, format `7777` + 5 chiffres aléatoires + chiffre de contrôle Luhn), encodée dans le code-barres de sa carte. Remplace le numéro de téléphone comme identifiant depuis le 2026-09-10 : deux comptes peuvent légitimement partager le même téléphone (ex. une personne gérant plusieurs associations), ce qui rendait le téléphone impropre à identifier de façon unique qui doit être débité (cf. `CustomerReferenceGenerator`). Le téléphone reste une simple coordonnée de contact, désormais facultative.
+
+### Associations & crédit mairie
+
+- Comptes association (héritage de `Customer`, Single Table Inheritance) : mêmes fonctionnalités qu'un client classique, plus un solde mairie séparé du solde personnel.
+- **Forfait mairie annuel** configurable (`/admin/municipal-budget/`), rechargé manuellement association par association ou en une fois pour toutes (pas de renouvellement automatique).
+- **Facturation trimestrielle mairie** : récapitulatif par association et par trimestre *scolaire* (Sept-Nov / Déc-Févr / Mars-Mai / Juin-Août, calé sur la rentrée), avec **export PDF** détaillé prêt à envoyer à la mairie.
+- **Annulation d'une impression** depuis l'historique de la fiche association (ex. mauvaise association débitée par erreur) : annulation logique (la ligne reste visible, marquée "Annulée" avec un motif), exclue automatiquement de la facturation mairie, remboursement des crédits débités optionnel.
 
 ### Authentification
 
@@ -96,7 +106,8 @@ Reste à faire : validation de l'agent Linux sur le vrai matériel (V1 Python co
 ### 1. Prérequis
 
 - PHP 8.2+ avec les extensions :
-  - `pdo_sqlite`
+  - `pdo_mysql` (base de dev/prod)
+  - `pdo_sqlite` (suite de tests uniquement)
   - `fileinfo`
 - Composer 2+
 - Symfony CLI (recommandé)
@@ -126,14 +137,14 @@ Variables utiles :
 APP_ENV=dev
 APP_DEBUG=1
 APP_SECRET=votre_secret_ici
-DATABASE_URL="sqlite:///%kernel.project_dir%/var/data.db"
+DATABASE_URL="mysql://user:password@127.0.0.1:3306/gestion_trieves?serverVersion=10.11.0-MariaDB&charset=utf8mb4"
 ```
 
-### 5. Base de données SQLite
+### 5. Base de données
+
+Créer la base MySQL/MariaDB `gestion_trieves` (ou le nom choisi dans `DATABASE_URL`), puis :
 
 ```bash
-mkdir -p var
-touch var/data.db
 php bin/console doctrine:migrations:migrate -n
 ```
 
@@ -191,13 +202,18 @@ php bin/console doctrine:fixtures:load -n
 
 # Purger les jetons PrintGate anti-rejeu expirés (à planifier en cron, ex. tous les jours a 3h)
 php bin/console printgate:cleanup-used-tokens
+
+# Recharger le crédit mairie de toutes les associations au forfait configuré (déclenchement manuel, pas de cron)
+php bin/console printgate:renew-municipal-credits
 ```
 
 ---
 
 ## Déploiement production
 
-Exemple de déploiement sur un VPS avec Caddy et PHP-FPM.
+Déploiement sur un VPS avec Caddy et PHP-FPM.
+
+> **Important, volontaire :** ce VPS tourne en **`APP_ENV=dev`**, pas `prod` -- décision assumée, pas un oubli. En conséquence : **ne jamais utiliser `composer install --no-dev`**, ni forcer `APP_ENV=prod` sur les commandes ci-dessous. Si ce choix change un jour, mettre à jour cette section (et `.claude/project-profile.md`) en conséquence.
 
 ### 1. Récupérer les modifications
 
@@ -205,17 +221,15 @@ Exemple de déploiement sur un VPS avec Caddy et PHP-FPM.
 git pull
 ```
 
-### 2. Installer les dépendances de production
+### 2. Installer les dépendances
 
 ```bash
-composer install --no-dev --optimize-autoloader
+composer install
 ```
 
 ### 3. Configurer `.env.local`
 
 ```dotenv
-APP_ENV=prod
-APP_DEBUG=0
 APP_SECRET=votre_secret_production
 DATABASE_URL="mysql://user:password@127.0.0.1:3306/gestion_trieves?serverVersion=10.11.0-MariaDB&charset=utf8mb4"
 ```
@@ -223,23 +237,23 @@ DATABASE_URL="mysql://user:password@127.0.0.1:3306/gestion_trieves?serverVersion
 ### 4. Appliquer les migrations
 
 ```bash
-APP_ENV=prod APP_DEBUG=0 php bin/console doctrine:migrations:migrate --no-interaction
+php bin/console doctrine:migrations:migrate --no-interaction
 ```
 
-### 5. Compiler les assets
+### 5. Compiler les assets (si des fichiers front ont changé)
 
 ```bash
-APP_ENV=prod APP_DEBUG=0 php bin/console tailwind:build --minify
-APP_ENV=prod APP_DEBUG=0 php bin/console asset-map:compile
+php bin/console tailwind:build
+php bin/console asset-map:compile
 ```
 
 ### 6. Vider le cache
 
 ```bash
-APP_ENV=prod APP_DEBUG=0 php bin/console cache:clear
+php bin/console cache:clear
 ```
 
-### 7. Redémarrer les services
+### 7. Redémarrer les services (seulement si la config PHP-FPM/Caddy a changé)
 
 ```bash
 sudo systemctl restart php8.2-fpm
@@ -253,18 +267,16 @@ sudo systemctl reload caddy
 ```bash
 git pull
 
-composer install --no-dev --optimize-autoloader
+composer install
 
-APP_ENV=prod APP_DEBUG=0 php bin/console doctrine:migrations:migrate --no-interaction
+php bin/console doctrine:migrations:status
+# S'il y a des migrations "New", les appliquer :
+php bin/console doctrine:migrations:migrate --no-interaction
 
-APP_ENV=prod APP_DEBUG=0 php bin/console tailwind:build --minify
-APP_ENV=prod APP_DEBUG=0 php bin/console asset-map:compile
-
-APP_ENV=prod APP_DEBUG=0 php bin/console cache:clear
-
-sudo systemctl restart php8.2-fpm
-sudo systemctl reload caddy
+php bin/console cache:clear
 ```
+
+Étapes assets (`tailwind:build`, `asset-map:compile`) et redémarrage des services : seulement si le déploiement touche du front ou de la config serveur.
 
 ---
 
