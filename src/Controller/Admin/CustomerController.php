@@ -8,6 +8,7 @@ use App\Entity\User;
 use App\Form\CustomerType;
 use App\Repository\CustomerRepository;
 use App\Repository\PrintPriceRateRepository;
+use App\Service\CustomerReferenceGenerator;
 use App\Service\PrintGate\PrintChargeContext;
 use App\Service\PrintGate\PrintPolicyEvaluator;
 use App\Service\PrintGate\PrintRefusalMessageFormatter;
@@ -35,9 +36,10 @@ class CustomerController extends AbstractController
     }
 
     #[Route('/create', name: '.create')]
-    public function create(Request $request, EntityManagerInterface $em, CustomerRepository $customerRepository): Response
+    public function create(Request $request, EntityManagerInterface $em, CustomerReferenceGenerator $referenceGenerator): Response
     {
         $customer = new Customer();
+        $customer->setReference($referenceGenerator->generate());
     $form = $this->createForm(CustomerType::class, $customer);
     // Pré-remplir le champ non mappé balanceEuros
     $form->get('balanceEuros')->setData(number_format($customer->getBalanceCents() / 100, 2, '.', ''));
@@ -53,8 +55,6 @@ class CustomerController extends AbstractController
             }
             $em->persist($customer);
             $em->flush();
-            $this->assignReference($customer, $customerRepository);
-            $em->flush();
             $this->addFlash('success', 'Le client a bien été créé');
             return $this->redirectToRoute('admin.customer.index');
         }
@@ -65,7 +65,7 @@ class CustomerController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: '.edit', methods: ['GET','POST'], requirements: ['id' => Requirement::DIGITS])]
-    public function edit(Customer $customer, Request $request, EntityManagerInterface $em, CustomerRepository $customerRepository): Response
+    public function edit(Customer $customer, Request $request, EntityManagerInterface $em): Response
     {
     $form = $this->createForm(CustomerType::class, $customer);
     // Pré-remplir le champ non mappé balanceEuros
@@ -79,7 +79,6 @@ class CustomerController extends AbstractController
                 $cents = (int)round(floatval(str_replace(',', '.', $balanceEuros)) * 100);
                 $customer->setBalanceCents($cents);
             }
-            $this->assignReference($customer, $customerRepository);
             $em->flush();
             $this->addFlash('success', 'Le client a bien été modifié');
             return $this->redirectToRoute('admin.customer.index');
@@ -89,25 +88,6 @@ class CustomerController extends AbstractController
             'form' => $form,
             'customer' => $customer
         ]);
-    }
-
-    private function assignReference(Customer $customer, CustomerRepository $customerRepository): void
-    {
-        $baseReference = $customer->getPhoneNumber() ?? (string) (7777000000 + $customer->getId());
-        $reference = $baseReference;
-        $suffix = 0;
-
-        do {
-            $existingCustomer = $customerRepository->findOneBy(['reference' => $reference]);
-            if ($existingCustomer === null || $existingCustomer->getId() === $customer->getId()) {
-                $customer->setReference($reference);
-
-                return;
-            }
-
-            $suffix++;
-            $reference = $baseReference . '-' . $suffix;
-        } while (true);
     }
 
     #[Route('/{id}/delete', name: '.delete', methods: ['DELETE'], requirements: ['id' => Requirement::DIGITS])]

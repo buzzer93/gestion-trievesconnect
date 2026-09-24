@@ -15,6 +15,7 @@ use App\Repository\PrintMunicipalConsumptionRepository;
 use App\Repository\PrintPriceRateRepository;
 use App\Repository\PrintTransactionLineRepository;
 use App\Repository\PrintTransactionRepository;
+use App\Service\CustomerReferenceGenerator;
 use App\Service\PrintGate\PrintChargeContext;
 use App\Service\PrintGate\PrintPolicyEvaluator;
 use App\Service\PrintGate\PrintRefusalMessageFormatter;
@@ -42,9 +43,10 @@ class AssociationController extends AbstractController
     }
 
     #[Route('/create', name: '.create')]
-    public function create(Request $request, EntityManagerInterface $em): Response
+    public function create(Request $request, EntityManagerInterface $em, CustomerReferenceGenerator $referenceGenerator): Response
     {
         $association = new Association();
+        $association->setReference($referenceGenerator->generate());
         $form = $this->createForm(AssociationType::class, $association);
         $form->get('balanceEuros')->setData('0.00');
         $form->get('municipalBalanceEuros')->setData('0.00');

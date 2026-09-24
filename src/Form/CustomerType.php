@@ -31,12 +31,6 @@ class CustomerType extends AbstractType
                 'empty_data' => null,
                 'attr' => ['placeholder' => '+33...']
             ])
-            ->add('reference', TextType::class, [
-                'label' => 'Référence',
-                'disabled' => true,
-                'required' => false,
-                'help' => 'Code unique utilisé pour le code-barres.',
-            ])
             ->add('email', EmailType::class, [
                 'label' => 'Email',
                 'required' => false,

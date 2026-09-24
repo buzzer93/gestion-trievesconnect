@@ -16,9 +16,16 @@ use App\Repository\CustomerRepository;
  *
  * La résolution "identifiant -> bénéficiaire" reste ici (pas dans
  * PrintPolicyEvaluator) : c'est une préoccupation propre au flux PrintGate
- * (l'identifiant est un numéro de téléphone brut envoyé par l'agent) --
- * un débit manuel admin part déjà d'une Association/Customer résolue via
- * la route, sans identifiant à parser.
+ * (l'identifiant est la référence carte scannée par l'agent, cf.
+ * Customer::$reference) -- un débit manuel admin part déjà d'une
+ * Association/Customer résolue via la route, sans identifiant à parser.
+ *
+ * Utilise findOneByReference() (pas findOneByPhoneNumber()) depuis le
+ * 2026-09-10 : le téléphone n'est plus unique en base (deux comptes
+ * peuvent légitimement le partager), ce qui faisait planter
+ * getOneOrNullResult() avec NonUniqueResultException dès que deux comptes
+ * avaient le même numéro -- aucune impression possible pour ces comptes.
+ * `reference` est contraint UNIQUE en base, ce cas ne peut plus se produire.
  */
 final class PrintAuthorizationManager
 {
@@ -30,7 +37,7 @@ final class PrintAuthorizationManager
 
     public function authorize(PrintAuthorizationRequest $request, ?PrintGateDevice $device): PrintAuthorizationResponse
     {
-        $beneficiary = $this->customerRepository->findOneByPhoneNumber($request->identifier);
+        $beneficiary = $this->customerRepository->findOneByReference($request->identifier);
 
         if (null === $beneficiary) {
             return PrintAuthorizationResponse::refused(PolicyDecision::REASON_UNKNOWN_IDENTIFIER);

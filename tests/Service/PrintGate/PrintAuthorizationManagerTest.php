@@ -41,9 +41,9 @@ final class PrintAuthorizationManagerTest extends KernelTestCase
 
     public function testKnownCustomerIsAuthorizedAndCharged(): void
     {
-        $this->buildCustomer('0699100001', balanceCents: 100);
+        $this->buildCustomer('0699100001', '7777842100', balanceCents: 100);
 
-        $response = $this->manager->authorize($this->request('0699100001'), null);
+        $response = $this->manager->authorize($this->request('7777842100'), null);
 
         self::assertTrue($response->authorized);
         self::assertSame(50, $response->amountChargedCents);
@@ -68,7 +68,7 @@ final class PrintAuthorizationManagerTest extends KernelTestCase
         );
     }
 
-    private function buildCustomer(string $phoneNumber, int $balanceCents): Customer
+    private function buildCustomer(string $phoneNumber, string $reference, int $balanceCents): Customer
     {
         $existing = $this->em->getRepository(Customer::class)->findOneBy(['phoneNumber' => $phoneNumber]);
         if (null !== $existing) {
@@ -77,7 +77,7 @@ final class PrintAuthorizationManagerTest extends KernelTestCase
         }
 
         $customer = new Customer();
-        $customer->setName('Client Test PrintAuthorizationManager')->setPhoneNumber($phoneNumber)->setBalanceCents($balanceCents);
+        $customer->setName('Client Test PrintAuthorizationManager')->setPhoneNumber($phoneNumber)->setReference($reference)->setBalanceCents($balanceCents);
         $this->em->persist($customer);
         $this->em->flush();
 

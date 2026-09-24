@@ -224,7 +224,7 @@ final class PrintPolicyEvaluatorTest extends KernelTestCase
         }
 
         $customer = new Customer();
-        $customer->setName('Client Test PrintPolicyEvaluator')->setPhoneNumber($phoneNumber)->setBalanceCents($balanceCents);
+        $customer->setName('Client Test PrintPolicyEvaluator')->setPhoneNumber($phoneNumber)->setReference($phoneNumber)->setBalanceCents($balanceCents);
         $this->em->persist($customer);
         $this->em->flush();
 
@@ -242,6 +242,7 @@ final class PrintPolicyEvaluatorTest extends KernelTestCase
         $association = new Association();
         $association->setName('Association Test PrintPolicyEvaluator')
             ->setPhoneNumber($phoneNumber)
+            ->setReference($phoneNumber)
             ->setBalanceCents($personalCents)
             ->setMunicipalBalanceCents($municipalCents);
         $this->em->persist($association);

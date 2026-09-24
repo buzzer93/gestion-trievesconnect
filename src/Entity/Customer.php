@@ -30,8 +30,24 @@ class Customer
     #[Assert\NotBlank(message: "Le nom est obligatoire.")]
     private ?string $name = null;
 
+    /**
+     * Facultatif : l'identification passe par $reference (carte,
+     * PrintGate), le téléphone n'est plus qu'une information de contact.
+     */
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $phoneNumber = null;
+
+    /**
+     * Identifiant unique du compte (code-barres carte + recherche
+     * PrintGate), généré côté serveur -- cf. CustomerReferenceGenerator.
+     * Remplace le téléphone comme clé d'identification (décision du
+     * 2026-09-10) : deux comptes peuvent légitimement partager le même
+     * téléphone (même personne gérant plusieurs associations), donc le
+     * téléphone ne peut plus servir d'identifiant unique. Jamais modifiable
+     * depuis un formulaire -- non exposé dans CustomerType/AssociationType.
+     */
+    #[ORM\Column(length: 10, unique: true)]
+    private string $reference;
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $address = null;
@@ -44,9 +60,6 @@ class Customer
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $email = null;
-
-    #[ORM\Column(length: 64, unique: true, nullable: true)]
-    private ?string $reference = null;
 
     #[ORM\Column]
     private int $credits = 0;
@@ -75,7 +88,19 @@ class Customer
 
     public function setPhoneNumber(?string $phoneNumber): static
     {
-        $this->phoneNumber = $phoneNumber !== null && trim($phoneNumber) !== '' ? trim($phoneNumber) : null;
+        $this->phoneNumber = null !== $phoneNumber && '' !== trim($phoneNumber) ? trim($phoneNumber) : null;
+
+        return $this;
+    }
+
+    public function getReference(): ?string
+    {
+        return $this->reference ?? null;
+    }
+
+    public function setReference(string $reference): static
+    {
+        $this->reference = $reference;
 
         return $this;
     }
@@ -124,29 +149,6 @@ class Customer
     public function setEmail(string $email): static
     {
         $this->email = $email;
-
-        return $this;
-    }
-
-    public function getReference(): ?string
-    {
-        return $this->reference;
-    }
-
-    public function generateReference(): static
-    {
-        if ($this->id === null) {
-            throw new \LogicException('La référence ne peut être générée qu’après la création du client.');
-        }
-
-        $this->reference = (string) (7777000000 + $this->id);
-
-        return $this;
-    }
-
-    public function setReference(string $reference): static
-    {
-        $this->reference = $reference;
 
         return $this;
     }
@@ -216,7 +218,7 @@ class Customer
 
     public function getBarCodeImage(): string
     {
-        $value = $this->reference ?? $this->phoneNumber ?? '';
+        $value = $this->reference ?? '';
         if ($value === '') {
             return '';
         }

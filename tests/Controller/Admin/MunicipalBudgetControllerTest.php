@@ -104,6 +104,7 @@ final class MunicipalBudgetControllerTest extends WebTestCase
         $association = new Association();
         $association->setName('Association Test')
             ->setPhoneNumber($phoneNumber)
+            ->setReference($phoneNumber)
             ->setBalanceCents($personalCents)
             ->setMunicipalBalanceCents($municipalCents);
 

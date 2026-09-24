@@ -43,7 +43,7 @@ final class CustomerControllerTest extends WebTestCase
         $existing = $entityManager->getRepository(Association::class)->findOneBy(['phoneNumber' => '0622229999']);
         if (!$existing) {
             $existing = new Association();
-            $existing->setName('Association ne doit pas apparaître ici')->setPhoneNumber('0622229999');
+            $existing->setName('Association ne doit pas apparaître ici')->setPhoneNumber('0622229999')->setReference('0622229999');
             $entityManager->persist($existing);
             $entityManager->flush();
         }
@@ -107,6 +107,7 @@ final class CustomerControllerTest extends WebTestCase
         $customer = new Customer();
         $customer->setName('Client Test')
             ->setPhoneNumber($phoneNumber)
+            ->setReference($phoneNumber)
             ->setBalanceCents($balanceCents);
 
         $entityManager->persist($customer);

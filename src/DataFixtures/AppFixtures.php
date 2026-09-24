@@ -217,6 +217,7 @@ class AppFixtures extends Fixture
             $customer = new Customer();
             $customer->setName($data['name']);
             $customer->setPhoneNumber($data['phoneNumber']);
+            $customer->setReference($data['phoneNumber']);
             if ($data['address'] !== null) {
                 $customer->setAddress($data['address']);
             }

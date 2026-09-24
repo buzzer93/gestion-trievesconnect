@@ -36,6 +36,7 @@ class AssociationDemoFixtures extends Fixture implements FixtureGroupInterface
         $boulistes = new Association();
         $boulistes->setName('Amicale des Boulistes de Trièves');
         $boulistes->setPhoneNumber('0700000001');
+        $boulistes->setReference('0700000001');
         $boulistes->setAddress('2 place du Marché');
         $boulistes->setPostalCode('38710');
         $boulistes->setCity('Mens');
@@ -48,6 +49,7 @@ class AssociationDemoFixtures extends Fixture implements FixtureGroupInterface
         $comiteFetes = new Association();
         $comiteFetes->setName('Comité des Fêtes de Mens');
         $comiteFetes->setPhoneNumber('0700000002');
+        $comiteFetes->setReference('0700000002');
         $comiteFetes->setAddress('Mairie de Mens');
         $comiteFetes->setPostalCode('38710');
         $comiteFetes->setCity('Mens');
@@ -60,6 +62,7 @@ class AssociationDemoFixtures extends Fixture implements FixtureGroupInterface
         $clubPhoto = new Association();
         $clubPhoto->setName('Club Photo Trièves');
         $clubPhoto->setPhoneNumber('0700000003');
+        $clubPhoto->setReference('0700000003');
         $clubPhoto->setAddress('5 rue des Écoles');
         $clubPhoto->setPostalCode('38650');
         $clubPhoto->setCity('Monestier-de-Clermont');

@@ -26,22 +26,22 @@
             <div class="max-w-xl grow">
                 <label for="tableSearchInput" class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">
                     <i class="fa-solid fa-magnifying-glass mr-1.5" aria-hidden="true"></i>
-                    Rechercher (nom, référence ou téléphone)
+                    Rechercher (nom ou téléphone)
                 </label>
                 <input id="tableSearchInput" type="text"
                        data-table-filter-target="input"
                        data-action="input->table-filter#filter"
-                       placeholder="Nom, référence ou numéro de téléphone..."
+                       placeholder="Nom ou numéro de téléphone..."
                        autocomplete="off"
                        class="block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent transition-colors duration-150">
             </div>
             <div class="max-w-xl grow">
                 <label for="scanPhoneInput" class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">
                     <i class="fa-solid fa-barcode mr-1.5" aria-hidden="true"></i>
-                    Scanner une référence client
+                    Scanner un numéro de téléphone
                 </label>
                 <input id="scanPhoneInput" type="text"
-                       placeholder="Scanner ou saisir une référence puis Entrée"
+                       placeholder="Scanner ou saisir un numéro puis Entrée"
                        autocomplete="off"
                        class="block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm font-mono placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent transition-colors duration-150">
             </div>
@@ -51,7 +51,7 @@
             <thead>
                 <tr>
                     <th>Nom</th>
-                    <th>Référence</th>
+                    <th>Code</th>
                     <th>Téléphone</th>
                     <th>Email</th>
                     <th>Solde</th>
@@ -66,7 +66,7 @@
                         <td>
                             <a class="data_name" href="{{ path('admin.customer.edit', {id: customer.id}) }}">{{ customer.name }}</a>
                         </td>
-                        <td class="font-mono text-sm text-text-soft">{{ customer.reference }}</td>
+                        <td class="font-mono text-sm text-gold">{{ customer.reference }}</td>
                         <td class="font-mono text-sm text-text-soft">{{ customer.phoneNumber }}</td>
                         <td class="text-text-soft">{{ customer.email }}</td>
                         <td>
@@ -117,7 +117,7 @@
         {% include 'admin/_credit_modal.html.twig' with { has_municipal: false } only %}
 
         <script>
-            // === Scan référence client (ou téléphone) : ouvre la modale crédit du client correspondant ===
+            // === Scan téléphone : ouvre la modale crédit pour le client correspondant ============
             (function () {
                 const scanInput = document.getElementById('scanPhoneInput');
                 scanInput?.addEventListener('keydown', (e) => {
@@ -127,12 +127,10 @@
                     const normalized = raw.replace(/\s+/g, '').replace(/^\+33/, '0');
                     let targetBtn = null;
                     document.querySelectorAll('#customerTable tbody tr').forEach(tr => {
-                        const referenceCell = tr.children[1];
-                        const phoneCell = tr.children[2];
-                        if (!referenceCell || !phoneCell) return;
-                        const reference = referenceCell.textContent.replace(/\s+/g, '');
+                        const phoneCell = tr.children[1];
+                        if (!phoneCell) return;
                         const phone = phoneCell.textContent.replace(/\s+/g, '').replace(/^\+33/, '0');
-                        if (reference === normalized || phone === normalized) targetBtn = tr.querySelector('.credit-btn');
+                        if (phone === normalized) targetBtn = tr.querySelector('.credit-btn');
                     });
                     if (targetBtn) {
                         targetBtn.click();
