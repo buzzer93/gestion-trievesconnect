@@ -1,0 +1,38 @@
+{#
+  Annulation d'une impression depuis l'historique de la fiche association.
+  Une impression "mixte" (bascule mairie -> personnel) apparaît dans les deux
+  tableaux : l'annulation porte toujours sur l'impression entière.
+
+  Params :
+    association  Association
+    entry        ligne d'historique (cf. AssociationController::show())
+#}
+{% if entry.cancelled %}
+    {% include 'components/_pill.html.twig' with { label: 'Annulée', tone: 'error' } only %}
+    {% if entry.cancellationReason %}
+        <span class="block text-xs text-text-muted mt-1">{{ entry.cancellationReason }}</span>
+    {% endif %}
+{% elseif entry.reference %}
+    <details>
+        <summary class="cursor-pointer text-xs text-text-soft hover:text-error">Annuler</summary>
+        <form method="post"
+              action="{{ path('admin.association.cancel_transaction', {id: association.id, reference: entry.reference}) }}"
+              class="mt-2 space-y-2"
+              onsubmit="return confirm('Annuler cette impression ? Elle ne sera plus facturée à la mairie.')">
+            <input type="hidden" name="_token" value="{{ csrf_token('print_transaction_cancel_' ~ entry.reference) }}">
+            <input type="text" name="reason" required maxlength="255"
+                   placeholder="Motif (ex : mauvaise association)"
+                   class="w-full bg-surface-200 border border-border rounded-sm px-2 py-1 text-xs text-text-primary">
+            <label class="flex items-center gap-2 text-xs text-text-soft">
+                <input type="checkbox" name="refund" value="1" checked>
+                Rendre les crédits débités
+            </label>
+            {% include 'components/_button.html.twig' with {
+                label: 'Confirmer l\'annulation',
+                variant: 'danger',
+                size: 'sm',
+                type: 'submit',
+            } only %}
+        </form>
+    </details>
+{% endif %}

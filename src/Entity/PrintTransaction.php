@@ -96,6 +96,24 @@ class PrintTransaction
     private ?string $motif;
 
     /**
+     * Annulation logique (erreur de bénéficiaire, impression à ne pas
+     * facturer...) : la transaction n'est jamais supprimée, pour conserver
+     * la trace du mouvement et la clé d'idempotence PrintGate -- une
+     * suppression permettrait à un renvoi du même job d'être redébité.
+     * Une transaction annulée est exclue de la facturation mairie
+     * (cf. PrintTransactionLineRepository::findMunicipalForQuarter*()).
+     */
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $cancelledAt = null;
+
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?User $cancelledBy = null;
+
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    private ?string $cancellationReason = null;
+
+    /**
      * @var Collection<int, PrintTransactionLine>
      */
     #[ORM\OneToMany(targetEntity: PrintTransactionLine::class, mappedBy: 'transaction', cascade: ['persist'], orphanRemoval: true)]
@@ -192,6 +210,39 @@ class PrintTransaction
     public function getMotif(): ?string
     {
         return $this->motif;
+    }
+
+    public function cancel(?User $cancelledBy, string $reason): self
+    {
+        if ($this->isCancelled()) {
+            throw new \LogicException(sprintf('La transaction %s est déjà annulée.', $this->reference));
+        }
+
+        $this->cancelledAt = new \DateTimeImmutable();
+        $this->cancelledBy = $cancelledBy;
+        $this->cancellationReason = $reason;
+
+        return $this;
+    }
+
+    public function isCancelled(): bool
+    {
+        return null !== $this->cancelledAt;
+    }
+
+    public function getCancelledAt(): ?\DateTimeImmutable
+    {
+        return $this->cancelledAt;
+    }
+
+    public function getCancelledBy(): ?User
+    {
+        return $this->cancelledBy;
+    }
+
+    public function getCancellationReason(): ?string
+    {
+        return $this->cancellationReason;
     }
 
     /**

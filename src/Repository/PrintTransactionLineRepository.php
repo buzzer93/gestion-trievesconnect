@@ -44,7 +44,8 @@ class PrintTransactionLineRepository extends ServiceEntityRepository
     /**
      * Lignes financées par le crédit mairie d'une association sur un
      * trimestre donné -- même rôle que
-     * PrintMunicipalConsumptionRepository::findForQuarter().
+     * PrintMunicipalConsumptionRepository::findForQuarter(). Les
+     * transactions annulées ne sont jamais facturées à la mairie.
      *
      * @return PrintTransactionLine[]
      */
@@ -57,6 +58,7 @@ class PrintTransactionLineRepository extends ServiceEntityRepository
             ->join('l.transaction', 't')
             ->andWhere('t.customer = :association')
             ->andWhere('l.fundingSource = :fundingSource')
+            ->andWhere('t.cancelledAt IS NULL')
             ->andWhere('t.createdAt >= :start')
             ->andWhere('t.createdAt < :end')
             ->setParameter('association', $association)
@@ -71,7 +73,8 @@ class PrintTransactionLineRepository extends ServiceEntityRepository
 
     /**
      * Lignes financées par le crédit mairie de TOUTES les associations sur
-     * un trimestre donné -- pour le récap "Budget mairie".
+     * un trimestre donné -- pour le récap "Budget mairie", hors
+     * transactions annulées.
      *
      * @return PrintTransactionLine[]
      */
@@ -85,6 +88,7 @@ class PrintTransactionLineRepository extends ServiceEntityRepository
             ->join('l.transaction', 't')
             ->join('t.customer', 'c')
             ->andWhere('l.fundingSource = :fundingSource')
+            ->andWhere('t.cancelledAt IS NULL')
             ->andWhere('t.createdAt >= :start')
             ->andWhere('t.createdAt < :end')
             ->setParameter('fundingSource', PrintTransaction::FUNDING_MUNICIPAL)

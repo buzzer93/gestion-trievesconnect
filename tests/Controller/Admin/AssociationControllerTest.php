@@ -9,6 +9,7 @@ use App\Entity\PrintTransaction;
 use App\Entity\User;
 use App\Repository\PrintTransactionLineRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
@@ -278,6 +279,152 @@ final class AssociationControllerTest extends WebTestCase
         self::assertSame(PrintTransaction::FUNDING_ASSOCIATION_PERSONAL, $data['fundingSource']);
         self::assertSame(1000, $data['municipalCredits']); // jamais touché
         self::assertSame(950, $data['personalCredits']); // tarif ASSOCIATION COLOR/A4 = 50c
+    }
+
+    /**
+     * Cas réel du 2026-09-23 : impression débitée sur la mauvaise
+     * association avec son crédit mairie. L'annulation doit la retirer de
+     * la facturation mairie et recréditer le solde mairie (par défaut).
+     */
+    public function testCancelTransactionExcludesItFromMunicipalBillingAndRefunds(): void
+    {
+        $client = static::createClient();
+        $client->loginUser($this->buildUser(self::ADMIN_EMAIL));
+        $association = $this->buildAssociation('0611110016', personalCents: 1000, municipalCents: 1000);
+        $this->chargeOneMonochromeA4($client, $association);
+
+        $crawler = $client->request('GET', '/admin/association/'.$association->getId());
+        $form = $crawler->selectButton('Confirmer l\'annulation')->form(['reason' => 'Mauvaise association']);
+        $client->submit($form);
+
+        self::assertResponseRedirects('/admin/association/'.$association->getId());
+
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->clear();
+        $refreshed = $entityManager->getRepository(Association::class)->find($association->getId());
+        self::assertSame(1000, $refreshed->getMunicipalBalanceCents());
+
+        $transaction = static::getContainer()->get(PrintTransactionLineRepository::class)
+            ->findAllForCustomer($refreshed)[0]->getTransaction();
+        self::assertTrue($transaction->isCancelled());
+        self::assertSame('Mauvaise association', $transaction->getCancellationReason());
+
+        $now = new \DateTimeImmutable();
+        $municipalLines = static::getContainer()->get(PrintTransactionLineRepository::class)->findMunicipalForQuarter(
+            $refreshed,
+            PrintTransactionLineRepository::currentSchoolYearStart($now),
+            PrintTransactionLineRepository::currentQuarter($now),
+        );
+        self::assertCount(0, $municipalLines);
+
+        // L'impression reste visible dans l'historique, marquée annulée.
+        $crawler = $client->request('GET', '/admin/association/'.$association->getId());
+        self::assertStringContainsString('Annulée', $crawler->filter('body')->text());
+    }
+
+    /**
+     * Case "Rendre les crédits" décochée : l'admin a déjà corrigé le solde
+     * à la main, l'annulation ne doit pas rembourser une seconde fois.
+     */
+    public function testCancelTransactionWithoutRefundKeepsBalances(): void
+    {
+        $client = static::createClient();
+        $client->loginUser($this->buildUser(self::ADMIN_EMAIL));
+        $association = $this->buildAssociation('0611110017', personalCents: 1000, municipalCents: 1000);
+        $this->chargeOneMonochromeA4($client, $association);
+
+        $crawler = $client->request('GET', '/admin/association/'.$association->getId());
+        $form = $crawler->selectButton('Confirmer l\'annulation')->form(['reason' => 'Déjà recrédité']);
+        $form['refund']->untick();
+        $client->submit($form);
+
+        self::assertResponseRedirects('/admin/association/'.$association->getId());
+
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->clear();
+        $refreshed = $entityManager->getRepository(Association::class)->find($association->getId());
+        self::assertSame(990, $refreshed->getMunicipalBalanceCents());
+    }
+
+    public function testCancelTransactionTwiceRefundsOnlyOnce(): void
+    {
+        $client = static::createClient();
+        $client->loginUser($this->buildUser(self::ADMIN_EMAIL));
+        $association = $this->buildAssociation('0611110018', personalCents: 1000, municipalCents: 1000);
+        $this->chargeOneMonochromeA4($client, $association);
+
+        $crawler = $client->request('GET', '/admin/association/'.$association->getId());
+        $form = $crawler->selectButton('Confirmer l\'annulation')->form(['reason' => 'Erreur']);
+        $client->submit($form);
+        // Double soumission du même formulaire (double clic, retour arrière...).
+        $client->submit($form);
+
+        self::assertResponseRedirects('/admin/association/'.$association->getId());
+
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->clear();
+        $refreshed = $entityManager->getRepository(Association::class)->find($association->getId());
+        self::assertSame(1000, $refreshed->getMunicipalBalanceCents());
+    }
+
+    /**
+     * La transaction est recherchée par référence ET par association de
+     * l'URL : impossible d'annuler l'impression d'une autre association en
+     * changeant l'id, même avec un jeton CSRF valide.
+     */
+    public function testCancelTransactionOfAnotherAssociationIsNotFound(): void
+    {
+        $client = static::createClient();
+        $client->loginUser($this->buildUser(self::ADMIN_EMAIL));
+        $owner = $this->buildAssociation('0611110019', personalCents: 1000, municipalCents: 1000);
+        $other = $this->buildAssociation('0611110020', personalCents: 1000, municipalCents: 1000);
+        $this->chargeOneMonochromeA4($client, $owner);
+
+        $crawler = $client->request('GET', '/admin/association/'.$owner->getId());
+        $form = $crawler->selectButton('Confirmer l\'annulation')->form();
+        $reference = $this->lastTransactionReference($owner);
+
+        $client->request('POST', '/admin/association/'.$other->getId().'/transactions/'.$reference.'/cancel', [
+            '_token' => $form['_token']->getValue(),
+            'reason' => 'Tentative',
+            'refund' => '1',
+        ]);
+
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testCancelTransactionRejectsInvalidCsrfToken(): void
+    {
+        $client = static::createClient();
+        $client->loginUser($this->buildUser(self::ADMIN_EMAIL));
+        $association = $this->buildAssociation('0611110021', personalCents: 1000, municipalCents: 1000);
+        $this->chargeOneMonochromeA4($client, $association);
+        $reference = $this->lastTransactionReference($association);
+
+        $client->request('POST', '/admin/association/'.$association->getId().'/transactions/'.$reference.'/cancel', [
+            '_token' => 'invalid',
+            'reason' => 'Erreur',
+        ]);
+
+        self::assertResponseStatusCodeSame(403);
+    }
+
+    private function chargeOneMonochromeA4(KernelBrowser $client, Association $association): void
+    {
+        $client->request(
+            'POST',
+            '/admin/association/'.$association->getId().'/print-charge',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: json_encode(['colorMode' => 'MONOCHROME', 'paperSize' => 'A4', 'copies' => 1]),
+        );
+        self::assertResponseIsSuccessful();
+    }
+
+    private function lastTransactionReference(Association $association): string
+    {
+        $lines = static::getContainer()->get(PrintTransactionLineRepository::class)->findAllForCustomer($association);
+
+        return $lines[0]->getTransaction()->getReference();
     }
 
     private function buildAssociation(string $phoneNumber, int $personalCents, int $municipalCents): Association

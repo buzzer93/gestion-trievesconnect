@@ -14,9 +14,11 @@ use App\Repository\AssociationRepository;
 use App\Repository\PrintMunicipalConsumptionRepository;
 use App\Repository\PrintPriceRateRepository;
 use App\Repository\PrintTransactionLineRepository;
+use App\Repository\PrintTransactionRepository;
 use App\Service\PrintGate\PrintChargeContext;
 use App\Service\PrintGate\PrintPolicyEvaluator;
 use App\Service\PrintGate\PrintRefusalMessageFormatter;
+use App\Service\PrintTransactionCanceller;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -88,6 +90,10 @@ class AssociationController extends AbstractController
                 'paperSize' => $entry->getPaperSize(),
                 'amountCents' => $entry->getAmountSpentCents(),
                 'municipal' => $entry->isMunicipal(),
+                // Ancien journal figé : pas annulable (factures déjà émises).
+                'reference' => null,
+                'cancelled' => false,
+                'cancellationReason' => null,
             ];
         }
 
@@ -100,6 +106,9 @@ class AssociationController extends AbstractController
                 'paperSize' => $transaction->getPaperSize(),
                 'amountCents' => $line->getAmountCents(),
                 'municipal' => PrintTransaction::FUNDING_MUNICIPAL === $line->getFundingSource(),
+                'reference' => $transaction->getReference(),
+                'cancelled' => $transaction->isCancelled(),
+                'cancellationReason' => $transaction->getCancellationReason(),
             ];
         }
 
@@ -318,6 +327,54 @@ class AssociationController extends AbstractController
             'municipalCredits' => $association->getMunicipalBalanceCents(),
             'fundingSource' => $decision->fundingSource,
         ]);
+    }
+
+    /**
+     * Annulation d'une impression débitée par erreur (ex : mauvaise
+     * association) depuis l'historique de la fiche -- la retire de la
+     * facturation mairie et, par défaut, recrédite les soldes débités
+     * (cf. PrintTransactionCanceller).
+     */
+    #[Route('/{id}/transactions/{reference}/cancel', name: '.cancel_transaction', methods: ['POST'], requirements: ['id' => Requirement::DIGITS])]
+    public function cancelTransaction(
+        Association $association,
+        string $reference,
+        Request $request,
+        PrintTransactionRepository $transactionRepository,
+        PrintTransactionCanceller $canceller,
+    ): Response {
+        if (!$this->isCsrfTokenValid('print_transaction_cancel_'.$reference, (string) $request->request->get('_token'))) {
+            throw $this->createAccessDeniedException('Jeton CSRF invalide');
+        }
+
+        // Filtre sur l'association de l'URL : impossible d'annuler la
+        // transaction d'un autre bénéficiaire en changeant l'id.
+        $transaction = $transactionRepository->findOneBy(['reference' => $reference, 'customer' => $association]);
+        if (null === $transaction) {
+            throw $this->createNotFoundException('Impression introuvable pour cette association');
+        }
+
+        $reason = trim((string) $request->request->get('reason'));
+        if ('' === $reason) {
+            $this->addFlash('danger', 'Le motif d\'annulation est obligatoire.');
+
+            return $this->redirectToRoute('admin.association.show', ['id' => $association->getId()]);
+        }
+
+        $user = $this->getUser();
+        $cancelled = $canceller->cancel(
+            $transaction,
+            $user instanceof User ? $user : null,
+            mb_substr($reason, 0, 255),
+            $request->request->getBoolean('refund'),
+        );
+
+        $this->addFlash(
+            $cancelled ? 'success' : 'danger',
+            $cancelled ? 'L\'impression a bien été annulée.' : 'Cette impression était déjà annulée.',
+        );
+
+        return $this->redirectToRoute('admin.association.show', ['id' => $association->getId()]);
     }
 
     private function applyBalancesFromForm(\Symfony\Component\Form\FormInterface $form, Association $association): void
