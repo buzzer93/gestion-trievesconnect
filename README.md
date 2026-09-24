@@ -1,6 +1,6 @@
 # Gestion Trièves Connect
 
-Application Symfony 7.1 de gestion d'inventaire et d'étiquetage pour la boutique Trièves Connect, avec lecture de codes-barres, génération d'étiquettes imprimables, gestion des crédits d'impression clients et export Excel.
+Application Symfony 7.1 de gestion d'inventaire et d'étiquetage pour la boutique Trièves Connect, avec lecture de codes-barres, génération d'étiquettes imprimables, gestion des crédits d'impression clients, export Excel et contrôle d'accès à l'impression (module PrintGate) pour les postes Linux de la boutique.
 
 ---
 
@@ -26,6 +26,7 @@ Ce projet permet de :
 - **Doctrine ORM 3** + Doctrine Migrations 3.3
 - **PhpSpreadsheet** — export Excel du catalogue produits
 - **picqer/php-barcode-generator** — génération des codes-barres dans les étiquettes
+- **firebase/php-jwt** — vérification des JWT signés (EdDSA/RS256) pour le module PrintGate
 
 ### Frontend
 
@@ -75,6 +76,18 @@ Ce projet permet de :
 
 - Accès sécurisé via Symfony Security.
 - Sauvegarde temporaire en session des listes d'étiquetage et d'inventaire (effacées à la fermeture du navigateur).
+
+### PrintGate — autorisation d'impression des postes Linux
+
+Module d'autorisation d'impression pour les postes Linux de la boutique : chaque tentative d'impression interroge l'API avant d'être honorée par le poste.
+
+- **Endpoint** `POST /api/printgate/authorize` : reçoit un job d'impression (poste, imprimante, nombre de pages, etc.) et renvoie une décision d'autorisation (`{"authorizedImpression": bool, "reason": ?string}`).
+- **Sécurité JWT** : chaque requête doit porter un JWT signé (EdDSA ou RS256, clé publique par poste) dans l'en-tête `Authorization: Bearer …`, vérifié *avant* toute désérialisation du corps de la requête. Vérifications appliquées, dans l'ordre : algorithme autorisé (rejet explicite de `none`/HS256), poste connu et actif, signature, claims (`iss`/`aud`/`jti`/`iat`/`exp`), intégrité du corps (`bodyHash` = SHA-256 du corps brut), anti-rejeu du `jti` (contrainte unique en base).
+- **Règles métier** (`PrintPolicyEvaluator`) : structure en place pour des règles futures (quotas, restrictions couleur, limite de pages) ; aucune règle active en V1 au-delà de ce que la couche JWT et la validation du DTO garantissent déjà.
+- **Back-office** `/admin/printgate-device` (réservé `ROLE_ADMIN`) : lister, créer, modifier les postes autorisés et leur clé publique (upload ou collage), activer/désactiver un poste. Pas de pagination (V1 ne vise qu'un ou deux postes).
+- **Entités** : `PrintGateDevice` (poste autorisé, clé publique, statut) et `PrintGateUsedToken` (traçabilité anti-rejeu des `jti` consommés).
+
+Reste à faire : agent Python côté poste Linux (génération/signature du JWT, envoi du job) et commande de purge périodique de `PrintGateUsedToken`.
 
 ---
 

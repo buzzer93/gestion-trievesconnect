@@ -1,0 +1,125 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Associations · Trieves Connect Manager{% endblock %}
+
+{% block body %}
+    {% embed 'components/_page_header.html.twig' with {
+        title: 'Associations',
+        subtitle: 'Comptes bénéficiant du forfait mairie annuel.',
+    } only %}
+        {% block actions %}
+            {% include 'components/_button.html.twig' with {
+                label: 'Nouvelle association',
+                variant: 'accent',
+                icon: 'fa-solid fa-plus',
+                href: path('admin.association.create'),
+            } only %}
+        {% endblock %}
+    {% endembed %}
+
+    <div data-controller="credit-modal table-filter"
+         data-credit-modal-base-path-value="{{ path('admin.association.index') }}"
+         data-credit-modal-rates-value="{{ rates|map(r => {colorMode: r.colorMode, paperSize: r.paperSize, priceCents: r.priceCents})|json_encode }}"
+         data-credit-modal-has-municipal-value="true">
+
+        <div class="max-w-xl mb-5">
+            <label for="tableSearchInput" class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">
+                <i class="fa-solid fa-magnifying-glass mr-1.5" aria-hidden="true"></i>
+                Rechercher (nom ou téléphone)
+            </label>
+            <input id="tableSearchInput" type="text"
+                   data-table-filter-target="input"
+                   data-action="input->table-filter#filter"
+                   placeholder="Nom ou numéro de téléphone..."
+                   autocomplete="off"
+                   class="block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent transition-colors duration-150">
+        </div>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>Téléphone</th>
+                    <th>Solde personnel</th>
+                    <th>Solde mairie</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for association in associations %}
+                    <tr data-controller="row-link"
+                        data-table-filter-target="row"
+                        data-row-link-url-value="{{ path('admin.association.show', {id: association.id}) }}">
+                        <td>
+                            <a class="data_name" href="{{ path('admin.association.show', {id: association.id}) }}">{{ association.name }}</a>
+                        </td>
+                        <td class="font-mono text-sm text-text-soft">{{ association.phoneNumber }}</td>
+                        <td>
+                            <button type="button"
+                                    class="credit-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-xs font-bold uppercase tracking-wide bg-transparent border-2 border-gold text-gold hover:bg-gold hover:text-bg transition-colors duration-150"
+                                    data-action="click->credit-modal#open"
+                                    data-id="{{ association.id }}"
+                                    data-credit-modal-id-param="{{ association.id }}"
+                                    data-credit-modal-personal-param="{{ association.getBalanceCents() }}"
+                                    data-credit-modal-municipal-param="{{ association.getMunicipalBalanceCents() }}"
+                                    data-credit-modal-focus-param="personal"
+                                    title="Gérer le solde personnel">
+                                <i class="fa-solid fa-coins text-xs" aria-hidden="true"></i>
+                                <span data-credit-modal-balance="personal">{{ association.getBalanceEuros() }} €</span>
+                            </button>
+                        </td>
+                        <td>
+                            <button type="button"
+                                    class="credit-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-xs font-bold uppercase tracking-wide bg-transparent border-2 border-gold text-gold hover:bg-gold hover:text-bg transition-colors duration-150"
+                                    data-action="click->credit-modal#open"
+                                    data-id="{{ association.id }}"
+                                    data-credit-modal-id-param="{{ association.id }}"
+                                    data-credit-modal-personal-param="{{ association.getBalanceCents() }}"
+                                    data-credit-modal-municipal-param="{{ association.getMunicipalBalanceCents() }}"
+                                    data-credit-modal-focus-param="municipal"
+                                    title="Gérer le solde mairie">
+                                <i class="fa-solid fa-landmark text-xs" aria-hidden="true"></i>
+                                <span data-credit-modal-balance="municipal">{{ (association.getMunicipalBalanceCents() / 100)|number_format(2, ',', '') }} €</span>
+                            </button>
+                        </td>
+                        <td>
+                            <div class="flex justify-center gap-2">
+                                {% include 'components/_button.html.twig' with {
+                                    label: 'Conso. trimestre',
+                                    variant: 'primary',
+                                    size: 'sm',
+                                    icon: 'fa-solid fa-chart-column',
+                                    href: path('admin.association.consumption', {id: association.id}),
+                                } only %}
+                                <form method="post" action="{{ path('admin.association.delete', {id: association.id}) }}"
+                                      onsubmit="return confirm('Supprimer cette association ?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('association_delete_' ~ association.id) }}">
+                                    {% include 'components/_button.html.twig' with {
+                                        label: 'Supprimer',
+                                        variant: 'danger',
+                                        size: 'sm',
+                                        type: 'submit',
+                                        icon: 'fa-solid fa-trash',
+                                    } only %}
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-text-muted py-6">
+                            Aucune association pour l'instant.
+                        </td>
+                    </tr>
+                {% endfor %}
+                <tr data-table-filter-target="empty" class="hidden">
+                    <td colspan="5" class="text-center text-text-muted py-6">
+                        Aucun résultat pour cette recherche.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        {% include 'admin/_credit_modal.html.twig' with { has_municipal: true } only %}
+    </div>
+{% endblock %}

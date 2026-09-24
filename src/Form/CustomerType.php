@@ -58,7 +58,7 @@ class CustomerType extends AbstractType
                 'required' => false,
                 'attr' => ['placeholder' => 'Paris']
             ])
-            ->add('balanceEuros', 
+            ->add('balanceEuros',
                 // NumberType est préférable pour les valeurs décimales d'affichage
                 \Symfony\Component\Form\Extension\Core\Type\NumberType::class,
                 [

@@ -1,0 +1,25 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouveau poste PrintGate · Trieves Connect Manager{% endblock %}
+
+{% block body %}
+    {% embed 'components/_page_header.html.twig' with {
+        title: 'Nouveau poste PrintGate',
+        subtitle: 'Enregistrer un poste Linux autorisé à interroger l\'API d\'impression.',
+    } only %}
+        {% block actions %}
+            {% include 'components/_button.html.twig' with {
+                label: 'Retour à la liste',
+                variant: 'ghost',
+                icon: 'fa-solid fa-arrow-left',
+                href: path('admin.printgate_device.index'),
+            } only %}
+        {% endblock %}
+    {% endembed %}
+
+    {% embed 'components/_card.html.twig' with { padding: 'lg', form: form } only %}
+        {% block body %}
+            {% include 'admin/printgate_device/_form.html.twig' with { form: form } only %}
+        {% endblock %}
+    {% endembed %}
+{% endblock %}

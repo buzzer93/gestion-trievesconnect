@@ -1,0 +1,135 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Tests\Controller\Admin;
+
+use App\Entity\Association;
+use App\Entity\User;
+use App\Repository\MunicipalBudgetSettingsRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+
+/**
+ * Cf. PrintGateDeviceControllerTest pour la contrainte ROLE_ADMIN
+ * (email exact 'contact@trievesconnect.fr').
+ *
+ * Aucun test n'existait pour cette page avant le 2026-08-25, alors que son
+ * contrôleur fusionne désormais l'ancien journal (PrintMunicipalConsumption)
+ * et le nouveau (PrintTransactionLine) -- cf. le bug réel trouvé sur
+ * print-pricing via une simple vérification manuelle du rendu.
+ */
+final class MunicipalBudgetControllerTest extends WebTestCase
+{
+    private const ADMIN_EMAIL = 'contact@trievesconnect.fr';
+
+    public function testIndexRendersAfterMunicipalPrintCharge(): void
+    {
+        $client = static::createClient();
+        $client->loginUser($this->buildUser(self::ADMIN_EMAIL));
+        $association = $this->buildAssociation('0611110011', personalCents: 1000, municipalCents: 1000);
+
+        $client->request(
+            'POST',
+            '/admin/association/'.$association->getId().'/print-charge',
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: json_encode(['colorMode' => 'MONOCHROME', 'paperSize' => 'A4', 'copies' => 1]),
+        );
+        self::assertResponseIsSuccessful();
+
+        $crawler = $client->request('GET', '/admin/municipal-budget/');
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Association Test', $crawler->filter('body')->text());
+    }
+
+    /**
+     * Cf. AssociationControllerTest::testConsumptionPageDefaultsToCurrentSchoolTermAndLinksNeighbours()
+     * -- même vérification sur la page budget mairie.
+     */
+    public function testIndexDefaultsToCurrentSchoolTerm(): void
+    {
+        $client = static::createClient();
+        $client->loginUser($this->buildUser(self::ADMIN_EMAIL));
+
+        $crawler = $client->request('GET', '/admin/municipal-budget/');
+        $now = new \DateTimeImmutable();
+        $endOfSchoolYear = (int) $now->format('n') >= 9 ? (int) $now->format('Y') + 1 : (int) $now->format('Y');
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Juin - Août '.$endOfSchoolYear, $crawler->filter('body')->text());
+    }
+
+    /**
+     * Le bouton "Recharger maintenant" remet le solde mairie de TOUTES les
+     * associations au forfait configuré, sans jamais reporter le reliquat
+     * -- déclenchement manuel uniquement (décision du 2026-08-25, cf.
+     * MunicipalCreditsRenewalService).
+     */
+    public function testRenewButtonResetsAllAssociationsToConfiguredAllowance(): void
+    {
+        $client = static::createClient();
+        $client->loginUser($this->buildUser(self::ADMIN_EMAIL));
+        $associationA = $this->buildAssociation('0611110013', personalCents: 0, municipalCents: 999);
+        $associationB = $this->buildAssociation('0611110014', personalCents: 0, municipalCents: 5);
+
+        $crawler = $client->request('GET', '/admin/municipal-budget/');
+        $client->submitForm('Recharger maintenant toutes les associations');
+
+        self::assertResponseRedirects('/admin/municipal-budget/');
+
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->clear();
+        $settings = static::getContainer()->get(MunicipalBudgetSettingsRepository::class)->getSettings();
+        $allowanceCents = $settings->getAnnualAllowanceCents();
+
+        $refreshedA = $entityManager->getRepository(Association::class)->find($associationA->getId());
+        $refreshedB = $entityManager->getRepository(Association::class)->find($associationB->getId());
+        self::assertSame($allowanceCents, $refreshedA->getMunicipalBalanceCents());
+        self::assertSame($allowanceCents, $refreshedB->getMunicipalBalanceCents());
+        // Le solde personnel n'est jamais touché par le renouvellement.
+        self::assertSame(0, $refreshedA->getBalanceCents());
+    }
+
+    private function buildAssociation(string $phoneNumber, int $personalCents, int $municipalCents): Association
+    {
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+
+        $existing = $entityManager->getRepository(Association::class)->findOneBy(['phoneNumber' => $phoneNumber]);
+        if (null !== $existing) {
+            $entityManager->remove($existing);
+            $entityManager->flush();
+        }
+
+        $association = new Association();
+        $association->setName('Association Test')
+            ->setPhoneNumber($phoneNumber)
+            ->setBalanceCents($personalCents)
+            ->setMunicipalBalanceCents($municipalCents);
+
+        $entityManager->persist($association);
+        $entityManager->flush();
+
+        return $association;
+    }
+
+    private function buildUser(string $email): User
+    {
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+
+        $existing = $entityManager->getRepository(User::class)->findOneBy(['username' => $email]);
+        if (null !== $existing) {
+            return $existing;
+        }
+
+        $user = (new User())
+            ->setUsername($email)
+            ->setEmail($email)
+            ->setPassword('not-used-by-loginUser');
+
+        $entityManager->persist($user);
+        $entityManager->flush();
+
+        return $user;
+    }
+}
