@@ -87,7 +87,7 @@ Module d'autorisation d'impression pour les postes Linux de la boutique : chaque
 - **Back-office** `/admin/printgate-device` (réservé `ROLE_ADMIN`) : lister, créer, modifier les postes autorisés et leur clé publique (upload ou collage), activer/désactiver un poste. Pas de pagination (V1 ne vise qu'un ou deux postes).
 - **Entités** : `PrintGateDevice` (poste autorisé, clé publique, statut) et `PrintGateUsedToken` (traçabilité anti-rejeu des `jti` consommés).
 
-Reste à faire : agent Python côté poste Linux (génération/signature du JWT, envoi du job) et commande de purge périodique de `PrintGateUsedToken`.
+Reste à faire : validation de l'agent Linux sur le vrai matériel (V1 Python codée et testée unitairement, développée hors de ce dépôt) et packaging/versioning avant livraison. La purge périodique des jetons anti-rejeu expirés est disponible via `printgate:cleanup-used-tokens` (à planifier en cron).
 
 ---
 
@@ -188,6 +188,9 @@ php bin/console asset-map:compile
 
 # Recharger les fixtures
 php bin/console doctrine:fixtures:load -n
+
+# Purger les jetons PrintGate anti-rejeu expirés (à planifier en cron, ex. tous les jours a 3h)
+php bin/console printgate:cleanup-used-tokens
 ```
 
 ---

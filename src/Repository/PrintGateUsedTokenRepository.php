@@ -57,4 +57,38 @@ class PrintGateUsedTokenRepository extends ServiceEntityRepository
             ->getQuery()
             ->execute();
     }
+
+    /**
+     * Purge les jetons dont `expiresAt` est dépassé (cf. commande
+     * printgate:cleanup-used-tokens). Sans danger côté anti-rejeu : un jti
+     * expiré ne peut de toute façon plus passer PrintGateJwtVerifier
+     * (vérification `exp`), donc le supprimer de cette table ne réouvre
+     * aucune fenêtre de rejeu. Suppression en masse via DQL (pas de
+     * chargement en mémoire), comme deleteAllForDevice() ci-dessus.
+     *
+     * @return int nombre de lignes supprimées
+     */
+    public function deleteExpiredBefore(\DateTimeImmutable $before): int
+    {
+        return $this->createQueryBuilder('t')
+            ->delete()
+            ->where('t.expiresAt < :before')
+            ->setParameter('before', $before)
+            ->getQuery()
+            ->execute();
+    }
+
+    /**
+     * Compte les jetons dont `expiresAt` est dépassé, sans les supprimer
+     * (cf. commande printgate:cleanup-used-tokens --dry-run).
+     */
+    public function countExpiredBefore(\DateTimeImmutable $before): int
+    {
+        return (int) $this->createQueryBuilder('t')
+            ->select('COUNT(t.id)')
+            ->where('t.expiresAt < :before')
+            ->setParameter('before', $before)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
 }
