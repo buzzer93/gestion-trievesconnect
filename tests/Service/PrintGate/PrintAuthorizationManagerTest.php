@@ -61,6 +61,7 @@ final class PrintAuthorizationManagerTest extends KernelTestCase
                 jobId: 1,
                 printerName: 'Imprimante-WiFi',
                 documentName: 'document.pdf',
+                pageCount: 1,
                 copies: 1,
                 paperSize: 'A4',
                 colorMode: 'COLOR',

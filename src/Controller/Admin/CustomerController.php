@@ -157,6 +157,7 @@ class CustomerController extends AbstractController
             colorMode: $colorMode,
             paperSize: $paperSize,
             copies: $copies,
+            pageCount: 1,
             createdBy: $user instanceof User ? $user : null,
             motif: 'Débit manuel (admin)',
         ));

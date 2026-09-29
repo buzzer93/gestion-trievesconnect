@@ -52,7 +52,9 @@ final class PrintPolicyEvaluator
 
     public function evaluate(PrintChargeContext $context): PolicyDecision
     {
-        if ($context->copies < 1) {
+        // pageCount < 1 : comptage de pages échoué côté agent -- refus
+        // plutôt que facturer à l'aveugle (décision du 2026-09-29).
+        if ($context->copies < 1 || $context->pageCount < 1) {
             return PolicyDecision::refused(PolicyDecision::REASON_INVALID_REQUEST);
         }
 
@@ -94,6 +96,10 @@ final class PrintPolicyEvaluator
     }
 
     /**
+     * L'unité du plan est la copie du document : unitPriceCents = prix
+     * d'une copie complète (tarif à la page x pageCount). La bascule
+     * mairie -> personnel se fait donc par copie entière.
+     *
      * @return list<array{fundingSource: string, copies: int, unitPriceCents: int}>|null
      */
     private function buildFundingPlan(PrintChargeContext $context): ?array
@@ -101,7 +107,7 @@ final class PrintPolicyEvaluator
         $beneficiary = $context->beneficiary;
 
         if (!$beneficiary instanceof Association) {
-            $unitPrice = $this->costCalculator->unitPriceCents(PrintPriceRate::SCOPE_CLIENT, $context->colorMode, $context->paperSize);
+            $unitPrice = $this->copyPriceCents(PrintPriceRate::SCOPE_CLIENT, $context);
             if (null === $unitPrice) {
                 return null;
             }
@@ -109,12 +115,12 @@ final class PrintPolicyEvaluator
             return [['fundingSource' => PrintTransaction::FUNDING_CUSTOMER, 'copies' => $context->copies, 'unitPriceCents' => $unitPrice]];
         }
 
-        $associationUnitPrice = $this->costCalculator->unitPriceCents(PrintPriceRate::SCOPE_ASSOCIATION, $context->colorMode, $context->paperSize);
+        $associationUnitPrice = $this->copyPriceCents(PrintPriceRate::SCOPE_ASSOCIATION, $context);
         if (null === $associationUnitPrice) {
             return null;
         }
 
-        $municipalUnitPrice = $this->costCalculator->unitPriceCents(PrintPriceRate::SCOPE_MUNICIPAL, $context->colorMode, $context->paperSize);
+        $municipalUnitPrice = $this->copyPriceCents(PrintPriceRate::SCOPE_MUNICIPAL, $context);
 
         if (null === $municipalUnitPrice) {
             // Non éligible au financement mairie (pas de tarif mairie
@@ -138,6 +144,17 @@ final class PrintPolicyEvaluator
         }
 
         return $plan;
+    }
+
+    /**
+     * Facturation à la face imprimée (décision du 2026-09-29) : un
+     * recto-verso de 2 pages coûte 2 x le tarif, duplexMode n'intervient pas.
+     */
+    private function copyPriceCents(string $scope, PrintChargeContext $context): ?int
+    {
+        $pagePrice = $this->costCalculator->unitPriceCents($scope, $context->colorMode, $context->paperSize);
+
+        return null === $pagePrice ? null : $pagePrice * $context->pageCount;
     }
 
     /**

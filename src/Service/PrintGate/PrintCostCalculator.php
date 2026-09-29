@@ -7,15 +7,15 @@ namespace App\Service\PrintGate;
 use App\Repository\PrintPriceRateRepository;
 
 /**
- * Résout le tarif unitaire (prix par copie) applicable pour une
+ * Résout le tarif unitaire (prix par face imprimée) applicable pour une
  * combinaison couleur/format, dans une grille donnée (CLIENT, ASSOCIATION
  * ou MUNICIPAL -- cf. PrintPriceRate::SCOPE_*). Source unique utilisée par
  * PrintPolicyEvaluator (flux PrintGate automatique et débits manuels
  * back-office confondus) -- pas de grille de prix codée en dur côté JS,
  * désynchronisée de celle-ci.
  *
- * Renvoie un prix unitaire (pas un total pré-multiplié par les copies) :
- * PrintPolicyEvaluator a besoin du prix à l'unité pour répartir une
+ * Renvoie un prix unitaire (pas un total pré-multiplié par les pages ou
+ * les copies) : PrintPolicyEvaluator a besoin du prix à l'unité pour répartir une
  * impression entre plusieurs sources de financement à des tarifs
  * différents (bascule par unité, cf. sa PHPDoc).
  */
