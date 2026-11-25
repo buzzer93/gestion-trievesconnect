@@ -46,6 +46,7 @@ final class PrintPolicyEvaluatorTest extends KernelTestCase
             colorMode: 'COLOR',
             paperSize: 'A4',
             copies: 1,
+            pageCount: 1,
         ));
 
         self::assertTrue($decision->authorized);
@@ -63,6 +64,7 @@ final class PrintPolicyEvaluatorTest extends KernelTestCase
             colorMode: 'COLOR',
             paperSize: 'A4',
             copies: 1,
+            pageCount: 1,
         ));
 
         self::assertFalse($decision->authorized);
@@ -85,6 +87,7 @@ final class PrintPolicyEvaluatorTest extends KernelTestCase
             colorMode: 'MONOCHROME',
             paperSize: 'A4',
             copies: 5,
+            pageCount: 1,
         ));
 
         self::assertTrue($decision->authorized);
@@ -110,6 +113,7 @@ final class PrintPolicyEvaluatorTest extends KernelTestCase
             colorMode: 'MONOCHROME',
             paperSize: 'A4',
             copies: 5,
+            pageCount: 1,
         ));
 
         self::assertTrue($decision->authorized);
@@ -133,6 +137,7 @@ final class PrintPolicyEvaluatorTest extends KernelTestCase
             colorMode: 'MONOCHROME',
             paperSize: 'A4',
             copies: 5,
+            pageCount: 1,
         ));
 
         self::assertFalse($decision->authorized);
@@ -155,6 +160,7 @@ final class PrintPolicyEvaluatorTest extends KernelTestCase
             colorMode: 'COLOR',
             paperSize: 'A4',
             copies: 1,
+            pageCount: 1,
         ));
 
         self::assertTrue($decision->authorized);
@@ -177,6 +183,7 @@ final class PrintPolicyEvaluatorTest extends KernelTestCase
             colorMode: 'MONOCHROME',
             paperSize: 'A3',
             copies: 1,
+            pageCount: 1,
         ));
 
         self::assertTrue($decision->authorized);
@@ -193,6 +200,7 @@ final class PrintPolicyEvaluatorTest extends KernelTestCase
             colorMode: 'COLOR',
             paperSize: 'A4',
             copies: 1,
+            pageCount: 1,
         ));
 
         self::assertFalse($decision->authorized);
@@ -209,10 +217,99 @@ final class PrintPolicyEvaluatorTest extends KernelTestCase
             colorMode: 'SEPIA',
             paperSize: 'A5',
             copies: 1,
+            pageCount: 1,
         ));
 
         self::assertFalse($decision->authorized);
         self::assertSame(PolicyDecision::REASON_RATE_NOT_CONFIGURED, $decision->reasonCode);
+    }
+
+    /**
+     * Régression job #19 : 3 pages x 3 copies était facturé 3 x 30c (les
+     * pages étaient ignorées) au lieu de 9 x 30c.
+     */
+    public function testCustomerChargedPerPageTimesCopies(): void
+    {
+        $customer = $this->buildCustomer('0699000010', balanceCents: 1000);
+
+        $decision = $this->evaluator->evaluate(new PrintChargeContext(
+            beneficiary: $customer,
+            colorMode: 'MONOCHROME',
+            paperSize: 'A4',
+            copies: 3,
+            pageCount: 3,
+        ));
+
+        self::assertTrue($decision->authorized);
+        self::assertSame(270, $decision->amountChargedCents);
+        self::assertSame(730, $customer->getBalanceCents());
+
+        $line = $this->findTransactionByReference($decision->transactionReference)->getLines()->first();
+        self::assertSame(3, $line->getCopies());
+        self::assertSame(90, $line->getUnitPriceCents()); // prix d'une copie de 3 pages
+    }
+
+    /**
+     * Facturation à la face : un recto-verso de 2 pages coûte 2 faces,
+     * pas 1 feuille.
+     */
+    public function testDuplexBilledPerPrintedFace(): void
+    {
+        $customer = $this->buildCustomer('0699000011', balanceCents: 1000);
+
+        $decision = $this->evaluator->evaluate(new PrintChargeContext(
+            beneficiary: $customer,
+            colorMode: 'MONOCHROME',
+            paperSize: 'A4',
+            copies: 2,
+            pageCount: 2,
+            duplexMode: 'TWO_SIDED',
+        ));
+
+        self::assertTrue($decision->authorized);
+        self::assertSame(120, $decision->amountChargedCents); // 4 faces x 30c
+    }
+
+    /**
+     * 3 pages x 2 copies, solde mairie 50c : une copie complète coûte 30c
+     * au tarif mairie -> 1 copie mairie (30c), la 2e bascule au tarif asso
+     * (3 x 30c = 90c). Le reliquat mairie (20c) ne couvre pas une copie
+     * entière, il reste intact.
+     */
+    public function testMunicipalSplitIsPerWholeDocumentCopy(): void
+    {
+        $association = $this->buildAssociation('0699000012', personalCents: 1000, municipalCents: 50);
+
+        $decision = $this->evaluator->evaluate(new PrintChargeContext(
+            beneficiary: $association,
+            colorMode: 'MONOCHROME',
+            paperSize: 'A4',
+            copies: 2,
+            pageCount: 3,
+        ));
+
+        self::assertTrue($decision->authorized);
+        self::assertSame(120, $decision->amountChargedCents);
+        self::assertSame('MIXED', $decision->fundingSource);
+        self::assertSame(20, $association->getMunicipalBalanceCents());
+        self::assertSame(910, $association->getBalanceCents());
+    }
+
+    public function testRefusedWhenPageCountUnknown(): void
+    {
+        $customer = $this->buildCustomer('0699000013', balanceCents: 1000);
+
+        $decision = $this->evaluator->evaluate(new PrintChargeContext(
+            beneficiary: $customer,
+            colorMode: 'MONOCHROME',
+            paperSize: 'A4',
+            copies: 1,
+            pageCount: 0,
+        ));
+
+        self::assertFalse($decision->authorized);
+        self::assertSame(PolicyDecision::REASON_INVALID_REQUEST, $decision->reasonCode);
+        self::assertSame(1000, $customer->getBalanceCents());
     }
 
     private function buildCustomer(string $phoneNumber, int $balanceCents): Customer

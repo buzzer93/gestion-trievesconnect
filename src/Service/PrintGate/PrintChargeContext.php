@@ -27,7 +27,7 @@ final readonly class PrintChargeContext
         public string $colorMode,
         public string $paperSize,
         public int $copies,
-        public int $pageCount = 0,
+        public int $pageCount,
         public ?string $duplexMode = null,
         public ?PrintGateDevice $device = null,
         public ?int $jobId = null,

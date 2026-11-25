@@ -31,7 +31,9 @@ final class PrintAuthorizationControllerTest extends WebTestCase
         $client = static::createClient();
         $secretKey = $this->registerTestDevice();
         $this->registerTestCustomer();
-        $body = $this->samplePayload(jobId: 101);
+        // jobId 104 et non plus 101 : le 101 a été enregistré à 50c en base
+        // de test avant la prise en compte de pageCount (idempotence).
+        $body = $this->samplePayload(jobId: 104);
 
         $client->request('POST', '/api/printgate/authorize', server: [
             'CONTENT_TYPE' => 'application/json',
@@ -44,7 +46,7 @@ final class PrintAuthorizationControllerTest extends WebTestCase
         // téléphone existe et a assez de crédits -- cf. registerTestCustomer().
         self::assertTrue($payload['authorized']);
         self::assertNull($payload['reason'] ?? null);
-        self::assertSame(50, $payload['amountChargedCents']);
+        self::assertSame(200, $payload['amountChargedCents']); // 4 pages x 1 copie x 50c (COLOR/A4)
         self::assertSame('CUSTOMER', $payload['fundingSource']);
         self::assertNotEmpty($payload['transactionReference']);
     }

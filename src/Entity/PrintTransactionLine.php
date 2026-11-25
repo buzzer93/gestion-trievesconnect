@@ -13,7 +13,9 @@ use Doctrine\ORM\Mapping as ORM;
  * donné -- une transaction associative éligible au financement mairie
  * produit jusqu'à 2 lignes (MUNICIPAL puis ASSOCIATION_PERSONAL) quand le
  * crédit mairie ne couvre pas la totalité des copies (bascule par unité,
- * cf. PrintPolicyEvaluator). $unitPriceCents est dupliqué ici plutôt que
+ * cf. PrintPolicyEvaluator). $unitPriceCents est le prix d'UNE copie du
+ * document (tarif à la page x pageCount), pas le tarif à la page ; il est
+ * dupliqué ici plutôt que
  * recalculé depuis PrintPriceRate : la grille peut changer après coup,
  * l'historique doit rester fidèle au tarif réellement appliqué au moment
  * du débit.
