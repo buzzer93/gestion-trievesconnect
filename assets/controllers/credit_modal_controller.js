@@ -29,7 +29,7 @@ import { Controller } from '@hotwired/stimulus';
 export default class extends Controller {
     static targets = [
         'modalRoot', 'title', 'balanceLabel', 'balanceValue',
-        'amount', 'colorMode', 'paperSize', 'copies', 'estimatedCost',
+        'amount', 'item', 'copies', 'estimatedCost',
         'personalCreditSection', 'municipalCreditSection', 'municipalAmount',
         // Optionnelles : encarts soldes affichés hors modale (fiche association).
         'pageBalancePersonal', 'pageBalanceMunicipal',
@@ -86,9 +86,16 @@ export default class extends Controller {
         }
     }
 
+    // Valeur d'option "COLORMODE|PAPERSIZE" : impressions et services
+    // (colorMode SERVICE, cf. PrintPriceRate) passent par le même débit.
+    _selectedItem() {
+        const [colorMode = '', paperSize = ''] = this.itemTarget.value.split('|');
+
+        return { colorMode, paperSize };
+    }
+
     _computeEstimate() {
-        const colorMode = this.colorModeTarget.value;
-        const paperSize = this.paperSizeTarget.value;
+        const { colorMode, paperSize } = this._selectedItem();
         const copies = Math.max(1, parseInt(this.copiesTarget.value, 10) || 1);
 
         const rate = this.ratesValue.find(r => r.colorMode === colorMode && r.paperSize === paperSize);
@@ -143,8 +150,7 @@ export default class extends Controller {
         }
 
         await this._post(`${this.basePathValue}${this.currentId}/print-charge`, {
-            colorMode: this.colorModeTarget.value,
-            paperSize: this.paperSizeTarget.value,
+            ...this._selectedItem(),
             copies: Math.max(1, parseInt(this.copiesTarget.value, 10) || 1),
         }, (data) => {
             const personal = data.personalCredits ?? data.credits;

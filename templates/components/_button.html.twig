@@ -30,6 +30,8 @@
     extra_class  string  classes Tailwind additionnelles
     disabled     bool    désactivé
     title        string  attribut HTML title
+    form_id      string  pour <button> : id du <form> à soumettre (attribut HTML form),
+                         utile quand le bouton est placé dans un autre formulaire
 #}
 
 {%- set _base = 'inline-flex items-center justify-center gap-2 font-display font-bold uppercase tracking-wide transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed' -%}
@@ -63,6 +65,7 @@
   <button type="{{ type|default('button') }}" class="{{ _classes }}"
     {%- if disabled|default(false) %} disabled{% endif -%}
     {%- if title is defined %} title="{{ title }}"{% endif -%}
+    {%- if form_id is defined and form_id %} form="{{ form_id }}"{% endif -%}
   >
     {%- if icon is defined and icon and not (icon_right|default(false)) %}<i class="{{ icon }}" aria-hidden="true"></i>{% endif -%}
     <span>{{ label }}</span>

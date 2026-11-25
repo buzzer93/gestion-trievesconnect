@@ -2,7 +2,13 @@
   Affiche tous les flash messages Symfony.
   Mappe les types Symfony historiques (success/danger/warning/info/notice/error)
   vers les 4 types reconnus par components/_alert.html.twig.
+
+  app.flashes vide le FlashBag à chaque appel (FlashBag::all()) : on le lit
+  une seule fois dans une variable, sinon le test "is not empty" consomme
+  les messages et la boucle n'affiche plus rien.
 #}
+
+{%- set flashes = app.flashes -%}
 
 {%- set flash_type_map = {
     success: 'success',
@@ -13,9 +19,9 @@
     notice:  'info',
 } -%}
 
-{% if app.flashes is not empty %}
+{% if flashes is not empty %}
     <div class="space-y-3 mb-6">
-        {% for raw_type, messages in app.flashes %}
+        {% for raw_type, messages in flashes %}
             {% set alert_type = flash_type_map[raw_type] ?? 'info' %}
             {% for message in messages %}
                 {% include 'components/_alert.html.twig' with {

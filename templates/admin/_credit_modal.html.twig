@@ -18,7 +18,12 @@
   entièrement déterminé par PrintPolicyEvaluator (éligibilité + priorité),
   exactement comme pour PrintGate. Pas de section "débit mairie" séparée.
 
+  La liste "Article" (impressions + services comme la plastification) est
+  construite depuis la grille tarifaire du bénéficiaire : un service ajouté
+  dans "Tarifs impression" apparaît ici sans modification de code.
+
   Params :
+    rates          PrintPriceRate[]  grille du bénéficiaire (CLIENT ou ASSOCIATION)
     has_municipal  bool  autorise l'affichage de la section solde mairie
                          (association) -- le focus détermine ensuite si
                          elle est effectivement montrée à l'ouverture.
@@ -109,25 +114,27 @@
                         Débiter pour impression
                     </h6>
 
-                    <div class="grid grid-cols-2 gap-3 mb-3">
-                        <div>
-                            <label class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">Mode couleur</label>
-                            <select data-credit-modal-target="colorMode"
-                                    data-action="change->credit-modal#recomputeEstimate"
-                                    class="block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-accent">
-                                <option value="MONOCHROME">Monochrome</option>
-                                <option value="COLOR">Couleur</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">Format</label>
-                            <select data-credit-modal-target="paperSize"
-                                    data-action="change->credit-modal#recomputeEstimate"
-                                    class="block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-accent">
-                                <option value="A4">A4</option>
-                                <option value="A3">A3</option>
-                            </select>
-                        </div>
+                    {% set enabledRates = rates|filter(r => r.enabled) %}
+                    <div class="mb-3">
+                        <label for="creditModalItem" class="block text-xs font-bold uppercase tracking-wide text-text-soft mb-1.5">Article</label>
+                        <select id="creditModalItem"
+                                data-credit-modal-target="item"
+                                data-action="change->credit-modal#recomputeEstimate"
+                                class="block w-full bg-surface-200 text-text-primary border border-border rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-accent">
+                            <optgroup label="Impressions">
+                                {% for rate in enabledRates|filter(r => not r.service) %}
+                                    <option value="{{ rate.colorMode }}|{{ rate.paperSize }}"
+                                            {% if rate.colorMode == 'MONOCHROME' and rate.paperSize == 'A4' %}selected{% endif %}>
+                                        {{ rate.label }}
+                                    </option>
+                                {% endfor %}
+                            </optgroup>
+                            <optgroup label="Services">
+                                {% for rate in enabledRates|filter(r => r.service) %}
+                                    <option value="{{ rate.colorMode }}|{{ rate.paperSize }}">{{ rate.label }}</option>
+                                {% endfor %}
+                            </optgroup>
+                        </select>
                     </div>
 
                     <div class="flex flex-col sm:flex-row gap-3 mb-3">

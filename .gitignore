@@ -31,3 +31,6 @@ public/error_log
 ###> claude-ai/claude-php-sdk ###
 /.claude/
 ###< claude-ai/claude-php-sdk ###
+
+# Traces du navigateur automatisé (Playwright MCP) : captures, logs, snapshots de pages
+/.playwright-mcp/

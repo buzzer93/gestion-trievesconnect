@@ -1,0 +1,60 @@
+{#
+  admin/print_pricing/_rate_table.html.twig — Tableau d'une grille tarifaire
+
+  Rendu à l'intérieur du formulaire principal d'édition des prix. Le bouton
+  "Supprimer" de chaque ligne ne peut pas porter son propre <form> (pas de
+  formulaires imbriqués en HTML) : il cible via form_id un formulaire caché
+  rendu hors du formulaire principal (cf. index.html.twig).
+
+  Params :
+    rates         PrintPriceRate[]  lignes de la grille
+    show_enabled  bool              affiche la colonne "Activé" (grille MUNICIPAL)
+#}
+
+{%- set _columns = show_enabled ? 4 : 3 -%}
+
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Article</th>
+            <th>Prix unitaire (€)</th>
+            {% if show_enabled %}<th>Activé</th>{% endif %}
+            <th class="text-center">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for rate in rates %}
+            <tr>
+                <td>
+                    {{ rate.label }}
+                    {% if rate.service %}<span class="ml-2 text-xs uppercase tracking-wide text-text-muted">Service</span>{% endif %}
+                </td>
+                <td>
+                    <input type="number" step="0.01" min="0" name="price_{{ rate.id }}"
+                           value="{{ (rate.priceCents / 100)|number_format(2, '.', '') }}"
+                           aria-label="Prix {{ rate.label }}"
+                           class="bg-surface-200 border border-border rounded-md px-3 py-1.5 text-sm w-32">
+                </td>
+                {% if show_enabled %}
+                    <td>
+                        <input type="checkbox" name="enabled_{{ rate.id }}"
+                               {% if rate.enabled %}checked{% endif %}
+                               class="w-4 h-4 rounded-sm bg-surface-300 border border-border text-gold focus:ring-gold focus:ring-2">
+                    </td>
+                {% endif %}
+                <td class="text-center">
+                    {% include 'components/_button.html.twig' with {
+                        label: 'Supprimer',
+                        variant: 'danger',
+                        size: 'sm',
+                        type: 'submit',
+                        icon: 'fa-solid fa-trash',
+                        form_id: 'delete-rate-' ~ rate.id,
+                    } only %}
+                </td>
+            </tr>
+        {% else %}
+            <tr><td colspan="{{ _columns }}" class="text-center text-text-muted py-6">Aucun tarif configuré.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>

@@ -114,7 +114,7 @@
             </tbody>
         </table>
 
-        {% include 'admin/_credit_modal.html.twig' with { has_municipal: false } only %}
+        {% include 'admin/_credit_modal.html.twig' with { has_municipal: false, rates: rates } only %}
 
         <script>
             // === Scan téléphone : ouvre la modale crédit pour le client correspondant ============

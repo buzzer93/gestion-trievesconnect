@@ -123,6 +123,6 @@
             </tbody>
         </table>
 
-        {% include 'admin/_credit_modal.html.twig' with { has_municipal: true } only %}
+        {% include 'admin/_credit_modal.html.twig' with { has_municipal: true, rates: rates } only %}
     </div>
 {% endblock %}

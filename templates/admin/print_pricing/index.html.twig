@@ -2,96 +2,103 @@
 
 {% block title %}Tarifs d'impression · Trieves Connect Manager{% endblock %}
 
+{% set scopeLabels = {
+    CLIENT: 'Clients',
+    ASSOCIATION: 'Associations -- solde personnel',
+    MUNICIPAL: 'Associations -- financement mairie',
+} %}
+{% set colorModeLabels = { MONOCHROME: 'Monochrome', COLOR: 'Couleur', SERVICE: 'Service (hors impression)' } %}
+{% set fieldClass = 'bg-surface-200 border border-border rounded-md px-3 py-1.5 text-sm' %}
+{% set labelClass = 'text-xs font-bold uppercase tracking-wide text-text-soft' %}
+
 {% block body %}
     {% include 'components/_page_header.html.twig' with {
         title: 'Tarifs d\'impression',
         subtitle: 'Trois grilles distinctes : clients, associations, financement mairie.',
     } only %}
 
+    <details class="mb-8">
+        <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer inline-flex items-center justify-center gap-2 font-display font-bold uppercase tracking-wide text-sm px-4 py-2 rounded-md border-2 bg-transparent text-text-primary border-accent hover:bg-accent hover:text-bg transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-accent">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            <span>Ajouter un tarif</span>
+        </summary>
+
+        <form id="add-rate-form" method="post" action="{{ path('admin.print_pricing.create') }}"
+              class="mt-4 bg-surface-300 border border-border rounded-md p-5 flex flex-wrap items-end gap-4">
+            <input type="hidden" name="_token" value="{{ csrf_token('print_price_rate_create') }}">
+
+            <label class="flex flex-col gap-1.5">
+                <span class="{{ labelClass }}">Grille</span>
+                <select name="scope" required class="{{ fieldClass }}">
+                    {% for scope in scopes %}
+                        <option value="{{ scope }}">{{ scopeLabels[scope] }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label class="flex flex-col gap-1.5">
+                <span class="{{ labelClass }}">Type</span>
+                <select name="color_mode" required class="{{ fieldClass }}">
+                    {% for colorMode in colorModes %}
+                        <option value="{{ colorMode }}">{{ colorModeLabels[colorMode] }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label class="flex flex-col gap-1.5">
+                <span class="{{ labelClass }}">Format ou code service</span>
+                <input type="text" name="paper_size" required maxlength="32" placeholder="A4"
+                       list="paper-size-suggestions" class="{{ fieldClass }} w-44 uppercase">
+                <datalist id="paper-size-suggestions">
+                    <option value="A4"></option>
+                    <option value="A3"></option>
+                    <option value="A5"></option>
+                </datalist>
+            </label>
+
+            <label class="flex flex-col gap-1.5">
+                <span class="{{ labelClass }}">Prix unitaire (€)</span>
+                <input type="number" name="price" required step="0.01" min="0" placeholder="0.10"
+                       class="{{ fieldClass }} w-32">
+            </label>
+
+            {% include 'components/_button.html.twig' with {
+                label: 'Ajouter',
+                variant: 'accent',
+                type: 'submit',
+                icon: 'fa-solid fa-check',
+            } only %}
+
+            <p class="basis-full text-xs text-text-muted m-0">
+                <i class="fa-solid fa-circle-info mr-1" aria-hidden="true"></i>
+                Un tarif ajouté à la grille mairie est activé par défaut : décochez "Activé" ensuite si la mairie ne doit pas encore le financer.
+                Pour un service (ex. SCAN, lettres, chiffres, _ et - uniquement), ajoutez-le dans chaque grille concernée : il apparaît ensuite dans "Débiter" sur les fiches clients et associations.
+            </p>
+        </form>
+    </details>
+
     <form method="post" action="{{ path('admin.print_pricing.index') }}" class="flex flex-col gap-8">
         <input type="hidden" name="_token" value="{{ csrf_token('print_pricing_edit') }}">
 
-        {% embed 'components/_card.html.twig' with { padding: 'lg', title: 'Clients', rates: clientRates } only %}
+        {% embed 'components/_card.html.twig' with { padding: 'lg', title: scopeLabels.CLIENT, rates: clientRates } only %}
             {% block body %}
-                <table class="data-table">
-                    <thead>
-                        <tr><th>Mode couleur</th><th>Format</th><th>Prix par copie (€)</th></tr>
-                    </thead>
-                    <tbody>
-                        {% for rate in rates %}
-                            <tr>
-                                <td>{{ rate.colorMode == 'COLOR' ? 'Couleur' : 'Monochrome' }}</td>
-                                <td>{{ rate.paperSize }}</td>
-                                <td>
-                                    <input type="number" step="0.01" min="0" name="price_{{ rate.id }}"
-                                           value="{{ (rate.priceCents / 100)|number_format(2, '.', '') }}"
-                                           class="bg-surface-200 border border-border rounded-md px-3 py-1.5 text-sm w-32">
-                                </td>
-                            </tr>
-                        {% else %}
-                            <tr><td colspan="3" class="text-center text-text-muted py-6">Aucun tarif configuré.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                {% include 'admin/print_pricing/_rate_table.html.twig' with { rates: rates, show_enabled: false } only %}
             {% endblock %}
         {% endembed %}
 
-        {% embed 'components/_card.html.twig' with { padding: 'lg', title: 'Associations -- solde personnel', rates: associationRates } only %}
+        {% embed 'components/_card.html.twig' with { padding: 'lg', title: scopeLabels.ASSOCIATION, rates: associationRates } only %}
             {% block body %}
-                <table class="data-table">
-                    <thead>
-                        <tr><th>Mode couleur</th><th>Format</th><th>Prix par copie (€)</th></tr>
-                    </thead>
-                    <tbody>
-                        {% for rate in rates %}
-                            <tr>
-                                <td>{{ rate.colorMode == 'COLOR' ? 'Couleur' : 'Monochrome' }}</td>
-                                <td>{{ rate.paperSize }}</td>
-                                <td>
-                                    <input type="number" step="0.01" min="0" name="price_{{ rate.id }}"
-                                           value="{{ (rate.priceCents / 100)|number_format(2, '.', '') }}"
-                                           class="bg-surface-200 border border-border rounded-md px-3 py-1.5 text-sm w-32">
-                                </td>
-                            </tr>
-                        {% else %}
-                            <tr><td colspan="3" class="text-center text-text-muted py-6">Aucun tarif configuré.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                {% include 'admin/print_pricing/_rate_table.html.twig' with { rates: rates, show_enabled: false } only %}
             {% endblock %}
         {% endembed %}
 
-        {% embed 'components/_card.html.twig' with { padding: 'lg', title: 'Associations -- financement mairie', rates: municipalRates } only %}
+        {% embed 'components/_card.html.twig' with { padding: 'lg', title: scopeLabels.MUNICIPAL, rates: municipalRates } only %}
             {% block body %}
                 <p class="text-xs text-text-muted mb-4">
                     <i class="fa-solid fa-circle-info mr-1" aria-hidden="true"></i>
                     Seules les combinaisons cochées "Activé" sont finançables par le crédit mairie. Une impression non activée ici est toujours payée par le solde personnel de l'association, quel que soit son solde mairie.
                 </p>
-                <table class="data-table">
-                    <thead>
-                        <tr><th>Mode couleur</th><th>Format</th><th>Prix par copie (€)</th><th>Activé</th></tr>
-                    </thead>
-                    <tbody>
-                        {% for rate in rates %}
-                            <tr>
-                                <td>{{ rate.colorMode == 'COLOR' ? 'Couleur' : 'Monochrome' }}</td>
-                                <td>{{ rate.paperSize }}</td>
-                                <td>
-                                    <input type="number" step="0.01" min="0" name="price_{{ rate.id }}"
-                                           value="{{ (rate.priceCents / 100)|number_format(2, '.', '') }}"
-                                           class="bg-surface-200 border border-border rounded-md px-3 py-1.5 text-sm w-32">
-                                </td>
-                                <td>
-                                    <input type="checkbox" name="enabled_{{ rate.id }}"
-                                           {% if rate.enabled %}checked{% endif %}
-                                           class="w-4 h-4 rounded-sm bg-surface-300 border border-border text-gold focus:ring-gold focus:ring-2">
-                                </td>
-                            </tr>
-                        {% else %}
-                            <tr><td colspan="4" class="text-center text-text-muted py-6">Aucun tarif configuré.</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                {% include 'admin/print_pricing/_rate_table.html.twig' with { rates: rates, show_enabled: true } only %}
             {% endblock %}
         {% endembed %}
 
@@ -101,4 +108,18 @@
             </button>
         </div>
     </form>
+
+    {# Formulaires de suppression, ciblés par les boutons "Supprimer" des tableaux (cf. _rate_table.html.twig). #}
+    {% for rate in clientRates|merge(associationRates)|merge(municipalRates) %}
+        {% set combination = rate.label %}
+        {% set consequence = rate.scope == 'MUNICIPAL'
+            ? '« ' ~ combination ~ ' » ne sera plus finançable par le crédit mairie.'
+            : '« ' ~ combination ~ ' » sera refusé pour les ' ~ (rate.scope == 'CLIENT' ? 'clients' : 'associations') ~ ' tant qu\'aucun tarif n\'existe.' %}
+        <form id="delete-rate-{{ rate.id }}" method="post" class="hidden"
+              action="{{ path('admin.print_pricing.delete', {id: rate.id}) }}"
+              onsubmit="return confirm('{{ ('Supprimer ce tarif (' ~ scopeLabels[rate.scope]|default(rate.scope) ~ ' / ' ~ combination ~ ') ? ' ~ consequence)|e('js') }}');">
+            <input type="hidden" name="_method" value="DELETE">
+            <input type="hidden" name="_token" value="{{ csrf_token('print_price_rate_delete_' ~ rate.id) }}">
+        </form>
+    {% endfor %}
 {% endblock %}

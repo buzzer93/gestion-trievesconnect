@@ -47,12 +47,12 @@
     </div>
 
     <h6 class="font-display font-bold text-xs uppercase tracking-wide text-text-soft mb-3">
-        Total par type d'impression -- pour la facture mairie
+        Total par type d'impression ou de service -- pour la facture mairie
     </h6>
     <table class="data-table mb-6">
         <thead>
             <tr>
-                <th>Type (couleur / format)</th>
+                <th>Type</th>
                 <th>Copies</th>
                 <th>Pages</th>
                 <th>Montant</th>
@@ -101,7 +101,7 @@
                 <tr>
                     <td class="text-text-soft">{{ entry.createdAt|date('d/m/Y H:i') }}</td>
                     <td class="font-mono text-sm text-text-soft">{{ entry.jobId ? '#' ~ entry.jobId : '--' }}</td>
-                    <td class="text-text-soft">{{ entry.colorMode ?? 'MONOCHROME' }} / {{ entry.paperSize ?? 'A4' }}</td>
+                    <td class="text-text-soft">{{ entry.label }}</td>
                     <td class="font-mono text-sm text-text-soft">{{ entry.copies }}</td>
                     <td class="font-mono text-sm text-text-soft">{{ entry.pageCount }}</td>
                     <td class="font-mono text-sm text-text-soft">{{ (entry.amountCents / 100)|number_format(2, ',', '') }} €</td>

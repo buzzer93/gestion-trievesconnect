@@ -90,6 +90,7 @@ class AssociationController extends AbstractController
                 'jobId' => $entry->getPrintJobId(),
                 'colorMode' => $entry->getColorMode(),
                 'paperSize' => $entry->getPaperSize(),
+                'label' => PrintPriceRate::labelFor($entry->getColorMode(), $entry->getPaperSize()),
                 'amountCents' => $entry->getAmountSpentCents(),
                 'municipal' => $entry->isMunicipal(),
                 // Ancien journal figé : pas annulable (factures déjà émises).
@@ -106,6 +107,7 @@ class AssociationController extends AbstractController
                 'jobId' => $transaction->getJobId(),
                 'colorMode' => $transaction->getColorMode(),
                 'paperSize' => $transaction->getPaperSize(),
+                'label' => PrintPriceRate::labelFor($transaction->getColorMode(), $transaction->getPaperSize()),
                 'amountCents' => $line->getAmountCents(),
                 'municipal' => PrintTransaction::FUNDING_MUNICIPAL === $line->getFundingSource(),
                 'reference' => $transaction->getReference(),
@@ -184,7 +186,7 @@ class AssociationController extends AbstractController
         $entries = [];
 
         foreach ($legacyRepository->findForQuarter($association, $year, $quarter) as $entry) {
-            $key = ($entry->getColorMode() ?? 'MONOCHROME').' / '.($entry->getPaperSize() ?? 'A4');
+            $key = PrintPriceRate::labelFor($entry->getColorMode(), $entry->getPaperSize());
             $byType[$key] ??= ['pageCount' => 0, 'copies' => 0, 'amountCents' => 0];
             $byType[$key]['pageCount'] += $entry->getPageCount();
             $byType[$key]['copies'] += $entry->getCopies();
@@ -196,6 +198,7 @@ class AssociationController extends AbstractController
                 'jobId' => $entry->getPrintJobId(),
                 'colorMode' => $entry->getColorMode(),
                 'paperSize' => $entry->getPaperSize(),
+                'label' => PrintPriceRate::labelFor($entry->getColorMode(), $entry->getPaperSize()),
                 'copies' => $entry->getCopies(),
                 'pageCount' => $entry->getPageCount(),
                 'amountCents' => $entry->getAmountSpentCents(),
@@ -204,7 +207,7 @@ class AssociationController extends AbstractController
 
         foreach ($lineRepository->findMunicipalForQuarter($association, $year, $quarter) as $line) {
             $transaction = $line->getTransaction();
-            $key = ($transaction->getColorMode() ?? 'MONOCHROME').' / '.($transaction->getPaperSize() ?? 'A4');
+            $key = PrintPriceRate::labelFor($transaction->getColorMode(), $transaction->getPaperSize());
             $byType[$key] ??= ['pageCount' => 0, 'copies' => 0, 'amountCents' => 0];
             $byType[$key]['pageCount'] += $transaction->getPageCount();
             $byType[$key]['copies'] += $line->getCopies();
@@ -216,6 +219,7 @@ class AssociationController extends AbstractController
                 'jobId' => $transaction->getJobId(),
                 'colorMode' => $transaction->getColorMode(),
                 'paperSize' => $transaction->getPaperSize(),
+                'label' => PrintPriceRate::labelFor($transaction->getColorMode(), $transaction->getPaperSize()),
                 'copies' => $line->getCopies(),
                 'pageCount' => $transaction->getPageCount(),
                 'amountCents' => $line->getAmountCents(),

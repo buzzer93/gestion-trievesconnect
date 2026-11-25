@@ -98,7 +98,7 @@
                             <tr class="{{ entry.cancelled ? 'opacity-60' }}">
                                 <td class="text-text-soft">{{ entry.createdAt|date('d/m/Y H:i') }}</td>
                                 <td class="font-mono text-sm text-text-soft">{{ entry.jobId ? '#' ~ entry.jobId : '--' }}</td>
-                                <td class="text-text-soft">{{ entry.colorMode ?? 'MONOCHROME' }} / {{ entry.paperSize ?? 'A4' }}</td>
+                                <td class="text-text-soft">{{ entry.label }}</td>
                                 <td class="font-mono text-sm text-gold {{ entry.cancelled ? 'line-through' }}">{{ (entry.amountCents / 100)|number_format(2, ',', '') }} €</td>
                                 <td>{% include 'admin/association/_transaction_cancel.html.twig' with { association: association, entry: entry } only %}</td>
                             </tr>
@@ -132,7 +132,7 @@
                             <tr class="{{ entry.cancelled ? 'opacity-60' }}">
                                 <td class="text-text-soft">{{ entry.createdAt|date('d/m/Y H:i') }}</td>
                                 <td class="font-mono text-sm text-text-soft">{{ entry.jobId ? '#' ~ entry.jobId : '--' }}</td>
-                                <td class="text-text-soft">{{ entry.colorMode ?? 'MONOCHROME' }} / {{ entry.paperSize ?? 'A4' }}</td>
+                                <td class="text-text-soft">{{ entry.label }}</td>
                                 <td class="font-mono text-sm text-text-soft {{ entry.cancelled ? 'line-through' }}">{{ (entry.amountCents / 100)|number_format(2, ',', '') }} €</td>
                                 <td>{% include 'admin/association/_transaction_cancel.html.twig' with { association: association, entry: entry } only %}</td>
                             </tr>
@@ -148,6 +148,6 @@
             </div>
         </div>
 
-        {% include 'admin/_credit_modal.html.twig' with { has_municipal: true } only %}
+        {% include 'admin/_credit_modal.html.twig' with { has_municipal: true, rates: rates } only %}
     </div>
 {% endblock %}

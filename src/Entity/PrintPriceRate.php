@@ -29,6 +29,21 @@ class PrintPriceRate
     public const SCOPE_CLIENT = 'CLIENT';
     public const SCOPE_ASSOCIATION = 'ASSOCIATION';
     public const SCOPE_MUNICIPAL = 'MUNICIPAL';
+    public const SCOPES = [self::SCOPE_CLIENT, self::SCOPE_ASSOCIATION, self::SCOPE_MUNICIPAL];
+
+    /**
+     * Mode réservé aux services hors impression (plastification, reliure...,
+     * demande client du 2026-11-25) : $paperSize porte alors le code du
+     * service. Réutiliser la grille plutôt qu'un modèle "produit" dédié
+     * laisse PrintPolicyEvaluator inchangé (priorité mairie, historique,
+     * annulation, facture trimestrielle). PrintGate ne peut jamais débiter
+     * un service : PrintJobPayload n'accepte que COLOR/MONOCHROME.
+     */
+    public const COLOR_MODE_SERVICE = 'SERVICE';
+    public const COLOR_MODES = ['MONOCHROME', 'COLOR', self::COLOR_MODE_SERVICE];
+
+    private const COLOR_MODE_LABELS = ['MONOCHROME' => 'Monochrome', 'COLOR' => 'Couleur'];
+    private const SERVICE_LABELS = ['PLASTIFICATION' => 'Plastification', 'RELIURE_DOSSIER' => 'Reliure de dossier'];
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -84,6 +99,34 @@ class PrintPriceRate
     public function getPaperSize(): string
     {
         return $this->paperSize;
+    }
+
+    public function isService(): bool
+    {
+        return self::COLOR_MODE_SERVICE === $this->colorMode;
+    }
+
+    public function getLabel(): string
+    {
+        return self::labelFor($this->colorMode, $this->paperSize);
+    }
+
+    /**
+     * Libellé lisible d'un article ("Monochrome A4", "Plastification"),
+     * aussi utilisé pour les transactions, qui stockent couleur/format en
+     * chaînes. Valeurs nulles = anciennes impressions, considérées
+     * MONOCHROME/A4 comme ailleurs dans le projet.
+     */
+    public static function labelFor(?string $colorMode, ?string $paperSize): string
+    {
+        $colorMode ??= 'MONOCHROME';
+        $paperSize ??= 'A4';
+
+        if (self::COLOR_MODE_SERVICE === $colorMode) {
+            return self::SERVICE_LABELS[$paperSize] ?? ucfirst(strtolower(str_replace('_', ' ', $paperSize)));
+        }
+
+        return (self::COLOR_MODE_LABELS[$colorMode] ?? $colorMode).' '.$paperSize;
     }
 
     public function getPriceCents(): int

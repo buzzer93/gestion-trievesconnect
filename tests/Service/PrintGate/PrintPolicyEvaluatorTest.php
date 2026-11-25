@@ -24,6 +24,8 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  * son PHPDoc) : CLIENT/ASSOCIATION identiques (MONOCHROME/A4=30c,
  * MONOCHROME/A3=60c, COLOR/A4=50c, COLOR/A3=100c), MUNICIPAL
  * MONOCHROME/A4=10c activé, tout le reste désactivé.
+ * Services (seedés par Version20261125110000) : SERVICE/PLASTIFICATION=200c
+ * et SERVICE/RELIURE_DOSSIER=400c, identiques et activés dans les 3 grilles.
  */
 final class PrintPolicyEvaluatorTest extends KernelTestCase
 {
@@ -310,6 +312,46 @@ final class PrintPolicyEvaluatorTest extends KernelTestCase
         self::assertFalse($decision->authorized);
         self::assertSame(PolicyDecision::REASON_INVALID_REQUEST, $decision->reasonCode);
         self::assertSame(1000, $customer->getBalanceCents());
+    }
+
+    public function testCustomerChargedForBindingService(): void
+    {
+        $customer = $this->buildCustomer('0699000020', balanceCents: 1000);
+
+        $decision = $this->evaluator->evaluate(new PrintChargeContext(
+            beneficiary: $customer,
+            colorMode: 'SERVICE',
+            paperSize: 'RELIURE_DOSSIER',
+            copies: 2,
+            pageCount: 1,
+        ));
+
+        self::assertTrue($decision->authorized);
+        self::assertSame(800, $decision->amountChargedCents);
+        self::assertSame(200, $customer->getBalanceCents());
+    }
+
+    /**
+     * Décision du 2026-11-25 : le crédit mairie peut financer les services,
+     * au même prix que pour un client.
+     */
+    public function testAssociationLaminationPaidByMunicipalCredit(): void
+    {
+        $association = $this->buildAssociation('0699000021', personalCents: 0, municipalCents: 1000);
+
+        $decision = $this->evaluator->evaluate(new PrintChargeContext(
+            beneficiary: $association,
+            colorMode: 'SERVICE',
+            paperSize: 'PLASTIFICATION',
+            copies: 3,
+            pageCount: 1,
+        ));
+
+        self::assertTrue($decision->authorized);
+        self::assertSame(600, $decision->amountChargedCents);
+        self::assertSame(PrintTransaction::FUNDING_MUNICIPAL, $decision->fundingSource);
+        self::assertSame(400, $association->getMunicipalBalanceCents());
+        self::assertSame(0, $association->getBalanceCents());
     }
 
     private function buildCustomer(string $phoneNumber, int $balanceCents): Customer
